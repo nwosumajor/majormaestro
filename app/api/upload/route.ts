@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
 import path from "path";
-import crypto from "crypto";
+import { putObject } from "@/lib/uploads";
 
-const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
 const ALLOWED_TYPES = new Set([
   "application/pdf",
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "text/csv",
-  "application/octet-stream", // some browsers send this for xlsx
+  "application/octet-stream",
 ]);
 const ALLOWED_EXTS = new Set([".pdf", ".xls", ".xlsx", ".csv"]);
 
@@ -38,24 +36,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await mkdir(UPLOAD_DIR, { recursive: true });
-
-    const safeName = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}${ext}`;
-    const filePath = path.join(UPLOAD_DIR, safeName);
-    const bytes = await file.arrayBuffer();
-    await writeFile(filePath, Buffer.from(bytes));
+    const bytes = Buffer.from(await file.arrayBuffer());
+    const contentType = file.type || `application/${ext.slice(1)}`;
+    const stored = await putObject({ bytes, fileExt: ext, contentType });
 
     return NextResponse.json({
       success: true,
       fileName: file.name,
-      storedAs: safeName,
+      storedAs: stored.key,
+      storageBackend: stored.backend,
       size: file.size,
-      mimeType: file.type || `application/${ext.slice(1)}`,
+      mimeType: contentType,
     });
   } catch (err) {
     console.error("[/api/upload]", err);
     return NextResponse.json({ error: "Upload failed. Please try again." }, { status: 500 });
   }
 }
-
-// App Router handles multipart/form-data natively — no bodyParser config needed

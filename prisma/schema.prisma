@@ -8,40 +8,82 @@ generator client {
 }
 
 model RecoveryComplaint {
-  id                 String             @id @default(cuid())
-  referenceId        String             @unique
-  companyName        String
-  rcNumber           String
-  turnoverBand       String
-  banks              String[]
-  contactName        String
-  contactTitle       String
-  contactEmail       String
-  contactPhone       String
-  confirmedSignatory Boolean
-  agreedNDPA         Boolean
-  status             String             @default("received")
-  assignedTeam       String?
-  referralCode       String?
-  referral           Referral?          @relation(fields: [referralCode], references: [code])
-  documents          UploadedDocument[]
-  statusEvents       CaseStatusEvent[]
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  id                  String             @id @default(cuid())
+  referenceId         String             @unique
+  companyName         String
+  rcNumber            String
+  turnoverBand        String
+  banks               String[]
+  contactName         String
+  contactTitle        String
+  contactEmail        String
+  contactPhone        String
+  confirmedSignatory  Boolean
+  agreedNDPA          Boolean
+  status              String             @default("received")
+  assignedTeam        String?
+  referralCode        String?
+  referral            Referral?          @relation(fields: [referralCode], references: [code])
+  documents           UploadedDocument[]
+  statusEvents        CaseStatusEvent[]
+  notes               CaseNote[]
+  findingsSummary     String?
+  recoveryAmountKobo  BigInt?
+  closedAt            DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
 
   @@index([referralCode])
+  @@index([status])
+  @@index([createdAt])
+  @@index([closedAt])
 }
 
 model UploadedDocument {
-  id           String            @id @default(cuid())
-  complaintId  String
-  complaint    RecoveryComplaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
-  documentType String
-  fileName     String
-  storedAs     String
-  fileSize     Int
-  mimeType     String
-  uploadedAt   DateTime          @default(now())
+  id             String            @id @default(cuid())
+  complaintId    String
+  complaint      RecoveryComplaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  documentType   String
+  fileName       String
+  storedAs       String
+  fileSize       Int
+  mimeType       String
+  storageBackend String            @default("local")
+  uploadedAt     DateTime          @default(now())
+}
+
+model CaseNote {
+  id          String            @id @default(cuid())
+  complaintId String
+  complaint   RecoveryComplaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  authorEmail String
+  body        String
+  createdAt   DateTime          @default(now())
+
+  @@index([complaintId, createdAt])
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  role         String    @default("admin")
+  totpSecret   String?
+  totpEnabled  Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
+}
+
+model Webhook {
+  id          String   @id @default(cuid())
+  label       String
+  url         String
+  secret      String
+  active      Boolean  @default(true)
+  events      String[]
+  createdAt   DateTime @default(now())
+  lastSentAt  DateTime?
+  failCount   Int      @default(0)
 }
 
 model CaseStatusEvent {
@@ -82,4 +124,6 @@ model AuditLog {
 
   @@index([createdAt])
   @@index([targetType, targetId])
+  @@index([action])
+  @@index([actorLabel])
 }

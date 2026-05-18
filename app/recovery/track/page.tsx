@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, ClipboardList, CheckCircle2, Clock, AlertCircle, FileSearch, Loader2, ArrowRight, Phone } from "lucide-react";
+import { Search, ClipboardList, CheckCircle2, Clock, AlertCircle, FileSearch, Loader2, ArrowRight, Phone, Download, Shield } from "lucide-react";
 import Link from "next/link";
 
 interface StatusStep {
@@ -21,6 +21,89 @@ interface CaseStatus {
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function NdpaExport({ referenceId }: { referenceId: string }) {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/recovery/${encodeURIComponent(referenceId)}/data?email=${encodeURIComponent(email.trim())}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Failed to export." }));
+        throw new Error(data.error ?? "Failed to export.");
+      }
+      const data = await res.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${referenceId}-data-export.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setOpen(false);
+      setEmail("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to export.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3">
+      <div className="flex items-start gap-3">
+        <Shield size={16} className="mt-0.5 shrink-0 text-slate-500" />
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-bold text-slate-800">Your data, your rights (NDPA 2023)</p>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Download a copy of everything we hold about this case.
+          </p>
+          {!open ? (
+            <button
+              onClick={() => setOpen(true)}
+              className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900"
+            >
+              <Download size={11} /> Request data export
+            </button>
+          ) : (
+            <form onSubmit={handleSubmit} className="mt-2 flex flex-wrap gap-2">
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Confirm contact email on file"
+                className="flex-1 min-w-[200px] rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs focus:border-blue-600 focus:outline-none"
+              />
+              <button
+                type="submit"
+                disabled={loading || !email}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-800 disabled:opacity-60 transition-colors"
+              >
+                {loading ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />}
+                {loading ? "Preparing…" : "Download JSON"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setOpen(false); setError(null); }}
+                className="text-xs text-slate-400 hover:text-slate-600"
+              >
+                Cancel
+              </button>
+              {error && <p className="basis-full text-xs text-red-700">{error}</p>}
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function TrackPage() {
@@ -162,6 +245,8 @@ export default function TrackPage() {
                 <a href="mailto:forensics@majormaestro.com" className="font-semibold underline">forensics@majormaestro.com</a> quoting your reference ID.
               </p>
             </div>
+
+            <NdpaExport referenceId={status.referenceId} />
           </div>
         )}
 

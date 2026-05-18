@@ -35,6 +35,7 @@ interface UploadedFile {
   documentType: string;
   fileName: string;
   storedAs: string;
+  storageBackend?: "local" | "s3";
   size: number;
   mimeType: string;
 }
@@ -151,6 +152,7 @@ export default function IntakeForm({ referralCode }: { referralCode?: string }) 
           documentType: key,
           fileName: data.fileName,
           storedAs: data.storedAs,
+          storageBackend: data.storageBackend,
           size: data.size,
           mimeType: data.mimeType,
         },

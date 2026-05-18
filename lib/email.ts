@@ -6,6 +6,41 @@ const FROM = process.env.RESEND_FROM_EMAIL ?? "MajorGBN <noreply@majormaestro.co
 const INTERNAL_TEAM = process.env.INTERNAL_NOTIFY_EMAIL ?? "nwosumajor@gmail.com";
 const SUPPORT_EMAIL = "forensics@majormaestro.com";
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const FROM_RE = /^(?:.+ <([^>]+)>|([^<>]+))$/;
+
+export interface EmailConfigStatus {
+  configured: boolean;
+  fromValid: boolean;
+  internalNotifyValid: boolean;
+  problems: string[];
+}
+
+export function getEmailConfigStatus(): EmailConfigStatus {
+  const problems: string[] = [];
+  if (!process.env.RESEND_API_KEY) problems.push("RESEND_API_KEY is not set.");
+
+  const fromMatch = FROM.match(FROM_RE);
+  const fromAddress = fromMatch ? (fromMatch[1] ?? fromMatch[2]) : "";
+  const fromValid = !!fromAddress && EMAIL_RE.test(fromAddress);
+  if (!fromValid) problems.push(`RESEND_FROM_EMAIL "${FROM}" is malformed.`);
+
+  const internalNotifyValid = EMAIL_RE.test(INTERNAL_TEAM);
+  if (!internalNotifyValid) problems.push(`INTERNAL_NOTIFY_EMAIL "${INTERNAL_TEAM}" is malformed.`);
+
+  return {
+    configured: !!process.env.RESEND_API_KEY,
+    fromValid,
+    internalNotifyValid,
+    problems,
+  };
+}
+
+export async function sendPlain(opts: { to: string; subject: string; html: string }) {
+  if (!resend) throw new Error("RESEND_API_KEY is not set.");
+  return resend.emails.send({ from: FROM, to: opts.to, subject: opts.subject, html: opts.html });
+}
+
 function brandHeader(title: string) {
   return `
     <div style="background:#0f172a;padding:24px 32px;border-radius:12px 12px 0 0">

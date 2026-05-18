@@ -2,6 +2,10 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { ArrowRight, FolderSearch, Inbox, CheckCircle2, Banknote, Users } from "lucide-react";
 import { STEP_DEFS, type StepKey } from "@/lib/recoverySteps";
+import { getEmailConfigStatus } from "@/lib/email";
+import { getAdminFromCookies } from "@/lib/auth";
+import EmailStatusCard from "./EmailStatusCard";
+import { describeStorage } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +35,9 @@ export default async function AdminDashboardPage({
     ];
   }
 
+  const emailStatus = getEmailConfigStatus();
+  const me = await getAdminFromCookies();
+  const storage = describeStorage();
   const [cases, totalAll, totalActive, totalRecovered, referralCount] = await Promise.all([
     db.recoveryComplaint.findMany({
       where,
@@ -124,6 +131,21 @@ export default async function AdminDashboardPage({
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <EmailStatusCard configured={emailStatus.configured} problems={emailStatus.problems} adminEmail={me?.email ?? null} />
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Document storage</p>
+          <p className="mt-1 text-sm font-bold text-slate-900">
+            {storage.backend === "s3" ? `S3${storage.bucket ? ` · ${storage.bucket}` : ""}` : "Local disk (./uploads)"}
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            {storage.backend === "s3"
+              ? "Uploads are stored in S3 with AES-256 server-side encryption."
+              : "Switch to S3 in production by setting STORAGE_BACKEND=s3 and the S3_* env vars."}
+          </p>
+        </div>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">

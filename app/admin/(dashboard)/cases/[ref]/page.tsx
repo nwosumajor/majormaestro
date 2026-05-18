@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, FileText, Download, Building2, User, Phone, Mail, Banknote, Users, CheckCircle2, Clock } from "lucide-react";
+import { ArrowLeft, FileText, Download, Building2, User, Phone, Mail, Users, CheckCircle2, Clock, MessageSquare } from "lucide-react";
 import { db } from "@/lib/db";
 import { STEP_KEYS, STEP_DEFS, type StepKey } from "@/lib/recoverySteps";
 import AdvanceForm from "./AdvanceForm";
+import NotesPanel from "./NotesPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,7 @@ export default async function AdminCaseDetailPage({
     include: {
       statusEvents: { orderBy: { reachedAt: "asc" } },
       documents: { orderBy: { uploadedAt: "asc" } },
+      notes: { orderBy: { createdAt: "desc" } },
       referral: true,
     },
   });
@@ -136,6 +138,21 @@ export default async function AdminCaseDetailPage({
               referenceId={complaint.referenceId}
               currentStatus={complaint.status}
               reachedSteps={reachedSteps}
+            />
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-slate-500">
+              <MessageSquare size={13} /> Internal Notes
+            </h2>
+            <NotesPanel
+              referenceId={complaint.referenceId}
+              initialNotes={complaint.notes.map((n) => ({
+                id: n.id,
+                authorEmail: n.authorEmail,
+                body: n.body,
+                createdAt: n.createdAt.toISOString(),
+              }))}
             />
           </div>
 

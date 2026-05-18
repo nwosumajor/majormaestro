@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { recordAudit } from "@/lib/audit";
+import { getAdminFromRequest } from "@/lib/auth";
 
 function csvEscape(value: unknown): string {
   if (value === null || value === undefined) return "";
@@ -68,8 +69,10 @@ export async function GET(req: NextRequest) {
   }
   const csv = lines.join("\n");
 
+  const admin = await getAdminFromRequest(req);
   await recordAudit({
     action: "complaints_export",
+    actorLabel: admin?.email ?? "admin",
     metadata: { count: rows.length, status, from, to },
   });
 

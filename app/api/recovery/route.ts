@@ -10,6 +10,7 @@ interface DocumentInfo {
   storedAs: string;
   size: number;
   mimeType: string;
+  storageBackend?: "local" | "s3";
 }
 
 interface RecoveryPayload {
@@ -126,6 +127,7 @@ export async function POST(req: NextRequest) {
                     storedAs: d.storedAs,
                     fileSize: d.size,
                     mimeType: d.mimeType,
+                    storageBackend: d.storageBackend ?? "local",
                   })),
                 }
               : undefined,

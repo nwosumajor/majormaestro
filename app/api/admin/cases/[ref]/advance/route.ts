@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { STEP_KEYS, STEP_DEFS, type StepKey } from "@/lib/recoverySteps";
 import { recordAudit } from "@/lib/audit";
 import { sendStatusUpdate } from "@/lib/email";
+import { getAdminFromRequest } from "@/lib/auth";
 
 function isStepKey(s: string): s is StepKey {
   return (STEP_KEYS as readonly string[]).includes(s);
@@ -64,11 +65,13 @@ export async function POST(
     }),
   ]);
 
+  const admin = await getAdminFromRequest(req);
   await recordAudit({
     action: "case_advance",
+    actorLabel: admin?.email ?? "admin",
     targetType: "RecoveryComplaint",
     targetId: complaint.id,
-    metadata: { referenceId, step: targetStep, note },
+    metadata: { referenceId, step: targetStep, note, actorId: admin?.id },
   });
 
   // Email client unless explicitly suppressed

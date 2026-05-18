@@ -2,14 +2,17 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ShieldCheck, Lock, Loader2, AlertCircle } from "lucide-react";
+import { ShieldCheck, Lock, Mail, Loader2, AlertCircle, KeyRound } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/admin";
 
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [totp, setTotp] = useState("");
+  const [needsTotp, setNeedsTotp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,10 +24,15 @@ function LoginForm() {
       const res = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ email, password, totp: totp || undefined }),
       });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: "Login failed." }));
+        if (data.totpRequired) {
+          setNeedsTotp(true);
+          setError(data.error ?? "Authenticator code required.");
+          return;
+        }
         throw new Error(data.error ?? "Login failed.");
       }
       router.push(next.startsWith("/admin") ? next : "/admin");
@@ -39,19 +47,53 @@ function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl space-y-4">
       <div>
+        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-400">Email</label>
+        <div className="relative">
+          <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <input
+            type="email"
+            required
+            autoFocus
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@majormaestro.com"
+            className="w-full rounded-xl border border-slate-700 bg-slate-800 py-2.5 pl-9 pr-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition"
+          />
+        </div>
+      </div>
+      <div>
         <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-400">Password</label>
         <div className="relative">
           <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
             type="password"
             required
-            autoFocus
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full rounded-xl border border-slate-700 bg-slate-800 py-2.5 pl-9 pr-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition"
           />
         </div>
       </div>
+
+      {needsTotp && (
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-400">Authenticator code</label>
+          <div className="relative">
+            <KeyRound size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400" />
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              autoFocus
+              maxLength={8}
+              value={totp}
+              onChange={(e) => setTotp(e.target.value)}
+              placeholder="123456"
+              className="w-full rounded-xl border border-emerald-700 bg-slate-800 py-2.5 pl-9 pr-3 text-sm font-mono tracking-widest text-white placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition"
+            />
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
@@ -61,11 +103,11 @@ function LoginForm() {
 
       <button
         type="submit"
-        disabled={loading || !password}
+        disabled={loading || !email || !password || (needsTotp && !totp)}
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-60 transition-colors"
       >
         {loading ? <Loader2 size={15} className="animate-spin" /> : <ShieldCheck size={15} />}
-        {loading ? "Signing in…" : "Sign In"}
+        {loading ? "Signing in…" : needsTotp ? "Verify & Sign In" : "Sign In"}
       </button>
     </form>
   );
