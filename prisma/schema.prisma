@@ -1,0 +1,46 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model RecoveryComplaint {
+  id                 String             @id @default(cuid())
+  referenceId        String             @unique
+  companyName        String
+  rcNumber           String
+  turnoverBand       String
+  banks              String[]
+  contactName        String
+  contactTitle       String
+  contactEmail       String
+  contactPhone       String
+  confirmedSignatory Boolean
+  agreedNDPA         Boolean
+  status             String             @default("received")
+  documents          UploadedDocument[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+model UploadedDocument {
+  id           String            @id @default(cuid())
+  complaintId  String
+  complaint    RecoveryComplaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  documentType String
+  fileName     String
+  storedAs     String
+  fileSize     Int
+  mimeType     String
+  uploadedAt   DateTime          @default(now())
+}
+
+model LeadMagnetSubscriber {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  companyName String?
+  createdAt   DateTime @default(now())
+}
