@@ -99,7 +99,14 @@ const QUICK_NAV = [
   { href: "#intake", label: "Lodge Complaint" },
 ];
 
-export default function RecoveryPage() {
+export default async function RecoveryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ref?: string }>;
+}) {
+  const { ref } = await searchParams;
+  const referralCode = ref?.trim() || undefined;
+
   return (
     <div className="flex flex-col">
 
@@ -420,7 +427,7 @@ export default function RecoveryPage() {
             </div>
           </div>
 
-          <IntakeForm />
+          <IntakeForm referralCode={referralCode} />
 
           <p className="mt-6 text-center text-xs text-slate-600">
             Prefer to speak first?{" "}

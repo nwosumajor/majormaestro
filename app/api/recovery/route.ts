@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sendComplaintConfirmation, sendInternalComplaintNotification } from "@/lib/email";
+import { pickTeam } from "@/lib/recoverySteps";
 
 interface DocumentInfo {
   documentType: string;
@@ -22,6 +23,7 @@ interface RecoveryPayload {
   confirmedSignatory: boolean;
   agreedNDPA: boolean;
   documents?: DocumentInfo[];
+  referralCode?: string;
 }
 
 const REQUIRED_FIELDS: (keyof RecoveryPayload)[] = [
@@ -75,6 +77,18 @@ export async function POST(req: NextRequest) {
     }
 
     const referenceId = generateReference();
+    const assignedTeam = pickTeam(referenceId);
+
+    // Validate referral code if supplied — silently drop if unknown
+    let referralCode: string | undefined;
+    if (db && body.referralCode) {
+      try {
+        const found = await db.referral.findUnique({ where: { code: body.referralCode } });
+        if (found) referralCode = found.code;
+      } catch (dbErr) {
+        console.error("[recovery] Referral lookup error (non-fatal):", dbErr);
+      }
+    }
 
     // Persist to database
     if (db) {
@@ -92,6 +106,9 @@ export async function POST(req: NextRequest) {
             contactPhone: body.contactPhone,
             confirmedSignatory: body.confirmedSignatory,
             agreedNDPA: body.agreedNDPA,
+            assignedTeam,
+            referralCode,
+            statusEvents: { create: [{ step: "received" }] },
             documents: body.documents?.length
               ? {
                   create: body.documents.map((d) => ({

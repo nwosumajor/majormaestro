@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Gift, Copy, CheckCircle2, Users, TrendingUp, Shield, ArrowRight, Mail, MessageCircle } from "lucide-react";
+import { Gift, Copy, CheckCircle2, Users, TrendingUp, Shield, ArrowRight, Mail, MessageCircle, Loader2, AlertCircle } from "lucide-react";
 
 const BENEFITS = [
   { pct: "5%", desc: "of the first recovery achieved by your referred client, paid on completion" },
@@ -16,22 +16,33 @@ const HOW: { step: string; title: string; desc: string }[] = [
   { step: "04", title: "You Earn", desc: "Your commission is calculated at the point of recovery confirmation. Payment is made by bank transfer within 5 business days." },
 ];
 
-function generateRef(name: string, email: string) {
-  const slug = (name.split(" ")[0] ?? "ref").toLowerCase().replace(/[^a-z]/g, "").slice(0, 8);
-  const hash = btoa(`${email}|${Date.now()}`).replace(/[^A-Za-z0-9]/g, "").slice(0, 8).toUpperCase();
-  return `https://majormaestro.com/recovery?ref=${slug}-${hash}`;
-}
-
 export default function ReferPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [refLink, setRefLink] = useState("");
   const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleGenerate(e: React.FormEvent) {
+  async function handleGenerate(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || !email.trim()) return;
-    setRefLink(generateRef(name.trim(), email.trim()));
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/refer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim(), email: email.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to generate referral link.");
+      setRefLink(data.url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate referral link.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleCopy() {
@@ -132,11 +143,18 @@ export default function ReferPage() {
                     />
                   </div>
                 </div>
+                {error && (
+                  <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                    <AlertCircle size={13} className="mt-0.5 shrink-0" />{error}
+                  </div>
+                )}
                 <button
                   type="submit"
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white hover:bg-emerald-500 transition-colors"
+                  disabled={loading || !name.trim() || !email.trim()}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                 >
-                  <Gift size={16} /> Generate My Referral Link
+                  {loading ? <Loader2 size={16} className="animate-spin" /> : <Gift size={16} />}
+                  {loading ? "Generating…" : "Generate My Referral Link"}
                 </button>
               </form>
             ) : (

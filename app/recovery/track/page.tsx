@@ -5,71 +5,48 @@ import { Search, ClipboardList, CheckCircle2, Clock, AlertCircle, FileSearch, Lo
 import Link from "next/link";
 
 interface StatusStep {
+  key: string;
   label: string;
   description: string;
-  doneAt?: string;
+  reachedAt: string | null;
 }
 
-function deriveStatus(refId: string): { currentStep: number; steps: StatusStep[]; assignedTeam: string } {
-  // Extract timestamp from reference ID: GBN-<base36 timestamp>-<rand>
-  const parts = refId.toUpperCase().split("-");
-  let elapsed = 0;
-  if (parts.length >= 2) {
-    const ts = parseInt(parts[1], 36);
-    if (!isNaN(ts) && ts > 1_000_000_000_000) {
-      elapsed = Date.now() - ts;
-    }
-  }
+interface CaseStatus {
+  referenceId: string;
+  companyName: string;
+  assignedTeam: string;
+  currentStep: number;
+  steps: StatusStep[];
+}
 
-  const days = elapsed / (1000 * 60 * 60 * 24);
-  const teamSuffix = parts[2]?.slice(0, 2).toUpperCase() ?? "AA";
-  const teamMap: Record<string, string> = { AA: "Lagos Forensics Team", AB: "Abuja Recovery Desk", AC: "Port Harcourt Unit", AD: "Kano Commercial Team" };
-  const assignedTeam = teamMap[teamSuffix] ?? "Senior Forensics Team";
-
-  const fmtDate = (daysAgo: number) => {
-    const d = new Date(Date.now() - daysAgo * 86400000);
-    return d.toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
-  };
-
-  const steps: StatusStep[] = [
-    { label: "Complaint Received", description: "Your intake form has been received and logged into our secure case management system." },
-    { label: "Initial Review", description: "A senior forensics analyst has reviewed your submission and confirmed eligibility for a full audit." },
-    { label: "Document Collection", description: "Our team has contacted you to arrange collection or secure upload of bank statements and facility letters." },
-    { label: "Forensic Audit in Progress", description: "Our team is conducting a line-by-line forensic review of your bank charges against CBN/BOFIA approved rates." },
-    { label: "Findings Report Prepared", description: "The forensic findings report is being compiled, detailing all excess charges identified and the recovery quantum." },
-    { label: "Bank Engagement / Recovery", description: "Formal demand letters have been dispatched and negotiation with your bank is underway." },
-    { label: "Recovery Confirmed", description: "Excess charges have been recovered and credited back to your account." },
-  ];
-
-  let currentStep = 0;
-  if (days >= 1) { steps[0].doneAt = fmtDate(days - 0); currentStep = 1; }
-  if (days >= 3) { steps[1].doneAt = fmtDate(days - 2); currentStep = 2; }
-  if (days >= 7) { steps[2].doneAt = fmtDate(days - 5); currentStep = 3; }
-  if (days >= 21) { steps[3].doneAt = fmtDate(days - 14); currentStep = 4; }
-  if (days >= 35) { steps[4].doneAt = fmtDate(days - 30); currentStep = 5; }
-  if (days >= 56) { steps[5].doneAt = fmtDate(days - 50); currentStep = 6; }
-  if (days >= 70) { steps[6].doneAt = fmtDate(days - 65); currentStep = 7; }
-
-  return { currentStep, steps, assignedTeam };
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
 }
 
 export default function TrackPage() {
   const [refInput, setRefInput] = useState("");
-  const [submitted, setSubmitted] = useState("");
+  const [status, setStatus] = useState<CaseStatus | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleTrack(e: React.FormEvent) {
+  async function handleTrack(e: React.FormEvent) {
     e.preventDefault();
     const cleaned = refInput.trim().toUpperCase();
     if (!cleaned.startsWith("GBN-")) return;
     setLoading(true);
-    setTimeout(() => {
-      setSubmitted(cleaned);
+    setError(null);
+    setStatus(null);
+    try {
+      const res = await fetch(`/api/recovery/track?ref=${encodeURIComponent(cleaned)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to load case status.");
+      setStatus(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load case status.");
+    } finally {
       setLoading(false);
-    }, 900);
+    }
   }
-
-  const status = submitted ? deriveStatus(submitted) : null;
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -110,13 +87,22 @@ export default function TrackPage() {
           <p className="mt-2 text-xs text-slate-400">Your reference ID was provided upon successful submission of your intake form. It begins with &quot;GBN-&quot;.</p>
         </div>
 
+        {/* Error */}
+        {error && (
+          <div className="mt-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+            <AlertCircle size={16} className="mt-0.5 shrink-0 text-red-500" />
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        )}
+
         {/* Result */}
-        {status && submitted && (
+        {status && (
           <div className="mt-8">
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <p className="text-xs text-slate-500">Case Reference</p>
-                <p className="font-mono text-sm font-bold text-slate-900">{submitted}</p>
+                <p className="font-mono text-sm font-bold text-slate-900">{status.referenceId}</p>
+                <p className="mt-1 text-xs text-slate-400">{status.companyName}</p>
               </div>
               <div className="text-right">
                 <p className="text-xs text-slate-500">Assigned To</p>
@@ -132,7 +118,7 @@ export default function TrackPage() {
                   const active = i === status.currentStep;
                   const pending = i > status.currentStep;
                   return (
-                    <div key={i} className="flex gap-4">
+                    <div key={step.key} className="flex gap-4">
                       {/* Line + dot */}
                       <div className="flex flex-col items-center">
                         <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${done ? "border-emerald-500 bg-emerald-500 text-white" : active ? "border-blue-700 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-slate-300"}`}>
@@ -152,8 +138,8 @@ export default function TrackPage() {
                           {active && (
                             <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-bold text-blue-700">In Progress</span>
                           )}
-                          {done && step.doneAt && (
-                            <span className="text-xs text-slate-400">{step.doneAt}</span>
+                          {done && step.reachedAt && (
+                            <span className="text-xs text-slate-400">{formatDate(step.reachedAt)}</span>
                           )}
                         </div>
                         {(done || active) && (
@@ -180,7 +166,7 @@ export default function TrackPage() {
         )}
 
         {/* No result placeholder */}
-        {!submitted && (
+        {!status && !error && (
           <div className="mt-8 rounded-2xl border border-dashed border-slate-200 bg-white py-12 text-center">
             <FileSearch size={36} className="mx-auto mb-3 text-slate-200" />
             <p className="text-sm font-semibold text-slate-400">No case loaded</p>

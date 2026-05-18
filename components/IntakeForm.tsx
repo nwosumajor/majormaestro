@@ -95,7 +95,7 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function IntakeForm() {
+export default function IntakeForm({ referralCode }: { referralCode?: string }) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(INITIAL_STATE);
   const [loading, setLoading] = useState(false);
@@ -182,6 +182,7 @@ export default function IntakeForm() {
         ...form,
         banks: form.banks.filter((b) => b.trim()),
         documents: Object.values(uploadedFiles).filter(Boolean),
+        ...(referralCode ? { referralCode } : {}),
       };
       const res = await fetch("/api/recovery", {
         method: "POST",
@@ -230,6 +231,13 @@ export default function IntakeForm() {
         <h3 className="text-base font-bold text-white">Lodge a Forensic Audit Complaint</h3>
         <p className="text-xs text-blue-300 mt-0.5">End-to-end encrypted · NDPA 2023 compliant · NDA protected</p>
       </div>
+
+      {referralCode && (
+        <div className="flex items-center gap-2 border-b border-emerald-100 bg-emerald-50 px-6 py-2.5 text-xs text-emerald-800">
+          <CheckCircle2 size={13} className="shrink-0 text-emerald-600" />
+          <span>Referred via <span className="font-mono font-semibold">{referralCode}</span> — your introducer will be credited on successful recovery.</span>
+        </div>
+      )}
 
       {/* Step indicator */}
       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">

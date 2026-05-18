@@ -21,9 +21,15 @@ model RecoveryComplaint {
   confirmedSignatory Boolean
   agreedNDPA         Boolean
   status             String             @default("received")
+  assignedTeam       String?
+  referralCode       String?
+  referral           Referral?          @relation(fields: [referralCode], references: [code])
   documents          UploadedDocument[]
+  statusEvents       CaseStatusEvent[]
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
+
+  @@index([referralCode])
 }
 
 model UploadedDocument {
@@ -36,6 +42,26 @@ model UploadedDocument {
   fileSize     Int
   mimeType     String
   uploadedAt   DateTime          @default(now())
+}
+
+model CaseStatusEvent {
+  id          String            @id @default(cuid())
+  complaintId String
+  complaint   RecoveryComplaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  step        String
+  reachedAt   DateTime          @default(now())
+  note        String?
+
+  @@index([complaintId])
+}
+
+model Referral {
+  id            String              @id @default(cuid())
+  code          String              @unique
+  referrerName  String
+  referrerEmail String
+  createdAt     DateTime            @default(now())
+  complaints    RecoveryComplaint[]
 }
 
 model LeadMagnetSubscriber {
