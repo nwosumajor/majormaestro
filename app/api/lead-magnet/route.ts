@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sendLeadMagnetGuide } from "@/lib/email";
+import { getClientIp, rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req: NextRequest) {
+  const rl = rateLimit(`lead-magnet:${getClientIp(req)}`, 10, 60 * 60);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers: rateLimitHeaders(rl) }
+    );
+  }
+
   try {
     const { email, companyName } = (await req.json()) as {
       email: string;

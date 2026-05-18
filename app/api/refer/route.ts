@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getClientIp, rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -12,6 +13,14 @@ function makeCode(name: string): string {
 }
 
 export async function POST(req: NextRequest) {
+  const rl = rateLimit(`refer:${getClientIp(req)}`, 10, 60 * 60);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many referral requests. Please try again later." },
+      { status: 429, headers: rateLimitHeaders(rl) }
+    );
+  }
+
   try {
     const { name, email } = (await req.json()) as { name?: string; email?: string };
 

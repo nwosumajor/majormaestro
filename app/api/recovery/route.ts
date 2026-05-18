@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sendComplaintConfirmation, sendInternalComplaintNotification } from "@/lib/email";
 import { pickTeam } from "@/lib/recoverySteps";
+import { getClientIp, rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
 
 interface DocumentInfo {
   documentType: string;
@@ -43,6 +44,14 @@ function generateReference(): string {
 }
 
 export async function POST(req: NextRequest) {
+  const rl = rateLimit(`recovery:${getClientIp(req)}`, 5, 60 * 60);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many submissions from this network. Please try again later." },
+      { status: 429, headers: rateLimitHeaders(rl) }
+    );
+  }
+
   try {
     const body = (await req.json()) as RecoveryPayload;
 

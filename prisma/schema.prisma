@@ -70,3 +70,16 @@ model LeadMagnetSubscriber {
   companyName String?
   createdAt   DateTime @default(now())
 }
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  actorLabel String
+  targetType String?
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([targetType, targetId])
+}

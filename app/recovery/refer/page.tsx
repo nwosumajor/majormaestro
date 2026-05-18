@@ -198,6 +198,21 @@ export default function ReferPage() {
                   </p>
                 </div>
 
+                {(() => {
+                  let code = "";
+                  try { code = new URL(refLink).searchParams.get("ref") ?? ""; } catch { /* noop */ }
+                  if (!code) return null;
+                  return (
+                    <a
+                      href={`/recovery/refer/${code}`}
+                      className="mt-4 flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 hover:bg-emerald-100 transition-colors"
+                    >
+                      <span>Track your referrals on your private dashboard →</span>
+                      <span className="font-mono text-xs">{code}</span>
+                    </a>
+                  );
+                })()}
+
                 <button
                   onClick={() => { setRefLink(""); setName(""); setEmail(""); }}
                   className="mt-4 text-xs text-slate-400 underline hover:text-slate-600"

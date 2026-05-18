@@ -172,6 +172,72 @@ export async function sendComplaintConfirmation(details: ComplaintDetails) {
   });
 }
 
+// ─── Recovery: Status Update Email ────────────────────────────────────────
+
+interface StatusUpdateInput {
+  referenceId: string;
+  contactName: string;
+  contactEmail: string;
+  companyName: string;
+  stepLabel: string;
+  stepDescription: string;
+  note?: string;
+}
+
+export async function sendStatusUpdate(input: StatusUpdateInput) {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping status update email");
+    return;
+  }
+
+  const html = `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+    ${brandHeader("Case Status Update")}
+
+    <div style="padding:32px">
+      <p style="margin:0 0 12px;font-size:15px;color:#1e293b">Dear ${input.contactName},</p>
+      <p style="margin:0 0 20px;font-size:15px;color:#475569;line-height:1.6">
+        We have an update on your forensic recovery case for <strong>${input.companyName}</strong>.
+      </p>
+
+      <div style="background:#ecfdf5;border:2px solid #6ee7b7;border-radius:10px;padding:20px;margin-bottom:20px">
+        <p style="margin:0 0 4px;font-size:12px;font-weight:700;color:#047857;text-transform:uppercase;letter-spacing:1px">New Status</p>
+        <p style="margin:0;font-size:18px;font-weight:900;color:#065f46">${input.stepLabel}</p>
+        <p style="margin:8px 0 0;font-size:13px;color:#047857;line-height:1.5">${input.stepDescription}</p>
+      </div>
+
+      ${input.note ? `
+      <div style="background:#f8fafc;border-left:4px solid #1d4ed8;padding:14px 18px;margin-bottom:20px;border-radius:0 8px 8px 0">
+        <p style="margin:0 0 4px;font-size:12px;font-weight:700;color:#1e40af;text-transform:uppercase;letter-spacing:0.5px">Note from your team</p>
+        <p style="margin:0;font-size:13px;color:#334155;line-height:1.5">${input.note}</p>
+      </div>` : ""}
+
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px;text-align:center;margin-bottom:20px">
+        <p style="margin:0;font-size:12px;color:#1e40af">Case Reference</p>
+        <p style="margin:4px 0 8px;font-size:18px;font-weight:900;color:#1e3a8a;font-family:monospace">${input.referenceId}</p>
+        <a href="${process.env.NEXT_PUBLIC_APP_URL ?? "https://majormaestro.com"}/recovery/track"
+           style="display:inline-block;background:#1e3a8a;color:#ffffff;font-weight:700;font-size:13px;text-decoration:none;padding:9px 20px;border-radius:6px">
+          View Full Timeline →
+        </a>
+      </div>
+
+      <p style="margin:0;font-size:13px;color:#475569">
+        Questions? Reply to this email or contact us at
+        <a href="mailto:${SUPPORT_EMAIL}" style="color:#1d4ed8">${SUPPORT_EMAIL}</a>.
+      </p>
+    </div>
+
+    ${brandFooter()}
+  </div>`;
+
+  await resend.emails.send({
+    from: FROM,
+    to: input.contactEmail,
+    subject: `[${input.referenceId}] Status Update: ${input.stepLabel}`,
+    html,
+  });
+}
+
 // ─── Recovery: Internal Team Notification ─────────────────────────────────
 
 export async function sendInternalComplaintNotification(details: ComplaintDetails & {
