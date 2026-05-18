@@ -16,11 +16,11 @@ import {
   XCircle,
 } from "lucide-react";
 import {
-  getClassifications,
-  getRoadmaps,
-  deleteClassification,
-  deleteRoadmap,
-} from "@/lib/storage";
+  listClassificationsSmart,
+  listRoadmapsSmart,
+  deleteClassificationSmart,
+  deleteRoadmapSmart,
+} from "@/lib/clientStorage";
 import type { SavedClassification, SavedRoadmap } from "@/types";
 
 type Tab = "classifications" | "roadmaps";
@@ -145,17 +145,23 @@ export default function HistoryPage() {
   const [roadmaps, setRoadmaps] = useState<SavedRoadmap[]>([]);
 
   useEffect(() => {
-    setClassifications(getClassifications());
-    setRoadmaps(getRoadmaps());
+    let cancelled = false;
+    (async () => {
+      const [c, r] = await Promise.all([listClassificationsSmart(), listRoadmapsSmart()]);
+      if (cancelled) return;
+      setClassifications(c);
+      setRoadmaps(r);
+    })();
+    return () => { cancelled = true; };
   }, []);
 
-  function removeClassification(id: string) {
-    deleteClassification(id);
+  async function removeClassification(id: string) {
+    await deleteClassificationSmart(id);
     setClassifications((p) => p.filter((c) => c.id !== id));
   }
 
-  function removeRoadmap(id: string) {
-    deleteRoadmap(id);
+  async function removeRoadmap(id: string) {
+    await deleteRoadmapSmart(id);
     setRoadmaps((p) => p.filter((r) => r.id !== id));
   }
 

@@ -36,20 +36,19 @@ export default async function AuditPage({
   if (actor) where.actorLabel = { contains: actor, mode: "insensitive" };
   if (targetId) where.targetId = targetId;
 
-  const [entries, total] = await Promise.all([
+  const [entries, total, allActions] = await Promise.all([
     db.auditLog.findMany({
       where,
       take: 200,
       orderBy: { createdAt: "desc" },
     }),
     db.auditLog.count({ where }),
+    db.auditLog.findMany({
+      distinct: ["action"],
+      select: { action: true },
+      orderBy: { action: "asc" },
+    }),
   ]);
-
-  const allActions = await db.auditLog.findMany({
-    distinct: ["action"],
-    select: { action: true },
-    orderBy: { action: "asc" },
-  });
 
   return (
     <div className="space-y-6">

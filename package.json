@@ -10,7 +10,8 @@
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "migrate:uploads-to-s3": "node scripts/migrate-uploads-to-s3.mjs"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.78",

@@ -4,6 +4,7 @@ import { STEP_KEYS, STEP_DEFS, type StepKey } from "@/lib/recoverySteps";
 import { recordAudit } from "@/lib/audit";
 import { sendStatusUpdate } from "@/lib/email";
 import { getAdminFromRequest } from "@/lib/auth";
+import { dispatch as dispatchWebhook } from "@/lib/webhooks";
 
 function isStepKey(s: string): s is StepKey {
   return (STEP_KEYS as readonly string[]).includes(s);
@@ -54,6 +55,7 @@ export async function POST(
   }
 
   const note = payload.note?.trim() || null;
+  const isClosing = targetStep === "recovered";
 
   await db.$transaction([
     db.caseStatusEvent.create({
@@ -61,7 +63,10 @@ export async function POST(
     }),
     db.recoveryComplaint.update({
       where: { id: complaint.id },
-      data: { status: targetStep },
+      data: {
+        status: targetStep,
+        ...(isClosing && !complaint.closedAt ? { closedAt: new Date() } : {}),
+      },
     }),
   ]);
 
@@ -85,6 +90,29 @@ export async function POST(
       stepDescription: STEP_DEFS[targetStep].description,
       note: note ?? undefined,
     }).catch((e) => console.error("[advance] Status email error:", e));
+  }
+
+  // Fire webhooks (best-effort, non-blocking response)
+  const webhookData = {
+    referenceId,
+    companyName: complaint.companyName,
+    previousStatus: complaint.status,
+    newStatus: targetStep,
+    note,
+    reachedAt: new Date().toISOString(),
+  };
+  const filterContext = {
+    status: targetStep,
+    recoveryAmountKobo: complaint.recoveryAmountKobo,
+    hasReferral: !!complaint.referralCode,
+  };
+  dispatchWebhook({ event: "case.status_changed", data: webhookData, filterContext }).catch((e) =>
+    console.error("[advance] Webhook error:", e)
+  );
+  if (isClosing) {
+    dispatchWebhook({ event: "case.closed", data: webhookData, filterContext }).catch((e) =>
+      console.error("[advance] Webhook close error:", e)
+    );
   }
 
   return NextResponse.json({ success: true, step: targetStep });

@@ -29,7 +29,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import type { Classification, AssessmentInput } from "@/types";
-import { saveClassification } from "@/lib/storage";
+import { saveClassificationSmart } from "@/lib/clientStorage";
 
 const RANK_STYLES: Record<number, { border: string; badge: string; label: string; bar: string }> = {
   1: { border: "border-amber-300 bg-amber-50", badge: "bg-amber-500 text-white", label: "Best Fit", bar: "bg-amber-500" },
@@ -188,10 +188,10 @@ export default function AssessmentPage() {
     }
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!results) return;
     const cleanedCerts = certificates.filter((c) => c.trim().length > 0);
-    saveClassification({
+    await saveClassificationSmart({
       label: assessmentName.trim() || `Assessment – ${results[0].departmentName}`,
       input: { ...attributes, certificates: cleanedCerts },
       results,

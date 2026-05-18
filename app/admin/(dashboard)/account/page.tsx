@@ -11,7 +11,7 @@ export default async function AccountPage() {
   if (!me || !db) notFound();
   const user = await db.adminUser.findUnique({
     where: { id: me.id },
-    select: { id: true, email: true, role: true, totpEnabled: true, lastLoginAt: true },
+    select: { id: true, email: true, role: true, totpEnabled: true, lastLoginAt: true, recoveryCodeHashes: true },
   });
   if (!user) notFound();
 
@@ -27,7 +27,7 @@ export default async function AccountPage() {
         </div>
       </div>
 
-      <AccountPanel totpEnabled={user.totpEnabled} email={user.email} />
+      <AccountPanel totpEnabled={user.totpEnabled} email={user.email} recoveryCodesRemaining={user.recoveryCodeHashes.length} />
 
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex items-center gap-3">

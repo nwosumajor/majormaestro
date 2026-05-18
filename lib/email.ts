@@ -60,6 +60,91 @@ function brandFooter() {
     </div>`;
 }
 
+// ─── Email change: confirm new address ────────────────────────────────────
+
+export async function sendEmailChangeConfirmation(
+  newEmail: string,
+  oldEmail: string,
+  verifyUrl: string
+) {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping email change confirmation");
+    return { skipped: true } as const;
+  }
+
+  const html = `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+    ${brandHeader("Confirm your new email")}
+    <div style="padding:32px">
+      <p style="margin:0 0 12px;font-size:15px;color:#1e293b">Hi,</p>
+      <p style="margin:0 0 20px;font-size:15px;color:#475569;line-height:1.6">
+        Someone signed in as <strong>${oldEmail}</strong> requested to change their email address to <strong>${newEmail}</strong>. Click below to confirm.
+      </p>
+      <div style="text-align:center;margin:28px 0">
+        <a href="${verifyUrl}"
+           style="display:inline-block;background:#1d4ed8;color:#ffffff;font-weight:700;font-size:15px;text-decoration:none;padding:14px 32px;border-radius:10px">
+          Confirm new email
+        </a>
+      </div>
+      <p style="margin:0 0 8px;font-size:12px;color:#94a3b8">If the button doesn't work, copy &amp; paste this URL:</p>
+      <p style="margin:0 0 24px;font-size:11px;color:#475569;word-break:break-all;background:#f8fafc;padding:10px 12px;border-radius:6px;border:1px solid #e2e8f0;font-family:monospace">${verifyUrl}</p>
+      <p style="margin:0;font-size:12px;color:#94a3b8">
+        This link is valid for 30 minutes and can only be used once. If you didn't request this change, ignore this email.
+      </p>
+    </div>
+    ${brandFooter()}
+  </div>`;
+
+  await resend.emails.send({
+    from: FROM,
+    to: newEmail,
+    subject: "Confirm your new MajorGBN email address",
+    html,
+  });
+  return { skipped: false } as const;
+}
+
+// ─── Magic Link: passwordless sign-in ─────────────────────────────────────
+
+export async function sendMagicLink(toEmail: string, signInUrl: string) {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping magic link email");
+    // In dev, return so the verify URL can be surfaced via API response for testing.
+    return { skipped: true } as const;
+  }
+
+  const html = `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+    ${brandHeader("Sign in to MajorGBN")}
+    <div style="padding:32px">
+      <p style="margin:0 0 12px;font-size:15px;color:#1e293b">Hi,</p>
+      <p style="margin:0 0 20px;font-size:15px;color:#475569;line-height:1.6">
+        Click the button below to sign in to your MajorGBN client portal. This link is valid for <strong>15 minutes</strong> and can only be used once.
+      </p>
+      <div style="text-align:center;margin:28px 0">
+        <a href="${signInUrl}"
+           style="display:inline-block;background:#10b981;color:#ffffff;font-weight:700;font-size:15px;text-decoration:none;padding:14px 32px;border-radius:10px">
+          Sign in to MajorGBN
+        </a>
+      </div>
+      <p style="margin:0 0 8px;font-size:12px;color:#94a3b8">If the button doesn't work, copy &amp; paste this URL:</p>
+      <p style="margin:0 0 24px;font-size:11px;color:#475569;word-break:break-all;background:#f8fafc;padding:10px 12px;border-radius:6px;border:1px solid #e2e8f0;font-family:monospace">${signInUrl}</p>
+      <p style="margin:0;font-size:12px;color:#94a3b8">
+        Didn't request this? You can safely ignore this email — without clicking the link, no one can access your account.
+      </p>
+    </div>
+    ${brandFooter()}
+  </div>`;
+
+  await resend.emails.send({
+    from: FROM,
+    to: toEmail,
+    subject: "Your MajorGBN sign-in link",
+    html,
+  });
+  return { skipped: false } as const;
+}
+
 // ─── Lead Magnet: Guide Email ──────────────────────────────────────────────
 
 export async function sendLeadMagnetGuide(email: string, companyName?: string) {

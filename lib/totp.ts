@@ -1,11 +1,8 @@
-import { authenticator } from "otplib";
-import QRCode from "qrcode";
+import { generateSecret as gen, generateURI, verifySync } from "otplib";
 import { createCipheriv, createDecipheriv, randomBytes, createHash } from "crypto";
 
-// 30s windows, allow ±1 step of clock drift
-authenticator.options = { window: 1, step: 30 };
-
 const ISSUER = "MajorGBN Admin";
+const TIME_TOLERANCE_SECONDS = 30; // accept ±1 30-second window
 
 function getEncryptionKey(): Buffer {
   const secret = process.env.ADMIN_SESSION_SECRET;
@@ -33,20 +30,33 @@ export function decryptSecret(payload: string): string {
 }
 
 export function generateSecret(): string {
-  return authenticator.generateSecret();
+  return gen({ length: 20 });
 }
 
 export function otpauthUrl(email: string, secret: string): string {
-  return authenticator.keyuri(email, ISSUER, secret);
+  return generateURI({
+    strategy: "totp",
+    issuer: ISSUER,
+    label: email,
+    secret,
+  });
 }
 
 export async function qrDataUrl(email: string, secret: string): Promise<string> {
+  // Lazy-import qrcode so it doesn't get pulled into bundles that never render the setup screen.
+  const { default: QRCode } = await import("qrcode");
   return QRCode.toDataURL(otpauthUrl(email, secret));
 }
 
 export function verifyCode(secret: string, code: string): boolean {
   try {
-    return authenticator.verify({ token: code.replace(/\s/g, ""), secret });
+    const result = verifySync({
+      strategy: "totp",
+      secret,
+      token: code.replace(/\s/g, ""),
+      epochTolerance: TIME_TOLERANCE_SECONDS,
+    });
+    return result.valid === true;
   } catch {
     return false;
   }

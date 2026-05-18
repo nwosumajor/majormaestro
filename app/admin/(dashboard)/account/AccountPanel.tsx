@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ShieldCheck, ShieldOff, KeyRound, Loader2, AlertCircle, CheckCircle2, ScanLine } from "lucide-react";
+import { ShieldCheck, ShieldOff, KeyRound, Loader2, AlertCircle, CheckCircle2, ScanLine, LifeBuoy, Copy, RefreshCcw } from "lucide-react";
 
 interface Props {
   totpEnabled: boolean;
   email: string;
+  recoveryCodesRemaining: number;
 }
 
 interface SetupData {
@@ -15,7 +16,7 @@ interface SetupData {
   manualEntryKey: string;
 }
 
-export default function AccountPanel({ totpEnabled }: Props) {
+export default function AccountPanel({ totpEnabled, recoveryCodesRemaining }: Props) {
   const router = useRouter();
   const [setup, setSetup] = useState<SetupData | null>(null);
   const [code, setCode] = useState("");
@@ -23,6 +24,12 @@ export default function AccountPanel({ totpEnabled }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  // Recovery codes state
+  const [issuedCodes, setIssuedCodes] = useState<string[] | null>(null);
+  const [regenPassword, setRegenPassword] = useState("");
+  const [showRegen, setShowRegen] = useState(false);
+  const [codesCopied, setCodesCopied] = useState(false);
 
   // Password change state
   const [pwCurrent, setPwCurrent] = useState("");
@@ -61,12 +68,43 @@ export default function AccountPanel({ totpEnabled }: Props) {
       setMessage("Two-factor authentication enabled.");
       setSetup(null);
       setCode("");
+      if (Array.isArray(data.recoveryCodes)) setIssuedCodes(data.recoveryCodes);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed.");
     } finally {
       setBusy(false);
     }
+  }
+
+  async function regenerateCodes(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/account/2fa/recovery-codes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: regenPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed.");
+      setIssuedCodes(data.recoveryCodes);
+      setShowRegen(false);
+      setRegenPassword("");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function copyCodes() {
+    if (!issuedCodes) return;
+    await navigator.clipboard.writeText(issuedCodes.join("\n"));
+    setCodesCopied(true);
+    setTimeout(() => setCodesCopied(false), 2500);
   }
 
   async function disable(e: React.FormEvent) {
@@ -184,25 +222,102 @@ export default function AccountPanel({ totpEnabled }: Props) {
         )}
 
         {totpEnabled && (
-          <form onSubmit={disable} className="mt-4 space-y-2">
-            <p className="text-xs text-slate-600">To disable 2FA, confirm your password.</p>
-            <input
-              type="password"
-              required
-              value={passwordToDisable}
-              onChange={(e) => setPasswordToDisable(e.target.value)}
-              placeholder="Current password"
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-600 focus:outline-none"
-            />
-            <button
-              type="submit"
-              disabled={busy || !passwordToDisable}
-              className="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-xs font-bold text-red-700 hover:bg-red-100 disabled:opacity-60 transition-colors"
-            >
-              {busy ? <Loader2 size={12} className="animate-spin" /> : <ShieldOff size={12} />}
-              {busy ? "Disabling…" : "Disable 2FA"}
-            </button>
-          </form>
+          <>
+            {issuedCodes && (
+              <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4">
+                <div className="flex items-start gap-2">
+                  <LifeBuoy size={14} className="mt-0.5 shrink-0 text-amber-700" />
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-amber-900">Save these recovery codes — they will NOT be shown again.</p>
+                    <p className="mt-1 text-xs text-amber-700">Each can be used ONCE to sign in if you lose your authenticator device.</p>
+                  </div>
+                </div>
+                <ul className="mt-3 grid grid-cols-2 gap-1 font-mono text-xs">
+                  {issuedCodes.map((c) => (
+                    <li key={c} className="rounded bg-white border border-amber-200 px-2 py-1 text-center">{c}</li>
+                  ))}
+                </ul>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    onClick={copyCodes}
+                    className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-colors ${codesCopied ? "bg-emerald-500 text-white" : "bg-amber-200 text-amber-900 hover:bg-amber-300"}`}
+                  >
+                    {codesCopied ? <CheckCircle2 size={11} /> : <Copy size={11} />}
+                    {codesCopied ? "Copied" : "Copy all"}
+                  </button>
+                  <button
+                    onClick={() => setIssuedCodes(null)}
+                    className="text-xs text-amber-700 underline hover:text-amber-900"
+                  >
+                    I've saved them — dismiss
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-start gap-2">
+                <LifeBuoy size={14} className="mt-0.5 shrink-0 text-slate-500" />
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-slate-700">
+                    Recovery codes: <span className="font-bold text-slate-900">{recoveryCodesRemaining}</span> remaining
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {recoveryCodesRemaining < 3
+                      ? "Running low — regenerate to issue a fresh set of 8."
+                      : "Use the regenerate option if you've lost your saved codes (this invalidates any old codes)."}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowRegen((v) => !v)}
+                  className="shrink-0 text-xs font-semibold text-blue-700 hover:text-blue-900"
+                >
+                  {showRegen ? "Cancel" : "Regenerate"}
+                </button>
+              </div>
+
+              {showRegen && (
+                <form onSubmit={regenerateCodes} className="mt-3 space-y-2">
+                  <input
+                    type="password"
+                    required
+                    value={regenPassword}
+                    onChange={(e) => setRegenPassword(e.target.value)}
+                    placeholder="Confirm with your password"
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-600 focus:outline-none"
+                  />
+                  <button
+                    type="submit"
+                    disabled={busy || !regenPassword}
+                    className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-xs font-bold text-white hover:bg-amber-500 disabled:opacity-60 transition-colors"
+                  >
+                    {busy ? <Loader2 size={12} className="animate-spin" /> : <RefreshCcw size={12} />}
+                    {busy ? "Regenerating…" : "Issue new codes"}
+                  </button>
+                </form>
+              )}
+            </div>
+
+            <form onSubmit={disable} className="mt-4 space-y-2">
+              <p className="text-xs text-slate-600">To disable 2FA, confirm your password.</p>
+              <input
+                type="password"
+                required
+                value={passwordToDisable}
+                onChange={(e) => setPasswordToDisable(e.target.value)}
+                placeholder="Current password"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-600 focus:outline-none"
+              />
+              <button
+                type="submit"
+                disabled={busy || !passwordToDisable}
+                className="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-xs font-bold text-red-700 hover:bg-red-100 disabled:opacity-60 transition-colors"
+              >
+                {busy ? <Loader2 size={12} className="animate-spin" /> : <ShieldOff size={12} />}
+                {busy ? "Disabling…" : "Disable 2FA"}
+              </button>
+            </form>
+          </>
         )}
       </div>
 

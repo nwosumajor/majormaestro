@@ -24,6 +24,8 @@ model RecoveryComplaint {
   assignedTeam        String?
   referralCode        String?
   referral            Referral?          @relation(fields: [referralCode], references: [code])
+  userId              String?
+  user                User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
   documents           UploadedDocument[]
   statusEvents        CaseStatusEvent[]
   notes               CaseNote[]
@@ -37,6 +39,8 @@ model RecoveryComplaint {
   @@index([status])
   @@index([createdAt])
   @@index([closedAt])
+  @@index([userId])
+  @@index([contactEmail])
 }
 
 model UploadedDocument {
@@ -64,26 +68,134 @@ model CaseNote {
 }
 
 model AdminUser {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  passwordHash String
-  role         String    @default("admin")
-  totpSecret   String?
-  totpEnabled  Boolean   @default(false)
-  createdAt    DateTime  @default(now())
-  lastLoginAt  DateTime?
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  passwordHash       String
+  role               String    @default("admin")
+  googleSub          String?   @unique
+  totpSecret         String?
+  totpEnabled        Boolean   @default(false)
+  recoveryCodeHashes String[]
+  createdAt          DateTime  @default(now())
+  lastLoginAt        DateTime?
+}
+
+model User {
+  id              String                @id @default(cuid())
+  googleSub       String?               @unique
+  email           String                @unique
+  name            String?
+  imageUrl        String?
+  emailVerified   DateTime?
+  createdAt       DateTime              @default(now())
+  lastLoginAt     DateTime?
+  complaints      RecoveryComplaint[]
+  classifications SavedClassification[]
+  roadmaps        SavedRoadmap[]
+  sessions        Session[]
+  emailChangeTokens EmailChangeToken[]
+
+  @@index([email])
+}
+
+model Session {
+  id         String    @id @default(cuid())
+  tokenHash  String    @unique
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent  String?
+  ipAddress  String?
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  lastUsedAt DateTime  @default(now()) @db.Timestamptz(3)
+  expiresAt  DateTime  @db.Timestamptz(3)
+  revokedAt  DateTime? @db.Timestamptz(3)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model EmailChangeToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  newEmail  String
+  tokenHash String    @unique
+  expiresAt DateTime  @db.Timestamptz(3)
+  usedAt    DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+}
+
+model MagicLinkToken {
+  id        String    @id @default(cuid())
+  email     String
+  tokenHash String    @unique
+  expiresAt DateTime  @db.Timestamptz(3)
+  usedAt    DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([email, createdAt])
+  @@index([expiresAt])
+}
+
+model SavedClassification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String
+  input     Json
+  results   Json
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([userId, createdAt])
+}
+
+model SavedRoadmap {
+  id                   String   @id @default(cuid())
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label                String
+  input                Json
+  results              Json
+  completedMilestones  Int[]
+  createdAt            DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([userId, createdAt])
 }
 
 model Webhook {
-  id          String   @id @default(cuid())
+  id          String            @id @default(cuid())
   label       String
   url         String
   secret      String
-  active      Boolean  @default(true)
+  active      Boolean           @default(true)
   events      String[]
-  createdAt   DateTime @default(now())
+  filter      Json?
+  createdAt   DateTime          @default(now())
   lastSentAt  DateTime?
-  failCount   Int      @default(0)
+  failCount   Int               @default(0)
+  deliveries  WebhookDelivery[]
+}
+
+model WebhookDelivery {
+  id            String    @id @default(cuid())
+  webhookId     String
+  webhook       Webhook   @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  event         String
+  payload       Json
+  signature     String
+  status        String    @default("pending") // pending|success|failed|dead
+  attempts      Int       @default(0)
+  lastAttemptAt DateTime? @db.Timestamptz(3)
+  nextAttemptAt DateTime? @db.Timestamptz(3)
+  responseCode  Int?
+  responseBody  String?
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([webhookId, createdAt])
+  @@index([status, nextAttemptAt])
 }
 
 model CaseStatusEvent {

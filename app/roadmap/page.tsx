@@ -25,7 +25,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import type { RoadmapStep, RoadmapInput } from "@/types";
-import { saveRoadmap, updateRoadmapMilestones } from "@/lib/storage";
+import { saveRoadmapSmart, updateRoadmapMilestonesSmart } from "@/lib/clientStorage";
 
 const TIME_OPTIONS = [1, 2, 3, 5, 7, 10, 15] as const;
 
@@ -158,16 +158,19 @@ function RoadmapContent() {
       ? completedMilestones.filter((i) => i !== index)
       : [...completedMilestones, index];
     setCompletedMilestones(next);
-    if (savedId) updateRoadmapMilestones(savedId, next);
+    if (savedId) {
+      // Fire-and-forget — the UI update is already committed via setState.
+      void updateRoadmapMilestonesSmart(savedId, next);
+    }
   }
 
   function toggleCerts(index: number) {
     setExpandedCerts((prev) => prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!results) return;
-    const record = saveRoadmap({
+    const record = await saveRoadmapSmart({
       label: `${currentRole} → ${futureRole} (${timeHorizon}yr)`,
       input: { currentRole, currentIndustry, currentExperience, futureRole, timeHorizon },
       results,

@@ -14,16 +14,17 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { email, password, totp } = (await req.json()) as {
+    const { email, password, totp, recoveryCode } = (await req.json()) as {
       email?: string;
       password?: string;
       totp?: string;
+      recoveryCode?: string;
     };
     if (!email || !password) {
       return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
     }
 
-    const result = await tryLogin(email, password, totp);
+    const result = await tryLogin(email, password, totp, recoveryCode);
     if (!result.ok) {
       const normEmail = email.trim().toLowerCase();
       if (result.reason === "totp_required") {
@@ -56,14 +57,20 @@ export async function POST(req: NextRequest) {
 
     const token = mintAdminToken(result.user.id);
     await recordAudit({
-      action: "admin_login_success",
+      action: result.recoveryCodeUsed ? "admin_login_recovery_code" : "admin_login_success",
       actorLabel: result.user.email,
       targetType: "AdminUser",
       targetId: result.user.id,
-      metadata: { ip },
+      metadata: { ip, ...(result.recoveryCodeUsed ? { remainingRecoveryCodes: result.remainingRecoveryCodes } : {}) },
     });
 
-    const res = NextResponse.json({ success: true, user: result.user });
+    const res = NextResponse.json({
+      success: true,
+      user: result.user,
+      ...(result.recoveryCodeUsed
+        ? { recoveryCodeUsed: true, remainingRecoveryCodes: result.remainingRecoveryCodes }
+        : {}),
+    });
     res.cookies.set(ADMIN_COOKIE, token, adminCookieOptions());
     return res;
   } catch (err) {

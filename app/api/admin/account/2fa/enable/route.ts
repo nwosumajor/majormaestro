@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminFromRequest } from "@/lib/auth";
+import { generateRecoveryCodes, getAdminFromRequest } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { decryptSecret, verifyCode } from "@/lib/totp";
 import { recordAudit } from "@/lib/audit";
@@ -20,16 +20,23 @@ export async function POST(req: NextRequest) {
   const ok = verifyCode(decryptSecret(user.totpSecret), code);
   if (!ok) return NextResponse.json({ error: "Invalid code. Try again." }, { status: 401 });
 
+  const { plain, hashes } = await generateRecoveryCodes();
+
   await db.adminUser.update({
     where: { id: admin.id },
-    data: { totpEnabled: true },
+    data: { totpEnabled: true, recoveryCodeHashes: hashes },
   });
   await recordAudit({
     action: "admin_2fa_enable",
     actorLabel: admin.email,
     targetType: "AdminUser",
     targetId: admin.id,
+    metadata: { recoveryCodesIssued: plain.length },
   });
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({
+    success: true,
+    recoveryCodes: plain,
+    notice: "Save these codes somewhere safe. Each one can be used ONCE to sign in if you lose your authenticator. They will NOT be shown again.",
+  });
 }

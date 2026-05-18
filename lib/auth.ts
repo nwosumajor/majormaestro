@@ -7,8 +7,12 @@ import { db } from "@/lib/db";
 const scrypt = promisify(scryptCb);
 
 export const ADMIN_COOKIE = "gbn_admin";
+export const USER_COOKIE = "gbn_user";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
+const USER_MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 days for client sessions
 const SCRYPT_KEY_LEN = 64;
+export const RECOVERY_CODE_COUNT = 8;
+const RECOVERY_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 function getSecret(): string {
   const s = process.env.ADMIN_SESSION_SECRET;
@@ -105,18 +109,56 @@ export async function getAdminFromCookies(): Promise<AdminUserSummary | null> {
   });
 }
 
+// ─── Recovery codes ──────────────────────────────────────────────────────
+
+function randomCode(): string {
+  // 10 char codes in groups of 5, e.g. "X8KQM-7T4PR"
+  const bytes = randomBytes(10);
+  let s = "";
+  for (let i = 0; i < 10; i++) {
+    s += RECOVERY_CODE_ALPHABET[bytes[i] % RECOVERY_CODE_ALPHABET.length];
+  }
+  return `${s.slice(0, 5)}-${s.slice(5, 10)}`;
+}
+
+export function normalizeRecoveryCode(input: string): string {
+  return input.toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+export async function generateRecoveryCodes(): Promise<{ plain: string[]; hashes: string[] }> {
+  const plain: string[] = [];
+  const hashes: string[] = [];
+  for (let i = 0; i < RECOVERY_CODE_COUNT; i++) {
+    const code = randomCode();
+    plain.push(code);
+    hashes.push(await hashPassword(normalizeRecoveryCode(code)));
+  }
+  return { plain, hashes };
+}
+
+/** Tries each stored hash; if one matches, returns the index so the caller can mark it consumed. */
+async function findRecoveryCodeIndex(stored: string[], input: string): Promise<number> {
+  const norm = normalizeRecoveryCode(input);
+  if (norm.length < 8) return -1;
+  for (let i = 0; i < stored.length; i++) {
+    if (await verifyPassword(norm, stored[i])) return i;
+  }
+  return -1;
+}
+
 // ─── Bootstrap & login helpers ───────────────────────────────────────────
 
 const BOOTSTRAP_EMAIL = "admin@majormaestro.com";
 
 export type LoginResult =
-  | { ok: true; user: AdminUserSummary }
+  | { ok: true; user: AdminUserSummary; recoveryCodeUsed?: boolean; remainingRecoveryCodes?: number }
   | { ok: false; reason: "invalid" | "totp_required" | "totp_invalid" };
 
 export async function tryLogin(
   email: string,
   password: string,
-  totp?: string
+  totp?: string,
+  recoveryCode?: string
 ): Promise<LoginResult> {
   if (!db) return { ok: false, reason: "invalid" };
   const normEmail = email.trim().toLowerCase();
@@ -143,18 +185,40 @@ export async function tryLogin(
   const passwordOk = await verifyPassword(password, user.passwordHash);
   if (!passwordOk) return { ok: false, reason: "invalid" };
 
+  let recoveryUsed = false;
+  let remainingRecoveryCodes: number | undefined;
+
   if (user.totpEnabled && user.totpSecret) {
-    if (!totp) return { ok: false, reason: "totp_required" };
-    const { verifyCode, decryptSecret } = await import("@/lib/totp");
-    const secret = decryptSecret(user.totpSecret);
-    if (!verifyCode(secret, totp)) return { ok: false, reason: "totp_invalid" };
+    // Accept a recovery code as an alternative second factor
+    if (recoveryCode && user.recoveryCodeHashes.length > 0) {
+      const idx = await findRecoveryCodeIndex(user.recoveryCodeHashes, recoveryCode);
+      if (idx === -1) return { ok: false, reason: "totp_invalid" };
+      const remaining = [...user.recoveryCodeHashes];
+      remaining.splice(idx, 1);
+      await db.adminUser.update({
+        where: { id: user.id },
+        data: { recoveryCodeHashes: remaining },
+      });
+      recoveryUsed = true;
+      remainingRecoveryCodes = remaining.length;
+    } else {
+      if (!totp) return { ok: false, reason: "totp_required" };
+      const { verifyCode, decryptSecret } = await import("@/lib/totp");
+      const secret = decryptSecret(user.totpSecret);
+      if (!verifyCode(secret, totp)) return { ok: false, reason: "totp_invalid" };
+    }
   }
 
   await db.adminUser.update({
     where: { id: user.id },
     data: { lastLoginAt: new Date() },
   });
-  return { ok: true, user: { id: user.id, email: user.email, role: user.role } };
+  return {
+    ok: true,
+    user: { id: user.id, email: user.email, role: user.role },
+    recoveryCodeUsed: recoveryUsed,
+    remainingRecoveryCodes,
+  };
 }
 
 // ─── Cookie options ───────────────────────────────────────────────────────
@@ -173,4 +237,57 @@ export function adminCookieOptions(): {
     path: "/",
     maxAge: MAX_AGE_SECONDS,
   };
+}
+
+// ─── Client (end-user) session — uses Session table (server-side, revocable) ─
+
+import { verifySession } from "@/lib/sessions";
+
+export function userCookieOptions(): {
+  httpOnly: true;
+  sameSite: "lax";
+  secure: boolean;
+  path: string;
+  maxAge: number;
+} {
+  return {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: USER_MAX_AGE_SECONDS,
+  };
+}
+
+interface ClientUserSummary {
+  id: string;
+  email: string;
+  name: string | null;
+  imageUrl: string | null;
+  sessionId: string;
+}
+
+export async function getClientUserFromCookies(): Promise<ClientUserSummary | null> {
+  if (!db) return null;
+  const jar = await cookies();
+  const session = await verifySession(jar.get(USER_COOKIE)?.value);
+  if (!session) return null;
+  const user = await db.user.findUnique({
+    where: { id: session.userId },
+    select: { id: true, email: true, name: true, imageUrl: true },
+  });
+  if (!user) return null;
+  return { ...user, sessionId: session.sessionId };
+}
+
+export async function getClientUserFromRequest(req: NextRequest): Promise<ClientUserSummary | null> {
+  if (!db) return null;
+  const session = await verifySession(req.cookies.get(USER_COOKIE)?.value);
+  if (!session) return null;
+  const user = await db.user.findUnique({
+    where: { id: session.userId },
+    select: { id: true, email: true, name: true, imageUrl: true },
+  });
+  if (!user) return null;
+  return { ...user, sessionId: session.sessionId };
 }

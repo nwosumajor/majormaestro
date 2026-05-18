@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
   await db.adminUser.update({
     where: { id: admin.id },
-    data: { totpEnabled: false, totpSecret: null },
+    data: { totpEnabled: false, totpSecret: null, recoveryCodeHashes: [] },
   });
   await recordAudit({
     action: "admin_2fa_disable",

@@ -5,6 +5,7 @@ import { STEP_DEFS, type StepKey } from "@/lib/recoverySteps";
 import { getEmailConfigStatus } from "@/lib/email";
 import { getAdminFromCookies } from "@/lib/auth";
 import EmailStatusCard from "./EmailStatusCard";
+import RetentionCard from "./RetentionCard";
 import { describeStorage } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
@@ -133,8 +134,9 @@ export default async function AdminDashboardPage({
         </table>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <EmailStatusCard configured={emailStatus.configured} problems={emailStatus.problems} adminEmail={me?.email ?? null} />
+        <RetentionCard />
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Document storage</p>
           <p className="mt-1 text-sm font-bold text-slate-900">
@@ -142,8 +144,8 @@ export default async function AdminDashboardPage({
           </p>
           <p className="mt-1 text-xs text-slate-500">
             {storage.backend === "s3"
-              ? "Uploads are stored in S3 with AES-256 server-side encryption."
-              : "Switch to S3 in production by setting STORAGE_BACKEND=s3 and the S3_* env vars."}
+              ? "Uploads stored in S3 with AES-256 server-side encryption."
+              : "Switch to S3 in prod via STORAGE_BACKEND=s3 + S3_* env vars."}
           </p>
         </div>
       </div>
