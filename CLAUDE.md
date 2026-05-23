@@ -3,12 +3,17 @@
 **Purpose:** A comprehensive enterprise Next.js application featuring AI-driven staff team placement, strategic career roadmapping, and a secure B2B portal for corporate forensic financial auditing and excess bank charges recovery.
 
 ## Tech Stack & Architecture
-- **Framework:** Next.js (latest, App Router)
+- **Framework:** Next.js 16 (App Router, Turbopack). The proxy/middleware convention is `proxy.ts` in repo root (not `middleware.ts`).
 - **Language:** TypeScript
-- **Styling:** Tailwind CSS (Enterprise-grade, high-trust UI)
+- **Styling:** Tailwind CSS v4 (Enterprise-grade, high-trust UI)
+- **Database:** PostgreSQL via Prisma. Schema in `prisma/schema.prisma`; migrations in `prisma/migrations/`.
 - **AI Integration:** Vercel AI SDK (`@ai-sdk/anthropic`)
-- **AI Model:** Anthropic `claude-3-5-sonnet-latest`
-- **Deployment:** Dockerized, deployed to  via GitHub Actions CI/CD.
+- **AI Model:** Anthropic Claude (configurable per-route; check the specific route file)
+- **Email:** Resend (`lib/email.ts` — branded HTML templates)
+- **Document Storage:** Pluggable backend (`STORAGE_BACKEND=local|s3`). S3-compatible (AWS S3, Cloudflare R2, MinIO) via `lib/uploads.ts`.
+- **Auth:** Two parallel systems — admin (email+password+TOTP, HMAC cookie) and client (Google OAuth + magic-link, DB-backed sessions).
+- **PDF Generation:** `jspdf` via `lib/pdf.ts` (forensic case reports)
+- **Deployment:** Not yet wired (no Dockerfile / CI). Targeting Vercel-style hosting.
 
 ## Core Application Modules
 
@@ -19,7 +24,7 @@
 ### 2. Module 1: AI Staff Classification (`/assessment`)
 - **Input Form:** Evaluates users across Psychological, Mental, Social, and Environmental attributes. Captures multiple "Certificates Acquired".
 - **Backend API (`/api/classify/route.ts`):** Uses the Vercel AI SDK to evaluate the user.
-- **Strict Output Requirement:** The AI must use a Zod schema to return an array of EXACTLY 3 objects representing the Top 3 best-fit departments. 
+- **Strict Output Requirement:** The AI must use a Zod schema to return an array of EXACTLY 3 objects representing the Top 3 best-fit departments.
 
 **ALLOWED DEPARTMENTS (The AI must strictly choose from this list):**
 - **[Banking & Financial Services]:** Corporate Banking, Retail Banking, Treasury, Risk Management, Compliance and AML, Internal Audit, Customer Service, Investment Banking, Corporate Communications, Trade Finance, Human Resources, Legal Services, Strategy and Analytics.
@@ -50,9 +55,239 @@
 - **UI Requirements:** - Emphasize the "Zero-Risk / 30% Success Fee" model.
   - Display the "Six-Step Recovery Process" (Engagement, Document Collection, Forensic Analysis, Findings Report, Bank Engagement, Recovery).
 - **Interactive Estimator:** A component that takes an "Annual Turnover Band" and outputs the "Typical Recovery Range" and "Estimated Timeline" (e.g., ₦200M – ₦1B yields ₦5M – ₦40M in 6-10 weeks).
-- **Complaint Lodging Form:** A secure intake form capturing corporate details, banks used, and NDPA 2023/NDA compliance acknowledgments, with UI placeholders for secure document uploads (Statements, Letters of Authority).
+- **Complaint Lodging Form:** A secure intake form capturing corporate details, banks used, and NDPA 2023/NDA compliance acknowledgments, with secure document uploads (Statements, Letters of Authority).
+
+## Authentication
+
+Two **separate** systems sharing one signing secret (`ADMIN_SESSION_SECRET`):
+
+### Admin auth (staff)
+- **Storage:** `AdminUser` table — scrypt-hashed password (`lib/auth.ts:hashPassword`), optional `googleSub` for Google sign-in, optional `totpSecret` (encrypted AES-256-GCM) + `recoveryCodeHashes[]`.
+- **Cookie:** `gbn_admin`, stateless HMAC token: `userId.timestamp.signature`, 7-day TTL.
+- **Login methods:**
+  - Email + password + optional TOTP (or recovery code) at `/admin/login`
+  - Google OAuth with optional domain lock via `ADMIN_GOOGLE_DOMAIN` — only allows accounts where the email matches an existing `AdminUser` row.
+- **Bootstrap:** when zero `AdminUser` rows exist, the first login attempt with `ADMIN_PASSWORD` env value auto-creates the first user. Once any user exists, env-password is ignored.
+- **Bulk revoke:** rotate `ADMIN_SESSION_SECRET` — invalidates all admin sessions.
+- **Helper:** `getAdminFromRequest(req)` / `getAdminFromCookies()` in `lib/auth.ts`.
+
+### Client auth (end users)
+- **Storage:** `User` table — `googleSub` (optional), `email` (unique), `name`, `imageUrl`, `emailVerified`.
+- **Cookie:** `gbn_user`, **opaque random token** (sha256 looked up in `Session` table), 30-day TTL.
+- **Sessions are server-side** — every active device has a `Session` row (userAgent, IP, lastUsedAt, revokedAt). Users can list and revoke per-device from `/client/account`.
+- **Login methods:**
+  - Google OAuth at `/api/auth/google/start?mode=client`
+  - Magic-link email at `/api/auth/email/start` → user clicks link → `/api/auth/email/verify` mints a session
+- **Helper:** `getClientUserFromRequest(req)` / `getClientUserFromCookies()` — returns `{ id, email, name, imageUrl, sessionId }`.
+- **Auto-link:** on first sign-in, any `RecoveryComplaint` rows whose `contactEmail` matches are linked via `userId`.
+
+## Admin Panel (`/admin`)
+
+All `/admin/*` page routes and `/api/admin/*` API routes are gated by `proxy.ts`. Unauthenticated requests redirect to `/admin/login?next=…` or return 401 JSON for APIs.
+
+**Pages** (under `app/admin/(dashboard)/`):
+- `/admin` — case list with search/filter, stat cards, email pipeline + storage + retention health
+- `/admin/cases/[ref]` — case detail, status timeline, findings editor, PDF report, document download, internal notes, advance form
+- `/admin/referrals` — referral partners with attribution counts
+- `/admin/audit` — full audit log with filters
+- `/admin/users` — admin user CRUD (cannot delete self or last admin)
+- `/admin/webhooks` — webhook CRUD, test-fire, per-hook delivery history
+- `/admin/account` — 2FA setup/disable, recovery codes, password change
+
+**Key admin API patterns:**
+- `/api/admin/cases/[ref]/advance` — POST advances status, fires webhooks, emails client (unless `notify: false`)
+- `/api/admin/cases/[ref]/report.pdf` — generates PDF via `lib/pdf.ts`
+- `/api/admin/retention/purge` — document retention purge
+- `/api/admin/retention/audit/purge` — audit log retention purge
+- `/api/admin/export/complaints` — CSV export
+
+## Client Portal (`/client`)
+
+- `/client/signin` — unified entry (Google OAuth + email magic-link)
+- `/client/dashboard` — recovery cases, saved classifications, saved roadmaps. Has `MigrationBridge` that pushes localStorage entries to the server on first sign-in.
+- `/client/account` — display name edit, email change (verifies new address before swap), connected accounts (disconnect Google), active sessions (per-device revoke + "sign out everywhere else"), danger-zone account deletion
+
+**Account deletion semantics:** `User` row + `SavedClassification` + `SavedRoadmap` + `Session` rows cascade-delete. `RecoveryComplaint` rows are PRESERVED (legal retention) but `userId` is set to NULL.
+
+## Forensic Recovery Workflow
+
+Case lifecycle is driven by `CaseStatusEvent` rows. Step keys (in `lib/recoverySteps.ts:STEP_KEYS`):
+```
+received → reviewing → documents → auditing → findings → engagement → recovered
+```
+
+- **Intake** (`/recovery#intake`): creates `RecoveryComplaint`, assigns a forensics team via `pickTeam(referenceId)`, creates the initial `received` event, sends client confirmation email + internal notification.
+- **Reference ID format:** `GBN-<base36 timestamp>-<random 4 chars>` (e.g., `GBN-MPB4JQHX-166A`). Admin tracking page and client track page both look up by this.
+- **Advance** (`POST /api/admin/cases/[ref]/advance`): admin moves the case forward. Each transition:
+  - writes a `CaseStatusEvent` (transactional with the `status` column update)
+  - audit-logs the action with actor email
+  - emails the client (unless suppressed)
+  - fires `case.status_changed` webhook + `case.closed` when reaching `recovered`
+  - on `recovered`, sets `closedAt` (starts the retention clock)
+- **Findings & recovery amount:** entered by admin in `/admin/cases/[ref]` → stored in `findingsSummary` (TEXT) and `recoveryAmountKobo` (BigInt — kobo). PDF includes both.
+- **Internal notes:** admin-only annotations (`CaseNote`), invisible to the client even in the NDPA data export.
+
+## Operations
+
+### Webhooks
+- Configure at `/admin/webhooks`. HTTPS-only URLs.
+- Events: `case.status_changed`, `case.closed`, `case.note_added`, `referral.created` (last two reserved — not yet fired).
+- **Signing:** HMAC-SHA256 of body with per-webhook secret, sent as `X-GBN-Signature: sha256=…`.
+- **Filters** (optional per webhook): `minRecoveryKobo` (BigInt as string), `statuses` (array), `hasReferral` (boolean). Below-threshold events never create a delivery row.
+- **Retry & DLQ:** every delivery is a `WebhookDelivery` row. Backoff: 1m → 5m → 30m → 2h → 12h, then `status="dead"` at 5 attempts. Retry endpoint at `/api/cron/webhooks/retry`. Admin can manually retry a dead delivery from the deliveries panel.
+
+### Audit log
+- `AuditLog` table. Every admin action and sensitive client action records an entry (login success/fail, case advance, document download, CSV export, account deletion, etc.).
+- Searchable at `/admin/audit` by action / actor / target ID.
+- Retention: configurable via `AUDIT_LOG_RETENTION_DAYS` (default 730). Purge via dashboard or `POST /api/admin/retention/audit/purge`.
+
+### Document retention
+- `RETENTION_DAYS` (default 1095 / 3 years) past `closedAt`.
+- Purge deletes both the blob (via storage abstraction) and the `UploadedDocument` row. The `RecoveryComplaint` row itself is preserved.
+
+### Storage backends (`lib/uploads.ts`)
+- `STORAGE_BACKEND=local` — default. Writes to `./uploads/`.
+- `STORAGE_BACKEND=s3` — AWS S3 / R2 / MinIO. Required env: `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`. Optional: `S3_ENDPOINT` for R2/MinIO.
+- Per-row `UploadedDocument.storageBackend` column so old local files keep working after the env flip.
+- One-off backfill: `npm run migrate:uploads-to-s3` (script in `scripts/migrate-uploads-to-s3.mjs`, supports `--dry-run`).
+
+### Email (`lib/email.ts`)
+- All outbound mail via Resend. Helpers: `sendLeadMagnetGuide`, `sendComplaintConfirmation`, `sendInternalComplaintNotification`, `sendStatusUpdate`, `sendMagicLink`, `sendEmailChangeConfirmation`, `sendPlain` (for admin test).
+- Config validator: `getEmailConfigStatus()` checks `RESEND_API_KEY`, `RESEND_FROM_EMAIL` format, `INTERNAL_NOTIFY_EMAIL`. Surfaced on admin dashboard.
+- Test endpoint: `POST /api/admin/email-test` sends a probe email to the calling admin.
+
+### Rate limiting (`lib/rateLimit.ts`)
+- In-memory sliding window (resets on deploy). Applied to: `/api/recovery` (5/hr), `/api/lead-magnet` (10/hr), `/api/refer` (10/hr), `/api/admin/login` (5/15min), `/api/auth/email/start` (5/hr per IP, 3/hr per email), `/api/client/me/email-change/start` (3/hr per user), `/api/recovery/[ref]/data` (5/hr).
+
+### Security headers
+- Set globally in `proxy.ts`: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: camera=(), microphone=(), geolocation=()`. Plus HSTS in production.
+
+## Data Model — key Prisma models
+
+Stored in `prisma/schema.prisma`. Recently-added timestamp columns use `@db.Timestamptz(3)` (TIMESTAMPTZ) to avoid timezone bugs in cron-style comparisons — be aware that legacy columns (RecoveryComplaint, AuditLog) are still `TIMESTAMP(3)` and rely on Prisma writing/reading consistently as UTC.
+
+- **Recovery:** `RecoveryComplaint`, `CaseStatusEvent`, `CaseNote`, `UploadedDocument`, `Referral`
+- **Auth (admin):** `AdminUser`, `AuditLog`
+- **Auth (client):** `User`, `Session`, `MagicLinkToken`, `EmailChangeToken`
+- **AI artifacts (signed-in users):** `SavedClassification`, `SavedRoadmap`
+- **Marketing:** `LeadMagnetSubscriber`
+- **Operations:** `Webhook`, `WebhookDelivery`
+
+## Cron endpoints
+
+Both require `CRON_SECRET`. Pass it as `Authorization: Bearer <secret>` OR `X-Cron-Secret: <secret>`. Accept both `GET` and `POST` so any scheduler (Vercel Cron, GitHub Actions, external) can fire them.
+
+| Path | Recommended schedule | What it does |
+|---|---|---|
+| `/api/cron/webhooks/retry` | every 5 minutes | Re-attempts due `WebhookDelivery` rows, escalates backoff, dead-letters at 5 attempts |
+| `/api/cron/cleanup` | daily | Deletes magic-link / email-change / revoked-or-expired session rows older than 1 day past expiry |
+
+## Environment variables
+
+See `.env.example` for the full annotated set. Critical groups:
+- `ANTHROPIC_API_KEY` (AI)
+- `DATABASE_URL` (Postgres)
+- `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `INTERNAL_NOTIFY_EMAIL` (email)
+- `NEXT_PUBLIC_APP_URL` (used in emails, OAuth redirects, sitemap, robots)
+- `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET` (admin auth — secret must be ≥32 chars hex)
+- `STORAGE_BACKEND`, `S3_*` (uploads)
+- `RETENTION_DAYS`, `AUDIT_LOG_RETENTION_DAYS` (retention policies)
+- `CRON_SECRET` (cron auth)
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, optional `ADMIN_GOOGLE_DOMAIN` (OAuth)
+
+## Common operations
+
+### Bootstrap the first admin
+1. Set `ADMIN_PASSWORD` to a long random string in `.env.local`.
+2. Visit `/admin/login`, sign in with any email + that password — the first `AdminUser` row is created automatically with `role="owner"`.
+3. From `/admin/users`, invite teammates (they need to be created here before they can use Google sign-in too).
+
+### Run a Prisma migration
+```bash
+set -a && source .env.local && set +a
+npx prisma migrate dev --name <description>
+```
+If the prompt blocks (warnings about unique constraints on nullable columns etc.), `npx prisma db push --accept-data-loss` is the dev escape hatch; record the migration manually under `prisma/migrations/` and run `npx prisma migrate resolve --applied <name>`.
+
+### Switch to S3 storage
+1. Set `STORAGE_BACKEND=s3` plus `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (and optionally `S3_ENDPOINT` for R2/MinIO).
+2. New uploads will go to S3. Existing rows with `storageBackend="local"` still work via the local disk.
+3. To migrate existing files: `npm run migrate:uploads-to-s3` (supports `--dry-run` first).
+
+### Enable Google sign-in
+1. Create a Web Application OAuth Client at https://console.cloud.google.com/apis/credentials
+2. Authorised redirect URI = `${NEXT_PUBLIC_APP_URL}/api/auth/google/callback`
+3. Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+4. (Optional, admin) set `ADMIN_GOOGLE_DOMAIN=yourdomain.com` to lock admin Google sign-in to one Workspace domain.
+
+### Schedule the cron endpoints (Vercel)
+Add to `vercel.json`:
+```json
+{
+  "crons": [
+    { "path": "/api/cron/webhooks/retry", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/cleanup",        "schedule": "0 4 * * *" }
+  ]
+}
+```
+Vercel Cron uses `Authorization: Bearer ${CRON_SECRET}` automatically — make sure `CRON_SECRET` is set in the Vercel env.
+
+## Pre-launch verification status
+
+Last full pass: **2026-05-19** against `localhost:3100` with real Resend + local Postgres. Most flows have been driven end-to-end via API; visual UI + interactive third-party flows have not.
+
+### ✓ API-verified (works exactly as written)
+
+| Area | What was exercised | Notes |
+|---|---|---|
+| Recovery intake (`A4`) | POST `/api/recovery`, required-field validation, ack-checkbox enforcement, ref-ID generation, team assignment, real email send | Confirmation + internal-notification emails accepted by Resend |
+| Public tracking (`A5`) | `/api/recovery/track`, NDPA data export (correct + wrong email rejection, generic 404 to prevent enumeration), rate limit 5/hr | Note: `+` in `?email=` query params must be URL-encoded (`%2B`); browser form does this correctly |
+| Referrals (`A6`) | POST `/api/refer`, public stats endpoint, attribution counts | |
+| Magic-link sign-in (`B1`) | Token issue, verify, session creation, token reuse rejection, auto-link to matching complaints by email | Two passes: fresh identity (no auto-link) + email-matching identity (auto-links all matching complaints) |
+| Email change (`B7`) | Start, new-address verification, same-email rejection, conflict-with-existing-user rejection, atomic email swap | `EmailChangeToken` flow including `usedAt` marking |
+| Sessions (`B8`) | List active sessions with UA/IP, revoke-all-others (keeps current), revoked sessions immediately 401 | DB-backed per-device sessions, not HMAC |
+| Account deletion (`B9`) | `confirmEmail` mismatch rejection, cascade cleanup of Session + SavedClassification + SavedRoadmap, `RecoveryComplaint.userId` detachment with row preserved (legal retention) | |
+| Admin auth (`C1`-`C4`) | Password login, 2FA enable with recovery codes, recovery-code login + reuse rejection, password change validation, multi-admin create/delete, can't-delete-self | |
+| Case lifecycle (`C5`) | Notes, findings + recovery amount (BigInt kobo), advance through all 7 steps, status email on advance, `closedAt` set at `recovered`, PDF report (12KB, 2 pages, valid PDF 1.3) | Canonical fixture: `GBN-MPCAJVI7-C8ZD` — Walkthrough Test Industries Ltd, ₦12.5M recovery, status=recovered. Survives DB resets, useful for regression tests. |
+| Document download (`C6`) | Upload via `/api/upload`, admin download via `/api/admin/cases/[ref]/documents/[id]`, byte-for-byte match, audit-logged | Local backend; S3 path code-reviewed but not exercised live |
+| Operational endpoints (`C7`-`C12`) | CSV export with filters, audit log search by action/actor, retention previews, email-test from dashboard | |
+| Webhooks (`C9`-`C10`) | Test-fire, real fire on case advance, HMAC signing, exponential backoff (1m → 5m → 30m → 2h → 12h), dead-letter at 5 attempts, manual retry of dead delivery | |
+| Security (`D1`-`D6`) | Auth gates on `/admin/*` + `/api/admin/*` + `/client/dashboard` + `/api/client/*`, headers (X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy), rate limits on magic-link start (5/hr per IP) + NDPA export (5/hr per IP), cron auth, revoked session can't replay even with stolen cookie | HSTS + `X-Robots-Tag: noindex` are set via `vercel.json` + production-only branch in `proxy.ts` — verify those on the live deploy |
+| Backup + restore (`E3`) | `npm run backup:db` produces 12KB gzipped dump; restored into a scratch DB yields exact table-count match across all 8 tracked tables, all 10 FKs + 50 indexes intact, canonical fixture restorable with full relations | This is the disaster-recovery test most teams discover too late. Ours works. |
+
+### ⏳ Gated on human + dashboards (NOT yet verified)
+
+These require a real browser, real third-party accounts, or both. Not testable from this codebase alone:
+
+- `A1` — landing page rendering on real mobile devices
+- `A3` — assessment / pre-screener / quiz AI flows (would burn Anthropic credits; defer until you're already clicking through)
+- `B2` / `B3` — Google OAuth interactive flow (consent screen, account picker, callback) — needs real `GOOGLE_CLIENT_ID`
+- `B4`-`B6` — cross-session assessment save → sign-in → localStorage migration banner (needs cross-tab browser test)
+- `E1` — Sentry receiving events (no-op until `SENTRY_DSN` is set in env)
+- `E2` — Resend dashboard log inspection (only the operator can log in)
+- `F` — mobile + a11y audit (real devices, real screen readers)
+- `G` — final go/no-go signoff (you, not me)
+
+### Known flags worth re-checking before launch
+
+1. **`POST /api/admin/email-test` returned `resendId: null`** — Resend accepted the call but didn't include a message ID. Possibly benign (Resend sometimes omits IDs on edge code paths) but worth confirming the test message actually delivered by checking Resend → Logs.
+2. **`@example.com` test bounces in Resend history** — left over from earlier automated smoke tests. Add to Resend → Suppressions to stop reputation drag. See `LAUNCH-CHECKLIST.md → Test email convention` for the proper alias pattern going forward.
+3. **`X-Robots-Tag: noindex` on `/admin/*`** is configured in `vercel.json` only — re-verify on the live deploy that the header is present.
+4. **`Strict-Transport-Security`** is set in `proxy.ts` only when `NODE_ENV === "production"` — won't appear in `npm run dev`.
+
+### Canonical test fixture
+
+`RecoveryComplaint GBN-MPCAJVI7-C8ZD` is the reference case that's been driven through every admin and client flow. It's preserved across DB resets (only `nwosumajor+%@gmail.com` and `@example.com` test data are cleaned). Use it for:
+- Manual UI walkthroughs (`/admin/cases/GBN-MPCAJVI7-C8ZD`)
+- Backup/restore drills (verify it survives the round-trip)
+- PDF report regression checks (12KB, 2 pages, contains "CLOSED / RECOVERED" + findings text)
 
 ## Development Guidelines
-1. **API Keys:** Use `process.env.ANTHROPIC_API_KEY` in API routes.
+1. **AI Keys:** Use `process.env.ANTHROPIC_API_KEY` in API routes.
 2. **Security & Trust:** The `/recovery` module must look highly secure and professional, reflecting a financial institution's standards.
 3. **Modularity & Fallbacks:** Keep UI components modular. Handle loading states gracefully. Implement try/catch blocks in API routes and render fallback UI if the AI response fails.
+4. **Timestamps:** Prefer `@db.Timestamptz(3)` on any new `DateTime` column that will be compared against `NOW()` via raw SQL or against `new Date()` from JS. Legacy `TIMESTAMP(3)` columns are safe internally (Prisma always uses UTC) but will produce off-by-timezone bugs when admins poke them via psql.
+5. **Audit:** Any new admin action that mutates state should call `recordAudit({ action, actorLabel, ... })` from `lib/audit.ts`. Use the calling admin's email as `actorLabel` via `getAdminFromRequest(req)?.email`.
+6. **Sessions vs HMAC:** When adding new client-facing endpoints, use `getClientUserFromRequest(req)` — never roll your own cookie parsing. The `sessionId` it returns lets you scope revoke logic correctly.
+7. **Rate limits:** Apply `rateLimit()` to any new public POST endpoint that triggers email, AI calls, or DB writes.
+8. **Test email addresses:** Never use `@example.com`, `@test.com`, or any reserved/unroutable domain in smoke tests, seed data, or fixtures. Those addresses bounce through Resend, polluting the delivery log and slowly damaging sender reputation. Use Gmail `+tag` aliases on a domain the operator owns — e.g., `nwosumajor+magiclink@gmail.com`, `nwosumajor+intake@gmail.com`, `nwosumajor+lead@gmail.com`. They all land in one inbox for visual verification, but Resend tracks each as a distinct row searchable by `+tag`. For server-driven internal mail, real aliases like `forensics@majormaestro.com` and `referrals@majormaestro.com` are even better — they exercise actual production routing.

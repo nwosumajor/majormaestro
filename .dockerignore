@@ -1,0 +1,15 @@
+.next/
+node_modules/
+.git/
+.env*
+!.env.example
+uploads/
+*.log
+.DS_Store
+.vscode/
+.idea/
+README.md
+DEPLOY.md
+LAUNCH-CHECKLIST.md
+CLAUDE.md
+AGENTS.md
