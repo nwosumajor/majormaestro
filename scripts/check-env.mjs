@@ -143,7 +143,11 @@ optional("RETENTION_DAYS", (v) => (Number.isInteger(+v) && +v > 0 ? null : "must
 optional("AUDIT_LOG_RETENTION_DAYS", (v) => (Number.isInteger(+v) && +v > 0 ? null : "must be a positive integer"), "defaults to 730 (2 years)");
 
 // ─── Sentry (optional) ─────────────────────────────────────────────────────
-optional("SENTRY_DSN", (v) => (/^https:\/\/.+@.+\.ingest\.sentry\.io\//.test(v) ? null : "should look like https://<key>@<org>.ingest.sentry.io/<project>"), "error tracking disabled");
+// Accepts both the legacy host (<org>.ingest.sentry.io) and the newer regional
+// hosts (<org>.ingest.us.sentry.io, .ingest.de.sentry.io, etc.).
+const sentryDsnRe = /^https:\/\/.+@.+\.ingest\.(?:[a-z]{2}\.)?sentry\.io\//;
+optional("SENTRY_DSN", (v) => (sentryDsnRe.test(v) ? null : "should look like https://<key>@<org>.ingest[.<region>].sentry.io/<project>"), "error tracking disabled");
+optional("NEXT_PUBLIC_SENTRY_DSN", (v) => (sentryDsnRe.test(v) ? null : "should look like https://<key>@<org>.ingest[.<region>].sentry.io/<project>"), "browser error tracking disabled");
 
 // ─── Cross-field validation ────────────────────────────────────────────────
 const issues = [];

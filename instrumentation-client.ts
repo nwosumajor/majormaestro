@@ -1,5 +1,11 @@
+// This file configures the initialization of Sentry on the client.
+// The added config here will be used whenever a users loads a page in their browser.
+// https://docs.sentry.io/platforms/javascript/guides/nextjs/
+
 import * as Sentry from "@sentry/nextjs";
 
+// Browser DSN must be inlined at build time (NEXT_PUBLIC_*). Without it,
+// Sentry.init is skipped and the browser SDK is a no-op.
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
 if (dsn) {
@@ -19,3 +25,5 @@ if (dsn) {
     ],
   });
 }
+
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
