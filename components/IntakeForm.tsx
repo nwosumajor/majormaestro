@@ -50,6 +50,8 @@ const TURNOVER_OPTIONS = [
   "Above ₦5B",
 ];
 
+const DRAFT_KEY = "gbn_intake_draft";
+
 const INITIAL_STATE: FormState = {
   companyName: "",
   rcNumber: "",
@@ -104,19 +106,55 @@ export default function IntakeForm({ referralCode }: { referralCode?: string }) 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<SuccessState | null>(null);
 
-  // Funnel: someone reached & engaged the intake form. Also pre-fill the
-  // turnover band if they came from the RecoveryEstimator (handoff via sessionStorage).
+  // On mount: fire the funnel event, restore any saved draft (org-level fields
+  // only — no contact PII or compliance acknowledgments are ever persisted),
+  // and pre-fill the turnover band if the visitor came from the estimator.
   useEffect(() => {
     track("intake_start", referralCode ? { referred: true } : undefined);
-    try {
-      const band = sessionStorage.getItem("gbn_turnover"); // set by RecoveryEstimator
-      if (band && TURNOVER_OPTIONS.includes(band)) {
-        setForm((prev) => (prev.turnoverBand ? prev : { ...prev, turnoverBand: band }));
+    setForm((prev) => {
+      let next = prev;
+      try {
+        const raw = localStorage.getItem(DRAFT_KEY);
+        if (raw) {
+          const d = JSON.parse(raw) as Partial<FormState>;
+          next = {
+            ...next,
+            companyName: d.companyName || next.companyName,
+            rcNumber: d.rcNumber || next.rcNumber,
+            turnoverBand: d.turnoverBand || next.turnoverBand,
+            banks: Array.isArray(d.banks) && d.banks.length ? d.banks : next.banks,
+          };
+        }
+      } catch {
+        /* ignore malformed draft */
       }
-    } catch {
-      /* storage blocked — no pre-fill */
-    }
+      try {
+        const band = sessionStorage.getItem("gbn_turnover"); // set by RecoveryEstimator
+        if (band && TURNOVER_OPTIONS.includes(band)) next = { ...next, turnoverBand: band };
+      } catch {
+        /* storage blocked */
+      }
+      return next;
+    });
   }, [referralCode]);
+
+  // Persist a lightweight draft so a half-filled form survives an accidental
+  // close. Org fields only; cleared on successful submit.
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({
+          companyName: form.companyName,
+          rcNumber: form.rcNumber,
+          turnoverBand: form.turnoverBand,
+          banks: form.banks,
+        })
+      );
+    } catch {
+      /* storage blocked */
+    }
+  }, [form.companyName, form.rcNumber, form.turnoverBand, form.banks]);
 
   const [uploadedFiles, setUploadedFiles] = useState<Partial<Record<SlotKey, UploadedFile>>>({});
   const [uploadStatus, setUploadStatus] = useState<Record<SlotKey, UploadStatus>>({
@@ -214,6 +252,11 @@ export default function IntakeForm({ referralCode }: { referralCode?: string }) 
         documents: payload.documents.length,
         referred: !!referralCode,
       });
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+      } catch {
+        /* ignore */
+      }
       setSuccess({ referenceId: data.referenceId, message: data.message });
     } catch (err) {
       track("intake_error", { message: err instanceof Error ? err.message : "unknown" });
@@ -287,10 +330,11 @@ export default function IntakeForm({ referralCode }: { referralCode?: string }) 
         {step === 0 && (
           <div className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-800">
+              <label htmlFor="f-companyName" className="mb-1.5 block text-sm font-semibold text-slate-800">
                 Registered Company Name <span className="text-red-500">*</span>
               </label>
               <input
+                id="f-companyName"
                 type="text"
                 value={form.companyName}
                 onChange={(e) => update("companyName", e.target.value)}
@@ -299,10 +343,11 @@ export default function IntakeForm({ referralCode }: { referralCode?: string }) 
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-800">
+              <label htmlFor="f-rcNumber" className="mb-1.5 block text-sm font-semibold text-slate-800">
                 RC Number (CAC) <span className="text-red-500">*</span>
               </label>
               <input
+                id="f-rcNumber"
                 type="text"
                 value={form.rcNumber}
                 onChange={(e) => update("rcNumber", e.target.value)}
@@ -311,10 +356,11 @@ export default function IntakeForm({ referralCode }: { referralCode?: string }) 
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-800">
+              <label htmlFor="f-turnoverBand" className="mb-1.5 block text-sm font-semibold text-slate-800">
                 Annual Turnover Band <span className="text-red-500">*</span>
               </label>
               <select
+                id="f-turnoverBand"
                 value={form.turnoverBand}
                 onChange={(e) => update("turnoverBand", e.target.value)}
                 className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
@@ -358,29 +404,29 @@ export default function IntakeForm({ referralCode }: { referralCode?: string }) 
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-800">
+                <label htmlFor="f-contactName" className="mb-1.5 block text-sm font-semibold text-slate-800">
                   Full Name <span className="text-red-500">*</span>
                 </label>
-                <input type="text" value={form.contactName} onChange={(e) => update("contactName", e.target.value)} placeholder="e.g. Amaka Okonkwo" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+                <input id="f-contactName" type="text" value={form.contactName} onChange={(e) => update("contactName", e.target.value)} placeholder="e.g. Amaka Okonkwo" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-800">
+                <label htmlFor="f-contactTitle" className="mb-1.5 block text-sm font-semibold text-slate-800">
                   Job Title / Role <span className="text-red-500">*</span>
                 </label>
-                <input type="text" value={form.contactTitle} onChange={(e) => update("contactTitle", e.target.value)} placeholder="e.g. Chief Financial Officer" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+                <input id="f-contactTitle" type="text" value={form.contactTitle} onChange={(e) => update("contactTitle", e.target.value)} placeholder="e.g. Chief Financial Officer" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
               </div>
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-800">
+              <label htmlFor="f-contactEmail" className="mb-1.5 block text-sm font-semibold text-slate-800">
                 Official Email Address <span className="text-red-500">*</span>
               </label>
-              <input type="email" value={form.contactEmail} onChange={(e) => update("contactEmail", e.target.value)} placeholder="e.g. a.okonkwo@company.com" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+              <input id="f-contactEmail" type="email" value={form.contactEmail} onChange={(e) => update("contactEmail", e.target.value)} placeholder="e.g. a.okonkwo@company.com" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-800">
+              <label htmlFor="f-contactPhone" className="mb-1.5 block text-sm font-semibold text-slate-800">
                 Direct Phone Number <span className="text-red-500">*</span>
               </label>
-              <input type="tel" value={form.contactPhone} onChange={(e) => update("contactPhone", e.target.value)} placeholder="e.g. +234 801 234 5678" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+              <input id="f-contactPhone" type="tel" value={form.contactPhone} onChange={(e) => update("contactPhone", e.target.value)} placeholder="e.g. +234 801 234 5678" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
             </div>
             <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-700">
               <Lock size={12} className="mr-1.5 inline text-blue-500" />
@@ -497,7 +543,7 @@ export default function IntakeForm({ referralCode }: { referralCode?: string }) 
 
         {/* Error banner */}
         {error && (
-          <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+          <div role="alert" className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
             <AlertCircle size={16} className="mt-0.5 shrink-0 text-red-500" />
             <p className="text-sm text-red-700">{error}</p>
           </div>

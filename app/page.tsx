@@ -142,6 +142,25 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── PROOF STRIP ──────────────────────────────────────── */}
+      <div className="border-b border-slate-200 bg-slate-50">
+        <Container className="py-8">
+          <dl className="grid grid-cols-2 gap-6 text-center sm:grid-cols-4">
+            {[
+              { stat: "₦800K–₦150M+", label: "Typical recovery range" },
+              { stat: "4–16 wks", label: "Complaint to recovery" },
+              { stat: "30%", label: "Success fee — billed only on recovery" },
+              { stat: "6-year", label: "BOFIA recovery window" },
+            ].map(({ stat, label }) => (
+              <div key={label}>
+                <dt className="font-figure text-2xl font-bold text-ink sm:text-3xl">{stat}</dt>
+                <dd className="mt-1 text-xs leading-tight text-slate-500">{label}</dd>
+              </div>
+            ))}
+          </dl>
+        </Container>
+      </div>
+
       {/* ── FLAGSHIP: FORENSIC RECOVERY ──────────────────────── */}
       <Section surface="white">
         <Container>
