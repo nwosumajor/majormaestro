@@ -22,6 +22,12 @@ const RESET = "\x1b[0m";
 
 const env = process.env;
 
+// On Vercel, NODE_ENV is "production" even for *preview* builds; VERCEL_ENV is
+// what actually distinguishes a real production deploy from preview/development.
+// Fall back to NODE_ENV for local runs (where VERCEL_ENV is absent), so a local
+// `npm run build` is still held to full production standards.
+const isProd = env.VERCEL_ENV ? env.VERCEL_ENV === "production" : env.NODE_ENV === "production";
+
 const results = { errors: [], warnings: [], ok: [] };
 
 function pass(key, note) {
@@ -81,7 +87,7 @@ required(
   (v) => {
     try {
       const u = new URL(v);
-      if (env.NODE_ENV === "production" && u.protocol !== "https:") {
+      if (isProd && u.protocol !== "https:") {
         return "must use https:// in production";
       }
       if (v.endsWith("/")) return "should NOT have a trailing slash (some email templates assume no slash)";
@@ -94,7 +100,7 @@ required(
 
 // ─── Admin auth ────────────────────────────────────────────────────────────
 // ADMIN_PASSWORD is bootstrap-only (ignored once an AdminUser exists). Require strong length in production; warn otherwise.
-if (env.NODE_ENV === "production") {
+if (isProd) {
   required("ADMIN_PASSWORD", (v) => (v.length >= 16 ? null : "must be ≥16 characters in production (one-time bootstrap value)"));
 } else {
   optional("ADMIN_PASSWORD", (v) => (v.length >= 12 ? null : "shorter than 12 chars — fine for local dev, but production must be ≥16"));
@@ -151,7 +157,7 @@ optional("NEXT_PUBLIC_SENTRY_DSN", (v) => (sentryDsnRe.test(v) ? null : "should 
 
 // ─── Cross-field validation ────────────────────────────────────────────────
 const issues = [];
-if (env.NODE_ENV === "production") {
+if (isProd) {
   if (env.NEXT_PUBLIC_APP_URL?.includes("localhost")) {
     issues.push("NEXT_PUBLIC_APP_URL points at localhost while NODE_ENV=production — OAuth redirects will fail.");
   }
