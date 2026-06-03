@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { db } from "@/lib/db";
 import { STEP_KEYS, STEP_DEFS, type StepKey } from "@/lib/recoverySteps";
 import { recordAudit } from "@/lib/audit";
@@ -79,17 +79,21 @@ export async function POST(
     metadata: { referenceId, step: targetStep, note, actorId: admin?.id },
   });
 
-  // Email client unless explicitly suppressed
+  // Email client unless explicitly suppressed. Sent inside after() so Vercel keeps
+  // the function alive until the send completes — a bare fire-and-forget Promise can
+  // be torn down on response flush, silently dropping the status email.
   if (payload.notify !== false) {
-    sendStatusUpdate({
-      referenceId,
-      contactName: complaint.contactName,
-      contactEmail: complaint.contactEmail,
-      companyName: complaint.companyName,
-      stepLabel: STEP_DEFS[targetStep].label,
-      stepDescription: STEP_DEFS[targetStep].description,
-      note: note ?? undefined,
-    }).catch((e) => console.error("[advance] Status email error:", e));
+    after(() =>
+      sendStatusUpdate({
+        referenceId,
+        contactName: complaint.contactName,
+        contactEmail: complaint.contactEmail,
+        companyName: complaint.companyName,
+        stepLabel: STEP_DEFS[targetStep].label,
+        stepDescription: STEP_DEFS[targetStep].description,
+        note: note ?? undefined,
+      }).catch((e) => console.error("[advance] Status email error:", e))
+    );
   }
 
   // Fire webhooks (best-effort, non-blocking response)

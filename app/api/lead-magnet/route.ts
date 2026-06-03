@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { db } from "@/lib/db";
 import { sendLeadMagnetGuide } from "@/lib/email";
 import { getClientIp, rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
@@ -37,9 +37,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Send guide email (fire-and-forget — don't fail request if email bounces)
-    sendLeadMagnetGuide(email, companyName).catch((err) =>
-      console.error("[lead-magnet] Email error (non-fatal):", err)
+    // Send guide email after the response is flushed, but inside after() so Vercel
+    // keeps the function alive until it completes (a bare fire-and-forget Promise can
+    // be torn down on response flush). Don't fail the request if the email bounces.
+    after(() =>
+      sendLeadMagnetGuide(email, companyName).catch((err) =>
+        console.error("[lead-magnet] Email error (non-fatal):", err)
+      )
     );
 
     return NextResponse.json({

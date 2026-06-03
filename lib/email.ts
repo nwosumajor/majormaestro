@@ -36,9 +36,21 @@ export function getEmailConfigStatus(): EmailConfigStatus {
   };
 }
 
-export async function sendPlain(opts: { to: string; subject: string; html: string }) {
+// Resend's SDK resolves (does NOT throw) on a rejected send — e.g. a suppressed
+// recipient or validation error — returning { data: null, error }. Every send
+// must go through this wrapper so a rejected send surfaces as a thrown error
+// instead of being silently swallowed (and reported as success).
+async function sendOrThrow(payload: Parameters<Resend["emails"]["send"]>[0]) {
   if (!resend) throw new Error("RESEND_API_KEY is not set.");
-  return resend.emails.send({ from: FROM, to: opts.to, subject: opts.subject, html: opts.html });
+  const result = await resend.emails.send(payload);
+  if (result.error) {
+    throw new Error(`${result.error.name}: ${result.error.message}`);
+  }
+  return result;
+}
+
+export async function sendPlain(opts: { to: string; subject: string; html: string }) {
+  return sendOrThrow({ from: FROM, to: opts.to, subject: opts.subject, html: opts.html });
 }
 
 function brandHeader(title: string) {
@@ -95,7 +107,7 @@ export async function sendEmailChangeConfirmation(
     ${brandFooter()}
   </div>`;
 
-  await resend.emails.send({
+  await sendOrThrow({
     from: FROM,
     to: newEmail,
     subject: "Confirm your new MajorGBN email address",
@@ -136,7 +148,7 @@ export async function sendMagicLink(toEmail: string, signInUrl: string) {
     ${brandFooter()}
   </div>`;
 
-  await resend.emails.send({
+  await sendOrThrow({
     from: FROM,
     to: toEmail,
     subject: "Your MajorGBN sign-in link",
@@ -207,7 +219,7 @@ export async function sendLeadMagnetGuide(email: string, companyName?: string) {
     ${brandFooter()}
   </div>`;
 
-  await resend.emails.send({
+  await sendOrThrow({
     from: FROM,
     to: email,
     subject: "Your Free Guide: 10 Signs Your Bank Is Overcharging You",
@@ -284,7 +296,7 @@ export async function sendComplaintConfirmation(details: ComplaintDetails) {
     ${brandFooter()}
   </div>`;
 
-  await resend.emails.send({
+  await sendOrThrow({
     from: FROM,
     to: details.contactEmail,
     subject: `Complaint Received — Reference ${details.referenceId} | MajorGBN Forensic Recovery`,
@@ -350,7 +362,7 @@ export async function sendStatusUpdate(input: StatusUpdateInput) {
     ${brandFooter()}
   </div>`;
 
-  await resend.emails.send({
+  await sendOrThrow({
     from: FROM,
     to: input.contactEmail,
     subject: `[${input.referenceId}] Status Update: ${input.stepLabel}`,
@@ -414,7 +426,7 @@ export async function sendInternalComplaintNotification(details: ComplaintDetail
     ${brandFooter()}
   </div>`;
 
-  await resend.emails.send({
+  await sendOrThrow({
     from: FROM,
     to: INTERNAL_TEAM,
     subject: `[NEW COMPLAINT] ${details.companyName} — ${details.referenceId}`,

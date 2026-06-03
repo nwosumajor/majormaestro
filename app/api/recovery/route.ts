@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { db } from "@/lib/db";
 import { sendComplaintConfirmation, sendInternalComplaintNotification } from "@/lib/email";
 import { pickTeam } from "@/lib/recoverySteps";
@@ -159,14 +159,21 @@ export async function POST(req: NextRequest) {
       turnoverBand: body.turnoverBand,
     };
 
-    Promise.all([
-      sendComplaintConfirmation(details).catch((e) =>
-        console.error("[recovery] Confirmation email error:", e)
-      ),
-      sendInternalComplaintNotification(details).catch((e) =>
-        console.error("[recovery] Internal notification error:", e)
-      ),
-    ]);
+    // Run the sends AFTER the response is flushed (so the client isn't blocked on
+    // email latency), but inside after() so Vercel keeps the function alive until
+    // they complete — a bare fire-and-forget Promise can be torn down on response
+    // flush, silently dropping the internal notification. sendOrThrow (in lib/email)
+    // throws on a rejected send, so a failed delivery is logged here, not swallowed.
+    after(async () => {
+      await Promise.all([
+        sendComplaintConfirmation(details).catch((e) =>
+          console.error("[recovery] Confirmation email error:", e)
+        ),
+        sendInternalComplaintNotification(details).catch((e) =>
+          console.error("[recovery] Internal notification error:", e)
+        ),
+      ]);
+    });
 
     return NextResponse.json({
       success: true,
