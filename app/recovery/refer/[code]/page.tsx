@@ -74,7 +74,7 @@ export default async function PublicReferralDashboardPage({
           <Stat icon={Users} label="Total Leads" value={referral.complaints.length.toString()} accent="bg-blue-100 text-blue-700" />
           <Stat icon={Clock} label="In Progress" value={active.toString()} accent="bg-amber-100 text-amber-700" />
           <Stat icon={CheckCircle2} label="Recovered" value={recovered.toString()} accent="bg-emerald-100 text-emerald-700" />
-          <Stat icon={Banknote} label="Bonus Accrued" value={fmtNgn(bonusAccrued)} accent="bg-violet-100 text-violet-700" />
+          <Stat icon={Banknote} label="Bonus Accrued" value={fmtNgn(bonusAccrued)} accent="bg-blue-100 text-blue-700" />
         </div>
 
         {/* Share */}

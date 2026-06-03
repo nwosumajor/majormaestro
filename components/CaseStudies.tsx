@@ -47,10 +47,10 @@ const COLORS = [
   "border-blue-200 bg-blue-50",
   "border-emerald-200 bg-emerald-50",
   "border-amber-200 bg-amber-50",
-  "border-violet-200 bg-violet-50",
+  "border-blue-200 bg-blue-50",
 ];
 
-const ICON_COLORS = ["text-blue-700 bg-blue-100", "text-emerald-700 bg-emerald-100", "text-amber-700 bg-amber-100", "text-violet-700 bg-violet-100"];
+const ICON_COLORS = ["text-blue-700 bg-blue-100", "text-emerald-700 bg-emerald-100", "text-amber-700 bg-amber-100", "text-blue-700 bg-blue-100"];
 
 export default function CaseStudies() {
   return (

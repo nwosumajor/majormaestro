@@ -104,9 +104,18 @@ export default function IntakeForm({ referralCode }: { referralCode?: string }) 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<SuccessState | null>(null);
 
-  // Funnel: someone reached & engaged the intake form
+  // Funnel: someone reached & engaged the intake form. Also pre-fill the
+  // turnover band if they came from the RecoveryEstimator (handoff via sessionStorage).
   useEffect(() => {
     track("intake_start", referralCode ? { referred: true } : undefined);
+    try {
+      const band = sessionStorage.getItem("gbn_turnover"); // set by RecoveryEstimator
+      if (band && TURNOVER_OPTIONS.includes(band)) {
+        setForm((prev) => (prev.turnoverBand ? prev : { ...prev, turnoverBand: band }));
+      }
+    } catch {
+      /* storage blocked — no pre-fill */
+    }
   }, [referralCode]);
 
   const [uploadedFiles, setUploadedFiles] = useState<Partial<Record<SlotKey, UploadedFile>>>({});

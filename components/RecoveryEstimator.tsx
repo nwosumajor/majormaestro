@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { TrendingUp, Clock, ChevronDown, Banknote, Info } from "lucide-react";
+import { TrendingUp, Clock, ChevronDown, Banknote, Info, ArrowRight } from "lucide-react";
 import { track } from "@/lib/analytics";
+
+/** Shared with IntakeForm so a band chosen here pre-fills the intake. */
+export const TURNOVER_HANDOFF_KEY = "gbn_turnover";
 
 interface EstimatorEntry {
   label: string;
@@ -68,7 +71,14 @@ export default function RecoveryEstimator() {
             value={selected}
             onChange={(e) => {
               setSelected(e.target.value);
-              if (e.target.value) track("estimator_complete", { band: e.target.value });
+              if (e.target.value) {
+                track("estimator_complete", { band: e.target.value });
+                try {
+                  sessionStorage.setItem(TURNOVER_HANDOFF_KEY, e.target.value);
+                } catch {
+                  /* storage blocked — pre-fill simply won't happen */
+                }
+              }
             }}
             className="w-full appearance-none rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-sm font-medium text-slate-800 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition cursor-pointer"
           >
@@ -120,6 +130,15 @@ export default function RecoveryEstimator() {
               <span className="font-semibold text-slate-700">Our fee: </span>
               30% of recovered amount only. <span className="font-semibold text-emerald-700">No recovery = No fee.</span> All estimates are indicative and subject to forensic review.
             </div>
+
+            <a
+              href="#intake"
+              onClick={() => track("cta_click", { label: "estimator_to_intake", band: selected })}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-accent-bright"
+            >
+              Start my recovery for this band
+              <ArrowRight size={15} />
+            </a>
           </div>
         )}
 

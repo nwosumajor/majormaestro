@@ -25,7 +25,7 @@ export default function BankingPage() {
             <Building2 size={28} />
           </div>
           <p className="mb-2 text-xs font-bold uppercase tracking-widest text-blue-400">Sector Focus: Banking & Financial Services</p>
-          <h1 className="text-3xl font-black text-white lg:text-4xl">
+          <h1 className="font-display text-3xl font-semibold text-white lg:text-4xl">
             Financial Institutions Are Also Overcharged by Their Own Correspondent Banks
           </h1>
           <p className="mt-4 text-slate-400 text-base leading-relaxed max-w-2xl mx-auto">

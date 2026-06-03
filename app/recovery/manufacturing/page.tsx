@@ -25,7 +25,7 @@ export default function ManufacturingPage() {
             <Factory size={28} />
           </div>
           <p className="mb-2 text-xs font-bold uppercase tracking-widest text-blue-400">Sector Focus: Manufacturing</p>
-          <h1 className="text-3xl font-black text-white lg:text-4xl">
+          <h1 className="font-display text-3xl font-semibold text-white lg:text-4xl">
             Manufacturing Companies Are Among Nigeria&apos;s Most Overcharged Bank Customers
           </h1>
           <p className="mt-4 text-slate-400 text-base leading-relaxed max-w-2xl mx-auto">

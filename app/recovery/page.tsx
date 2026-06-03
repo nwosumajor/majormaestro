@@ -19,11 +19,8 @@ import {
   Gift,
 } from "lucide-react";
 import Link from "next/link";
-import RecoveryEstimator from "@/components/RecoveryEstimator";
 import IntakeForm from "@/components/IntakeForm";
-import AIPreScreener from "@/components/AIPreScreener";
-import PreQualQuiz from "@/components/PreQualQuiz";
-import CBNRateComparison from "@/components/CBNRateComparison";
+import RecoveryTools from "@/components/RecoveryTools";
 import CaseStudies from "@/components/CaseStudies";
 import FAQAccordion from "@/components/FAQAccordion";
 import LeadMagnet from "@/components/LeadMagnet";
@@ -120,9 +117,9 @@ export default async function RecoveryPage({
       </div>
 
       {/* ── HERO ────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-slate-950">
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full bg-blue-700/20 blur-3xl" />
+      <section className="relative overflow-hidden bg-ink">
+        <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "44px 44px" }} />
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full bg-emerald-600/20 blur-[120px]" />
 
         <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 sm:py-32 lg:px-8 lg:py-40">
           <div className="mx-auto max-w-3xl text-center">
@@ -131,9 +128,9 @@ export default async function RecoveryPage({
               CBN & BOFIA Certified Forensic Recovery
             </div>
 
-            <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
+            <h1 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-6xl">
               Recover What Your Bank{" "}
-              <span className="text-emerald-400">Owes You</span>
+              <span className="text-accent-bright">Owes You</span>
             </h1>
             <p className="mt-6 text-lg leading-8 text-slate-300">
               MajorGBN conducts forensic audits of corporate bank accounts to identify and recover illegitimate charges — excess interest, COT, and LC deductions — based on the{" "}
@@ -189,12 +186,15 @@ export default async function RecoveryPage({
               </a>
             ))}
             <div className="ml-auto flex shrink-0 items-center gap-2">
-              <Link href="/recovery/track" className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors">
+              <Link href="/recovery/track" className="hidden items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors sm:flex">
                 <ClipboardList size={12} /> Track Case
               </Link>
-              <Link href="/recovery/refer" className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors">
-                <Gift size={12} /> Refer & Earn
+              <Link href="/recovery/refer" className="hidden items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors sm:flex">
+                <Gift size={12} /> Refer &amp; Earn
               </Link>
+              <a href="#intake" className="flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-accent-bright">
+                <ShieldCheck size={12} /> Lodge Now
+              </a>
             </div>
           </div>
         </div>
@@ -205,8 +205,8 @@ export default async function RecoveryPage({
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
             <div>
-              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-blue-700">Scope of Recovery</p>
-              <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+              <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-accent">Scope of Recovery</p>
+              <h2 className="font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
                 Banks Overcharge. We Prove It. We Recover It.
               </h2>
               <p className="mt-4 text-base leading-7 text-slate-600">
@@ -264,76 +264,15 @@ export default async function RecoveryPage({
         </div>
       </section>
 
-      {/* ── RECOVERY ESTIMATOR ──────────────────────────────── */}
-      <section id="estimator" className="bg-white py-16 sm:py-24 border-b border-slate-200">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-10 text-center">
-            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-blue-700">Interactive Tool</p>
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              How Much Could You Recover?
-            </h2>
-            <p className="mt-3 text-base text-slate-600">
-              Select your annual turnover band to see your estimated recovery potential, based on historical audit outcomes against CBN benchmarks.
-            </p>
-          </div>
-          <RecoveryEstimator />
-        </div>
-      </section>
-
-      {/* ── AI PRE-SCREENER ──────────────────────────────────── */}
-      <section id="prescreener" className="bg-slate-50 py-16 sm:py-24 border-b border-slate-200">
-        <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-10 text-center">
-            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-blue-700">AI-Powered Tool</p>
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              AI Pre-Screening Analysis
-            </h2>
-            <p className="mt-3 text-base text-slate-600">
-              Describe your banking situation in plain language. Our AI analyses your inputs against CBN charge ceilings and gives you an instant preliminary assessment.
-            </p>
-          </div>
-          <AIPreScreener />
-        </div>
-      </section>
-
-      {/* ── PRE-QUAL QUIZ ────────────────────────────────────── */}
-      <section id="quiz" className="bg-white py-16 sm:py-24 border-b border-slate-200">
-        <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-10 text-center">
-            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-blue-700">5-Minute Quiz</p>
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              Check Your Eligibility
-            </h2>
-            <p className="mt-3 text-base text-slate-600">
-              Five quick questions. Instant score. Find out whether your company profile matches the profile of our highest-yield recovery cases.
-            </p>
-          </div>
-          <PreQualQuiz />
-        </div>
-      </section>
-
-      {/* ── CBN RATE COMPARISON ──────────────────────────────── */}
-      <section id="cbn-checker" className="bg-slate-50 py-16 sm:py-24 border-b border-slate-200">
-        <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-10 text-center">
-            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-blue-700">Compliance Tool</p>
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              CBN Rate Compliance Checker
-            </h2>
-            <p className="mt-3 text-base text-slate-600">
-              Know the specific rate your bank is charging you? Enter it here and we&apos;ll instantly tell you whether it exceeds the CBN approved ceiling.
-            </p>
-          </div>
-          <CBNRateComparison />
-        </div>
-      </section>
+      {/* ── INTERACTIVE TOOLS (tabbed — estimator / pre-screen / quiz / CBN checker) ── */}
+      <RecoveryTools />
 
       {/* ── CASE STUDIES ─────────────────────────────────────── */}
       <section id="case-studies" className="bg-white py-16 sm:py-24 border-b border-slate-200">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="mb-10 text-center">
-            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-blue-700">Track Record</p>
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-accent">Track Record</p>
+            <h2 className="font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
               Recent Recovery Cases
             </h2>
             <p className="mt-3 text-base text-slate-600">
@@ -348,8 +287,8 @@ export default async function RecoveryPage({
       <section className="bg-slate-50 py-16 sm:py-24 border-b border-slate-200">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-12 text-center">
-            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-blue-700">Our Process</p>
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-accent">Our Process</p>
+            <h2 className="font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
               Six Steps from Complaint to Recovery
             </h2>
             <p className="mt-3 text-base text-slate-600">
@@ -386,8 +325,8 @@ export default async function RecoveryPage({
       <section id="faq" className="bg-white py-16 sm:py-24 border-b border-slate-200">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <div className="mb-10 text-center">
-            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-blue-700">Common Questions</p>
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-accent">Common Questions</p>
+            <h2 className="font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
               Frequently Asked Questions
             </h2>
           </div>
@@ -403,11 +342,11 @@ export default async function RecoveryPage({
       </section>
 
       {/* ── INTAKE FORM ─────────────────────────────────────── */}
-      <section id="intake" className="bg-slate-950 py-16 sm:py-24">
+      <section id="intake" className="bg-ink py-16 sm:py-24">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <div className="mb-10 text-center">
             <p className="mb-2 text-xs font-bold uppercase tracking-widest text-emerald-500">Secure Portal</p>
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            <h2 className="font-display text-3xl font-semibold tracking-tight text-white sm:text-4xl">
               Lodge Your Forensic Audit Complaint
             </h2>
             <p className="mt-3 text-base text-slate-400">

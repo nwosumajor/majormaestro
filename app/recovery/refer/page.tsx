@@ -65,7 +65,7 @@ export default function ReferPage() {
           <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400">
             <Gift size={28} />
           </div>
-          <h1 className="text-3xl font-black text-white">Referral Programme</h1>
+          <h1 className="font-display text-3xl font-semibold text-white">Referral Programme</h1>
           <p className="mt-3 text-slate-400 max-w-xl mx-auto">
             Know a company that might be overpaying their bank? Refer them to MajorGBN and earn a commission on every successful recovery — with no cap on earnings.
           </p>

@@ -84,9 +84,9 @@ function ResultRow({ result }: { result: BulkResult }) {
                 <p className="text-sm font-bold text-slate-900">#{r.rank} {r.departmentName}</p>
                 <div className="flex items-center gap-2">
                   <div className="w-20 h-1.5 rounded-full bg-slate-200">
-                    <div className="h-full rounded-full bg-indigo-500" style={{ width: `${r.confidenceScore}%` }} />
+                    <div className="h-full rounded-full bg-blue-500" style={{ width: `${r.confidenceScore}%` }} />
                   </div>
-                  <span className="text-xs font-semibold text-indigo-600">{r.confidenceScore}%</span>
+                  <span className="text-xs font-semibold text-blue-600">{r.confidenceScore}%</span>
                 </div>
               </div>
               <p className="text-xs text-slate-500 mb-2">{r.industryCategory}</p>
@@ -98,7 +98,7 @@ function ResultRow({ result }: { result: BulkResult }) {
               )}
             </div>
           ))}
-          <Link href={`/roadmap?currentRole=${encodeURIComponent(result.name)}&targetRole=${encodeURIComponent(result.results[0].departmentName)}&fromBridge=true`} className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors">
+          <Link href={`/roadmap?currentRole=${encodeURIComponent(result.name)}&targetRole=${encodeURIComponent(result.results[0].departmentName)}&fromBridge=true`} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 transition-colors">
             <TrendingUp size={12} />Build Roadmap for {result.results[0].departmentName}
           </Link>
         </div>
@@ -203,7 +203,7 @@ export default function BulkPage() {
         <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-teal-600 text-white">
           <FileSpreadsheet size={24} />
         </div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Bulk Staff Classification</h1>
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">Bulk Staff Classification</h1>
         <p className="mt-2 text-base text-slate-600">Upload a CSV of up to 20 staff profiles and classify the entire team in one run. Perfect for HR managers doing periodic placement reviews.</p>
       </div>
 

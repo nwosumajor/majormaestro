@@ -90,26 +90,26 @@ function ChatPanel({ results, input }: { results: Classification[]; input: Asses
   }
 
   return (
-    <div className="mt-6 rounded-xl border border-indigo-200 bg-indigo-50 overflow-hidden">
-      <button onClick={() => setOpen((v) => !v)} className="flex w-full items-center justify-between px-5 py-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors">
+    <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 overflow-hidden">
+      <button onClick={() => setOpen((v) => !v)} className="flex w-full items-center justify-between px-5 py-4 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition-colors">
         <span className="flex items-center gap-2"><MessageSquare size={16} /> Ask AI a follow-up question about your results</span>
         {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
       </button>
       {open && (
-        <div className="border-t border-indigo-200 bg-white">
+        <div className="border-t border-blue-200 bg-white">
           <div className="h-64 overflow-y-auto p-4 space-y-3">
             {messages.length === 0 && <p className="text-xs text-slate-400 text-center pt-8">Ask anything about your classification results…</p>}
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[85%] rounded-xl px-4 py-2.5 text-sm whitespace-pre-wrap ${m.role === "user" ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-800"}`}>{m.content}</div>
+                <div className={`max-w-[85%] rounded-xl px-4 py-2.5 text-sm whitespace-pre-wrap ${m.role === "user" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-800"}`}>{m.content}</div>
               </div>
             ))}
             {isLoading && messages[messages.length - 1]?.role !== "assistant" && <div className="flex justify-start"><div className="rounded-xl bg-slate-100 px-4 py-2.5"><Loader2 size={14} className="animate-spin text-slate-400" /></div></div>}
             <div ref={bottomRef} />
           </div>
           <form onSubmit={sendMessage} className="flex items-center gap-2 border-t border-slate-200 p-3">
-            <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="e.g. Why did I score low on Risk Management?" className="flex-1 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 transition" />
-            <button type="submit" disabled={isLoading || !chatInput.trim()} className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"><Send size={15} /></button>
+            <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="e.g. Why did I score low on Risk Management?" className="flex-1 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+            <button type="submit" disabled={isLoading || !chatInput.trim()} className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"><Send size={15} /></button>
           </form>
         </div>
       )}
@@ -233,10 +233,10 @@ export default function AssessmentPage() {
     <div className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="mb-10">
-        <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600 text-white">
+        <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white">
           <Users size={24} />
         </div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Staff Classification</h1>
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">Staff Classification</h1>
         <p className="mt-2 text-base text-slate-600">Complete the four attribute sections and list certifications. The AI returns the top 3 best-fit departments with confidence scores and skill gaps.</p>
       </div>
 
@@ -249,24 +249,24 @@ export default function AssessmentPage() {
             value={assessmentName}
             onChange={(e) => setAssessmentName(e.target.value)}
             placeholder="e.g. John Doe – Q2 Placement Review"
-            className="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 transition"
+            className="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
           />
         </div>
 
         {/* CV Upload */}
         <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <button type="button" onClick={() => setShowCVUpload((v) => !v)} className="flex w-full items-center justify-between px-5 py-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
-            <span className="flex items-center gap-2"><Upload size={16} className="text-indigo-600" /> Auto-fill from CV / Resume (PDF)</span>
+            <span className="flex items-center gap-2"><Upload size={16} className="text-blue-600" /> Auto-fill from CV / Resume (PDF)</span>
             {showCVUpload ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
           {showCVUpload && (
             <div className="border-t border-slate-100 px-5 pb-5 pt-4">
               <p className="mb-3 text-sm text-slate-500">Upload a PDF CV and the AI will analyse it and pre-fill the fields below. Review and edit before submitting.</p>
-              <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-indigo-300 bg-indigo-50 px-6 py-8 text-center hover:bg-indigo-100 transition-colors">
+              <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-blue-300 bg-blue-50 px-6 py-8 text-center hover:bg-blue-100 transition-colors">
                 {cvLoading ? (
-                  <><Loader2 size={24} className="animate-spin text-indigo-500" /><span className="text-sm text-indigo-600">Analysing CV…</span></>
+                  <><Loader2 size={24} className="animate-spin text-blue-500" /><span className="text-sm text-blue-600">Analysing CV…</span></>
                 ) : (
-                  <><FileText size={24} className="text-indigo-400" /><span className="text-sm font-medium text-indigo-700">Click to select PDF</span><span className="text-xs text-slate-500">Supports standard CV/resume PDFs up to 10MB</span></>
+                  <><FileText size={24} className="text-blue-400" /><span className="text-sm font-medium text-blue-700">Click to select PDF</span><span className="text-xs text-slate-500">Supports standard CV/resume PDFs up to 10MB</span></>
                 )}
                 <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={handleCVUpload} disabled={cvLoading} />
               </label>
@@ -286,23 +286,23 @@ export default function AssessmentPage() {
         {ATTRIBUTE_FIELDS.map(({ key, label, icon: Icon, placeholder, hint }) => (
           <div key={key} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <label className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-900">
-              <Icon size={16} className="text-indigo-600" />{label}
+              <Icon size={16} className="text-blue-600" />{label}
             </label>
             <p className="mb-3 text-xs text-slate-500">{hint}</p>
-            <textarea rows={3} value={attributes[key]} onChange={(e) => updateAttribute(key, e.target.value)} placeholder={placeholder} required className="w-full resize-none rounded-lg border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 transition" />
+            <textarea rows={3} value={attributes[key]} onChange={(e) => updateAttribute(key, e.target.value)} placeholder={placeholder} required className="w-full resize-none rounded-lg border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
           </div>
         ))}
 
         {/* Certificates */}
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <label className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-900">
-            <Award size={16} className="text-indigo-600" />Certificates Acquired
+            <Award size={16} className="text-blue-600" />Certificates Acquired
           </label>
           <p className="mb-4 text-xs text-slate-500">List each certification separately. Leave blank if none.</p>
           <div className="space-y-2">
             {certificates.map((cert, i) => (
               <div key={i} className="flex items-center gap-2">
-                <input type="text" value={cert} onChange={(e) => updateCertificate(i, e.target.value)} placeholder="e.g. AWS Solutions Architect, CFA, PMP…" className="flex-1 rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 transition" />
+                <input type="text" value={cert} onChange={(e) => updateCertificate(i, e.target.value)} placeholder="e.g. AWS Solutions Architect, CFA, PMP…" className="flex-1 rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
                 {certificates.length > 1 && (
                   <button type="button" onClick={() => removeCertificate(i)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:border-red-300 hover:text-red-500 transition-colors">
                     <X size={15} />
@@ -311,12 +311,12 @@ export default function AssessmentPage() {
               </div>
             ))}
           </div>
-          <button type="button" onClick={addCertificate} className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors">
+          <button type="button" onClick={addCertificate} className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors">
             <Plus size={14} />Add another certificate
           </button>
         </div>
 
-        <button type="submit" disabled={loading || !isFormValid} className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60">
+        <button type="submit" disabled={loading || !isFormValid} className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
           {loading ? <><Loader2 size={16} className="animate-spin" />Analysing profile…</> : <><Trophy size={16} />Run Classification<ChevronRight size={16} /></>}
         </button>
       </form>
@@ -335,13 +335,13 @@ export default function AssessmentPage() {
             <h2 className="text-xl font-bold text-slate-900">Classification Results</h2>
             {/* Action bar */}
             <div className="flex flex-wrap gap-2">
-              <button onClick={handleSave} disabled={saved} className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${saved ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-slate-300 bg-white text-slate-600 hover:border-indigo-400 hover:text-indigo-700"}`}>
+              <button onClick={handleSave} disabled={saved} className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${saved ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-slate-300 bg-white text-slate-600 hover:border-blue-400 hover:text-blue-700"}`}>
                 {saved ? <><CheckCircle2 size={13} />Saved</> : <><Save size={13} />Save</>}
               </button>
-              <button onClick={handleCopy} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-indigo-400 hover:text-indigo-700 transition-colors">
+              <button onClick={handleCopy} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-blue-400 hover:text-blue-700 transition-colors">
                 {copied ? <><CheckCircle2 size={13} />Copied!</> : <><Copy size={13} />Copy Summary</>}
               </button>
-              <button onClick={handleExport} disabled={exportLoading} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-indigo-400 hover:text-indigo-700 transition-colors disabled:opacity-60">
+              <button onClick={handleExport} disabled={exportLoading} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-blue-400 hover:text-blue-700 transition-colors disabled:opacity-60">
                 {exportLoading ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}Export PDF
               </button>
             </div>
@@ -397,12 +397,12 @@ export default function AssessmentPage() {
           </div>
 
           {/* Bridge to Roadmap */}
-          <div className="mt-6 rounded-xl border border-indigo-200 bg-indigo-50 p-5">
-            <p className="mb-1 text-sm font-semibold text-indigo-900">Ready to plan your path to {results[0].departmentName}?</p>
+          <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-5">
+            <p className="mb-1 text-sm font-semibold text-blue-900">Ready to plan your path to {results[0].departmentName}?</p>
             <p className="mb-4 text-xs text-slate-600">Build a milestone-driven career roadmap based on your top classification result.</p>
             <Link
               href={`/roadmap?currentRole=${encodeURIComponent(assessmentName || "Current Role")}&targetRole=${encodeURIComponent(results[0].departmentName)}&fromBridge=true`}
-              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
             >
               <TrendingUp size={15} />Build Roadmap for {results[0].departmentName}<ChevronRight size={14} />
             </Link>
@@ -411,7 +411,7 @@ export default function AssessmentPage() {
           {/* AI Chat */}
           <ChatPanel results={results} input={currentInput} />
 
-          <button onClick={() => { setResults(null); setError(null); setSaved(false); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors">
+          <button onClick={() => { setResults(null); setError(null); setSaved(false); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors">
             <Plus size={14} className="rotate-45" />Start a new assessment
           </button>
         </div>
