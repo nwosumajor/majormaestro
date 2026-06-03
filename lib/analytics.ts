@@ -18,7 +18,10 @@ export type FunnelEvent =
   | "intake_step"
   | "intake_submit"
   | "intake_error"
-  | "whatsapp_click";
+  | "whatsapp_click"
+  | "bulk_upload"
+  | "bulk_complete"
+  | "position_create";
 
 type Props = Record<string, string | number | boolean | null>;
 

@@ -40,6 +40,15 @@
 - `industryCategory`: (string, exact match from allowed list)
 - `reasoning`: (string, detailed explanation connecting traits/certifications to the role)
 
+**Auth + shared internals (added):**
+- The individual flow (`/assessment` page + `POST /api/classify`) is now **client-auth gated** — page via `app/assessment/layout.tsx`, API via `getClientUserFromRequest`. The fixed-enum schema/output above is unchanged.
+- The canonical P/M/S/E fields live in `lib/classificationSchema.ts` (single source for the bulk template, the parser, and both prompt builders). The Anthropic call is shared in `lib/classify.ts` (`runClassification`) — the fixed-enum flow and the dynamic bulk flow both use it with their own Zod schema.
+
+**Bulk Assessment & Classification (HR) — `/client/bulk-classify`:**
+- HR downloads an `.xlsx` template (`/api/client/bulk-classify/template`), fills one row per staff member, picks target positions from the **hybrid catalog** (`/api/client/positions` — system + own custom), and uploads (`POST /api/client/bulk-classify`, rate-limited 3/hr). Malformed rows are rejected with reasons; the batch isn't failed.
+- Persisted as a **durable job** (mirrors the webhook-delivery pattern): `ClassificationBatch` + one `StaffClassification(pending)` per row. Processing is kicked immediately via `after()` and drained by `/api/cron/classify/process` as a backstop. The bulk classifier uses a **dynamic allowed-list** (the HR-selected positions, incl. custom) — a parallel Zod schema whose `departmentName` is constrained to the selected set; output is a ranked array with `positionId`, `confidence`, and attribute-citing `reasoning`.
+- Results at `/client/bulk-classify/[batchId]` (polls progress) with CSV/xlsx export; batches are surfaced on `/client/dashboard`.
+
 ### 3. Module 2: Strategic Career Partner (`/roadmap`)
 - **Input Form:** Captures "Current State" and "Future State" (desired role in 1 to 15 years).
 - **Backend API (`/api/roadmap/route.ts`):** Processes the input using Anthropic.
@@ -107,7 +116,7 @@ All `/admin/*` page routes and `/api/admin/*` API routes are gated by `proxy.ts`
 - `/client/dashboard` — recovery cases, saved classifications, saved roadmaps. Has `MigrationBridge` that pushes localStorage entries to the server on first sign-in.
 - `/client/account` — display name edit, email change (verifies new address before swap), connected accounts (disconnect Google), active sessions (per-device revoke + "sign out everywhere else"), danger-zone account deletion
 
-**Account deletion semantics:** `User` row + `SavedClassification` + `SavedRoadmap` + `Session` rows cascade-delete. `RecoveryComplaint` rows are PRESERVED (legal retention) but `userId` is set to NULL.
+**Account deletion semantics:** `User` row + `SavedClassification` + `SavedRoadmap` + `Session` rows cascade-delete, plus the user's custom `Position` rows + `ClassificationBatch`/`StaffClassification` rows. `RecoveryComplaint` rows are PRESERVED (legal retention) but `userId` is set to NULL.
 
 ## Forensic Recovery Workflow
 
@@ -170,6 +179,7 @@ Stored in `prisma/schema.prisma`. Recently-added timestamp columns use `@db.Time
 - **Auth (admin):** `AdminUser`, `AuditLog`
 - **Auth (client):** `User`, `Session`, `MagicLinkToken`, `EmailChangeToken`
 - **AI artifacts (signed-in users):** `SavedClassification`, `SavedRoadmap`
+- **Staff classification (HR):** `Position` (hybrid catalog — system rows have `userId=null`, custom rows are per-user), `ClassificationBatch`, `StaffClassification`. All cuid ids; `selectedPositionIds` is `String[]`. Custom positions + batches cascade-delete with the owning `User`.
 - **Marketing:** `LeadMagnetSubscriber`
 - **Operations:** `Webhook`, `WebhookDelivery`
 
@@ -181,6 +191,7 @@ Both require `CRON_SECRET`. Pass it as `Authorization: Bearer <secret>` OR `X-Cr
 |---|---|---|
 | `/api/cron/webhooks/retry` | every 5 minutes | Re-attempts due `WebhookDelivery` rows, escalates backoff, dead-letters at 5 attempts |
 | `/api/cron/cleanup` | daily | Deletes magic-link / email-change / revoked-or-expired session rows older than 1 day past expiry |
+| `/api/cron/classify/process` | daily (backstop) | Drains pending `StaffClassification` rows for bulk HR classification jobs. The upload route also kicks immediate processing via `after()`, so cron is only a backstop; an external scheduler can hit it more often for prompt draining of large batches. |
 
 ## Environment variables
 

@@ -1,8 +1,11 @@
-import { anthropic } from "@ai-sdk/anthropic";
-import { generateObject } from "ai";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { getClientUserFromRequest } from "@/lib/auth";
+import { runClassification } from "@/lib/classify";
+import { SEED_POSITIONS, parseCertificates } from "@/lib/classificationSchema";
 
+// Fixed-enum output schema — unchanged (individual flow returns exactly 3 with
+// confidenceScore + skillGaps). The bulk flow uses a different, dynamic schema.
 const ClassificationSchema = z.object({
   results: z
     .array(
@@ -18,21 +21,21 @@ const ClassificationSchema = z.object({
     .length(3),
 });
 
-const ALLOWED_DEPARTMENTS = `
-[Banking & Financial Services]: Corporate Banking, Retail Banking, Treasury, Risk Management, Compliance and AML, Internal Audit, Customer Service, Investment Banking, Corporate Communications, Trade Finance, Human Resources, Legal Services, Strategy and Analytics.
-
-[Technology & Software Engineering]: Software Development, DevOps & Cloud Infrastructure, Platform Engineering, QA & Automation, Data Science & AI, Product Management, UX/UI Design, Cybersecurity & InfoSec, IT Service Management.
-
-[Fintech & Digital Payments]: Payment Gateway Engineering, Blockchain & Web3, Core Banking Integration, E-Channel Security, Fraud Operations, Digital Wallet Management, Product Operations, Fintech Compliance.
-
-[Manufacturing, FMCG & Production]: Production Department, QA/QC, Supply Chain, Procurement, Maintenance/Engineering, Logistics, Product Development, Sales, Brand Management, HSE, Corporate Affairs, Warehouse Management.
-
-[Food Restaurant Chain & Hospitality]: F&B Management, Kitchen Operations, Front Office, Housekeeping, Restaurant Operations, Franchise Management.
-
-[General Corporate Support Services]: HR & Admin, Finance & Accounts, Legal & Secretariat, IT, Corporate Strategy, Marketing & Comms, Internal Control, Facility Management.
-`.trim();
+const INSTRUCTIONS = `- Return EXACTLY 3 department recommendations, ranked 1 (best fit) to 3.
+- departmentName must be an exact match from the department lists above.
+- industryCategory must be the exact bracket label (e.g. "Banking & Financial Services").
+- reasoning must be 2–4 sentences connecting profile attributes and certifications to the department.
+- confidenceScore is an integer 0–100 representing how well the profile fits this department.
+- skillGaps is an array of 2–3 specific, named skills or qualifications the person currently lacks for this department (e.g. "No hands-on SQL experience", "Missing risk certification like FRM").
+- Do not repeat the same industryCategory for all three results — aim for diversity where the profile supports it.`;
 
 export async function POST(req: NextRequest) {
+  // Individual classification is now gated behind client auth.
+  const user = await getClientUserFromRequest(req);
+  if (!user) {
+    return NextResponse.json({ error: "Please sign in to run a classification." }, { status: 401 });
+  }
+
   try {
     const body = await req.json();
     const { psychological, mental, social, environmental, certificates } = body;
@@ -44,36 +47,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const certList =
-      Array.isArray(certificates) && certificates.length > 0
-        ? certificates.join(", ")
-        : "None provided";
-
-    const prompt = `You are an expert HR strategist and organisational psychologist. Evaluate the staff profile below and recommend the top 3 best-fit internal departments.
-
-STAFF PROFILE:
-- Psychological Attributes: ${psychological}
-- Mental Attributes: ${mental}
-- Social Attributes: ${social}
-- Environmental Attributes: ${environmental}
-- Certificates Acquired: ${certList}
-
-ALLOWED DEPARTMENTS (you MUST choose departmentName and industryCategory exactly as written below):
-${ALLOWED_DEPARTMENTS}
-
-INSTRUCTIONS:
-- Return EXACTLY 3 department recommendations, ranked 1 (best fit) to 3.
-- departmentName must be an exact match from the department lists above.
-- industryCategory must be the exact bracket label (e.g. "Banking & Financial Services").
-- reasoning must be 2–4 sentences connecting profile attributes and certifications to the department.
-- confidenceScore is an integer 0–100 representing how well the profile fits this department.
-- skillGaps is an array of 2–3 specific, named skills or qualifications the person currently lacks for this department (e.g. "No hands-on SQL experience", "Missing risk certification like FRM").
-- Do not repeat the same industryCategory for all three results — aim for diversity where the profile supports it.`;
-
-    const { object } = await generateObject({
-      model: anthropic("claude-sonnet-4-6"),
+    const object = await runClassification({
+      input: {
+        psychological,
+        mental,
+        social,
+        environmental,
+        certificates: Array.isArray(certificates) ? certificates : parseCertificates(certificates),
+      },
+      allowed: SEED_POSITIONS, // fixed enum
       schema: ClassificationSchema,
-      prompt,
+      instructions: INSTRUCTIONS,
     });
 
     return NextResponse.json(object.results);

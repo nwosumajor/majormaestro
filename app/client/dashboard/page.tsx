@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import Image from "next/image";
-import { LayoutDashboard, Scale, ArrowRight, FileText, TrendingUp, Sparkles, Settings } from "lucide-react";
+import { LayoutDashboard, Scale, ArrowRight, FileText, TrendingUp, Sparkles, Settings, Users } from "lucide-react";
 import { db } from "@/lib/db";
 import { getClientUserFromCookies } from "@/lib/auth";
 import { STEP_DEFS, type StepKey } from "@/lib/recoverySteps";
@@ -22,7 +22,7 @@ export default async function ClientDashboardPage() {
   }
   if (!db) return <p className="p-12 text-center text-sm text-red-700">Database not configured.</p>;
 
-  const [complaints, classifications, roadmaps] = await Promise.all([
+  const [complaints, classifications, roadmaps, batches] = await Promise.all([
     db.recoveryComplaint.findMany({
       where: { userId: me.id },
       orderBy: { createdAt: "desc" },
@@ -47,6 +47,12 @@ export default async function ClientDashboardPage() {
       orderBy: { createdAt: "desc" },
       take: 10,
       select: { id: true, label: true, createdAt: true },
+    }),
+    db.classificationBatch.findMany({
+      where: { userId: me.id },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      select: { id: true, label: true, status: true, total: true, completed: true, createdAt: true },
     }),
   ]);
 
@@ -172,6 +178,63 @@ export default async function ClientDashboardPage() {
             empty="No saved career roadmaps yet."
             cta={{ href: "/roadmap", label: "Build a roadmap" }}
           />
+        </section>
+
+        {/* Bulk staff classifications (HR) */}
+        <section>
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users size={18} className="text-blue-700" />
+              <h2 className="text-base font-bold text-slate-900">Bulk Staff Classifications</h2>
+              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">{batches.length}</span>
+            </div>
+            <Link href="/client/bulk-classify" className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:text-blue-900">
+              New bulk classification <ArrowRight size={11} />
+            </Link>
+          </div>
+          {batches.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center">
+              <Users size={28} className="mx-auto mb-2 text-slate-300" />
+              <p className="text-sm font-semibold text-slate-500">No bulk batches yet</p>
+              <p className="mt-1 text-xs text-slate-400">Classify a whole team from one spreadsheet.</p>
+              <Link href="/client/bulk-classify" className="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-900 px-4 py-2 text-sm font-bold text-white hover:bg-blue-800 transition-colors">
+                Start a bulk classification <ArrowRight size={12} />
+              </Link>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <tr>
+                    <th className="px-4 py-3">Batch</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Progress</th>
+                    <th className="px-4 py-3">Created</th>
+                    <th className="px-4 py-3"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {batches.map((b) => (
+                    <tr key={b.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 font-semibold text-slate-900">{b.label ?? "Bulk batch"}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${b.status === "complete" ? "bg-emerald-100 text-emerald-700" : b.status === "failed" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"}`}>
+                          {b.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-slate-500">{b.completed}/{b.total}</td>
+                      <td className="px-4 py-3 text-xs text-slate-500">{fmt(b.createdAt)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <Link href={`/client/bulk-classify/${b.id}`} className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:text-blue-900">
+                          View <ArrowRight size={11} />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

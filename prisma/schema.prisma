@@ -95,6 +95,8 @@ model User {
   roadmaps        SavedRoadmap[]
   sessions        Session[]
   emailChangeTokens EmailChangeToken[]
+  positions       Position[]
+  classificationBatches ClassificationBatch[]
 
   @@index([email])
 }
@@ -239,4 +241,53 @@ model AuditLog {
   @@index([targetType, targetId])
   @@index([action])
   @@index([actorLabel])
+}
+
+// ─── Staff classification: hybrid position catalog + bulk jobs ──────────────
+
+model Position {
+  id               String   @id @default(cuid())
+  userId           String?  // null = system/seed position; set = a user's custom position
+  user             User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  industryCategory String
+  departmentName   String
+  description      String?
+  isCustom         Boolean  @default(false)
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([userId])
+  @@index([industryCategory])
+}
+
+model ClassificationBatch {
+  id                  String                @id @default(cuid())
+  userId              String
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label               String?
+  status              String                @default("pending") // pending|processing|complete|failed
+  total               Int                   @default(0)
+  completed           Int                   @default(0)
+  selectedPositionIds String[]
+  classifications     StaffClassification[]
+  createdAt           DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime              @updatedAt @db.Timestamptz(3)
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+model StaffClassification {
+  id              String              @id @default(cuid())
+  batchId         String
+  batch           ClassificationBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  staffName       String
+  staffRef        String?
+  inputAttributes Json
+  results         Json? // ranked positions + reasoning; null until processed
+  status          String              @default("pending") // pending|complete|failed
+  error           String?
+  createdAt       DateTime            @default(now()) @db.Timestamptz(3)
+
+  @@index([batchId])
+  @@index([status])
 }
