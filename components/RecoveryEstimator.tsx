@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { TrendingUp, Clock, ChevronDown, Banknote, Info } from "lucide-react";
+import { track } from "@/lib/analytics";
 
 interface EstimatorEntry {
   label: string;
@@ -65,7 +66,10 @@ export default function RecoveryEstimator() {
         <div className="relative">
           <select
             value={selected}
-            onChange={(e) => setSelected(e.target.value)}
+            onChange={(e) => {
+              setSelected(e.target.value);
+              if (e.target.value) track("estimator_complete", { band: e.target.value });
+            }}
             className="w-full appearance-none rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-sm font-medium text-slate-800 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition cursor-pointer"
           >
             <option value="">— Select turnover band —</option>

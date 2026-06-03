@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { track } from "@/lib/analytics";
 import {
   Building2,
   User,
@@ -103,6 +104,11 @@ export default function IntakeForm({ referralCode }: { referralCode?: string }) 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<SuccessState | null>(null);
 
+  // Funnel: someone reached & engaged the intake form
+  useEffect(() => {
+    track("intake_start", referralCode ? { referred: true } : undefined);
+  }, [referralCode]);
+
   const [uploadedFiles, setUploadedFiles] = useState<Partial<Record<SlotKey, UploadedFile>>>({});
   const [uploadStatus, setUploadStatus] = useState<Record<SlotKey, UploadStatus>>({
     "bank-statements": "idle",
@@ -193,8 +199,15 @@ export default function IntakeForm({ referralCode }: { referralCode?: string }) 
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Submission failed.");
+      track("intake_submit", {
+        turnoverBand: form.turnoverBand,
+        banks: payload.banks.length,
+        documents: payload.documents.length,
+        referred: !!referralCode,
+      });
       setSuccess({ referenceId: data.referenceId, message: data.message });
     } catch (err) {
+      track("intake_error", { message: err instanceof Error ? err.message : "unknown" });
       setError(err instanceof Error ? err.message : "Unexpected error. Please try again.");
     } finally {
       setLoading(false);
@@ -492,7 +505,10 @@ export default function IntakeForm({ referralCode }: { referralCode?: string }) 
           {step < 2 ? (
             <button
               type="button"
-              onClick={() => setStep((s) => s + 1)}
+              onClick={() => {
+                track("intake_step", { from: step + 1, to: step + 2 });
+                setStep((s) => s + 1);
+              }}
               disabled={step === 0 ? !step1Valid() : !step2Valid()}
               className="inline-flex items-center gap-2 rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
             >

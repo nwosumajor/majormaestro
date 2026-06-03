@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { BookOpen, Mail, CheckCircle2, Loader2, AlertCircle, Download } from "lucide-react";
+import { track } from "@/lib/analytics";
 
 export default function LeadMagnet() {
   const [email, setEmail] = useState("");
@@ -22,6 +23,7 @@ export default function LeadMagnet() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+      track("lead_magnet_submit", { hasCompany: !!companyName.trim() });
       setSuccess(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Submission failed.");

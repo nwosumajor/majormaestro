@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronRight, ChevronLeft, TrendingUp, AlertTriangle, CheckCircle2, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { track } from "@/lib/analytics";
 
 interface Option { label: string; points: number; detail?: string }
 interface Question { id: number; text: string; options: Option[]; multi?: boolean }
@@ -147,7 +148,11 @@ export default function PreQualQuiz() {
 
   function next() {
     if (step < QUESTIONS.length - 1) setStep((s) => s + 1);
-    else setDone(true);
+    else {
+      const score = totalScore();
+      track("quiz_complete", { score, max: MAX_SCORE, tier: getResult(score, MAX_SCORE).label });
+      setDone(true);
+    }
   }
 
   function reset() {

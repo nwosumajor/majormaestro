@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MessageCircle, X, Phone, Mail } from "lucide-react";
+import { track } from "@/lib/analytics";
 
 const WA_NUMBER = "2349039586647";
 const WA_MESSAGE = encodeURIComponent(
@@ -24,6 +25,7 @@ export default function WhatsAppCTA() {
               href={`https://wa.me/${WA_NUMBER}?text=${WA_MESSAGE}`}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => track("whatsapp_click")}
               className="flex items-center gap-3 rounded-xl bg-[#25D366] px-4 py-3 text-sm font-semibold text-white hover:bg-[#20b757] transition-colors"
             >
               <MessageCircle size={18} />
