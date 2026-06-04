@@ -67,6 +67,7 @@ export default async function AdminAnalyticsPage() {
     { key: "cbn_check", label: "CBN rate checks" },
     { key: "lead_magnet_submit", label: "Lead-magnet submits" },
     { key: "whatsapp_click", label: "WhatsApp clicks" },
+    { key: "ref_landing", label: "Referral link landings" },
     { key: "bulk_upload", label: "Bulk uploads" },
     { key: "position_create", label: "Custom positions created" },
   ];

@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
+import { randomBytes, createHash } from "crypto";
 import { db } from "@/lib/db";
+import { sendReferralVerification } from "@/lib/email";
 import { getClientIp, rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -55,11 +57,22 @@ export async function POST(req: NextRequest) {
       code = makeCode(name);
     }
 
+    const verifyToken = randomBytes(24).toString("base64url");
+    const verificationTokenHash = createHash("sha256").update(verifyToken).digest("hex");
     await db.referral.create({
-      data: { code, referrerName: name.trim(), referrerEmail: normEmail },
+      data: { code, referrerName: name.trim(), referrerEmail: normEmail, verificationTokenHash },
     });
 
-    return NextResponse.json({ code, url: `${base}/recovery?ref=${code}` });
+    const shareUrl = `${base}/recovery?ref=${code}`;
+    const verifyUrl = `${base}/api/refer/verify?token=${verifyToken}`;
+    // Email is usable immediately; verification just unlocks payout eligibility.
+    after(() =>
+      sendReferralVerification(normEmail, name.trim(), verifyUrl, shareUrl).catch((e) =>
+        console.error("[refer] verification email error:", e)
+      )
+    );
+
+    return NextResponse.json({ code, url: shareUrl });
   } catch (err) {
     console.error("[/api/refer]", err);
     return NextResponse.json({ error: "Failed to generate referral link." }, { status: 500 });

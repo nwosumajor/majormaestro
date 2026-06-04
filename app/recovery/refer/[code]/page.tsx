@@ -3,18 +3,13 @@ import { notFound } from "next/navigation";
 import { Gift, TrendingUp, Users, CheckCircle2, Banknote, Clock, ArrowRight, MessageCircle } from "lucide-react";
 import { db } from "@/lib/db";
 import { STEP_DEFS, type StepKey } from "@/lib/recoverySteps";
+import { computeEarned, nairaFromKobo } from "@/lib/referrals";
 import CopyLinkButton from "./CopyLinkButton";
 
 export const dynamic = "force-dynamic";
 
-const FIXED_BONUS_NGN = 100_000;
-
 function fmtDate(d: Date) {
   return d.toLocaleDateString("en-NG", { dateStyle: "medium" });
-}
-
-function fmtNgn(n: number) {
-  return `₦${n.toLocaleString()}`;
 }
 
 export default async function PublicReferralDashboardPage({
@@ -29,7 +24,7 @@ export default async function PublicReferralDashboardPage({
     where: { code },
     include: {
       complaints: {
-        select: { referenceId: true, companyName: true, status: true, createdAt: true },
+        select: { referenceId: true, companyName: true, status: true, createdAt: true, recoveryAmountKobo: true },
         orderBy: { createdAt: "desc" },
       },
     },
@@ -37,10 +32,10 @@ export default async function PublicReferralDashboardPage({
 
   if (!referral) notFound();
 
-  const recovered = referral.complaints.filter((c) => c.status === "recovered").length;
-  const auditCompleted = referral.complaints.filter((c) => ["findings", "engagement", "recovered"].includes(c.status)).length;
+  const earned = computeEarned(referral.complaints);
+  const recovered = earned.recoveredCount;
   const active = referral.complaints.length - recovered;
-  const bonusAccrued = auditCompleted * FIXED_BONUS_NGN;
+  const balanceKobo = earned.earnedKobo - referral.paidOutKobo;
 
   const base = process.env.NEXT_PUBLIC_APP_URL ?? "https://majormaestro.com";
   const shareUrl = `${base}/recovery?ref=${referral.code}`;
@@ -74,7 +69,15 @@ export default async function PublicReferralDashboardPage({
           <Stat icon={Users} label="Total Leads" value={referral.complaints.length.toString()} accent="bg-blue-100 text-blue-700" />
           <Stat icon={Clock} label="In Progress" value={active.toString()} accent="bg-amber-100 text-amber-700" />
           <Stat icon={CheckCircle2} label="Recovered" value={recovered.toString()} accent="bg-emerald-100 text-emerald-700" />
-          <Stat icon={Banknote} label="Bonus Accrued" value={fmtNgn(bonusAccrued)} accent="bg-blue-100 text-blue-700" />
+          <Stat icon={Banknote} label="Earned" value={nairaFromKobo(earned.earnedKobo)} accent="bg-blue-100 text-blue-700" />
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm">
+          <span className="text-slate-500">Paid out: <span className="font-semibold text-slate-800">{nairaFromKobo(referral.paidOutKobo)}</span></span>
+          <span className="text-slate-500">Outstanding balance: <span className="font-bold text-emerald-700">{nairaFromKobo(balanceKobo > BigInt(0) ? balanceKobo : BigInt(0))}</span></span>
+          {referral.verifiedAt
+            ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700"><CheckCircle2 size={12} /> Email verified</span>
+            : <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600"><Clock size={12} /> Verify your email to receive payouts</span>}
         </div>
 
         {/* Share */}

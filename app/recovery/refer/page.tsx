@@ -240,6 +240,18 @@ export default function ReferPage() {
             </div>
           ))}
         </section>
+
+        {/* Programme terms */}
+        <section className="rounded-xl border border-slate-200 bg-slate-50 p-6">
+          <h2 className="mb-3 text-sm font-black uppercase tracking-wider text-slate-500">Programme Terms</h2>
+          <ul className="space-y-1.5 text-xs leading-relaxed text-slate-600">
+            <li>• <span className="font-semibold text-slate-700">What you earn:</span> ₦100,000 for every referral that completes a forensic audit (regardless of outcome), plus 5% of the recovered amount on successful recoveries.</li>
+            <li>• <span className="font-semibold text-slate-700">Attribution:</span> a referral is credited when a company lodges a complaint via your link. Credit lasts 90 days from the click; you can&apos;t refer your own company.</li>
+            <li>• <span className="font-semibold text-slate-700">Payment:</span> rewards are paid after the referred recovery completes and funds are received. You must confirm your email and provide payout details before payment is released.</li>
+            <li>• <span className="font-semibold text-slate-700">Confidentiality:</span> all referrals are handled under NDA and the Nigeria Data Protection Act 2023. Referred companies are under no obligation.</li>
+            <li>• MajorGBN may vary or end the programme; accrued rewards on referrals already in progress are honoured.</li>
+          </ul>
+        </section>
       </div>
     </main>
   );

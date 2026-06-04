@@ -21,6 +21,7 @@ export type Permission =
   | "users.manage"
   | "retention.purge"
   | "audit.purge"
+  | "referrals.payout"
   | "ops.email_test";
 
 /** Map any stored value to a known role. Legacy "admin" → manager. */
@@ -47,6 +48,7 @@ const REQUIRE_2FA = new Set<Permission>([
   "users.manage",
   "retention.purge",
   "audit.purge",
+  "referrals.payout",
   "ops.email_test",
 ]);
 

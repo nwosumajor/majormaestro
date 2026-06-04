@@ -1,5 +1,9 @@
 import { db } from "@/lib/db";
-import { Users, ExternalLink } from "lucide-react";
+import { Users, ExternalLink, CheckCircle2, Clock } from "lucide-react";
+import { getAdminFromCookies } from "@/lib/auth";
+import { normalizeRole } from "@/lib/rbac";
+import { computeEarned, nairaFromKobo } from "@/lib/referrals";
+import RecordPayoutButton from "./RecordPayoutButton";
 
 export const dynamic = "force-dynamic";
 
@@ -9,11 +13,12 @@ function fmtDate(d: Date) {
 
 export default async function AdminReferralsPage() {
   if (!db) return <p className="text-sm text-red-700">Database not configured.</p>;
+  const isOwner = normalizeRole((await getAdminFromCookies())?.role) === "owner";
 
   const referrals = await db.referral.findMany({
     orderBy: { createdAt: "desc" },
     include: {
-      complaints: { select: { status: true } },
+      complaints: { select: { status: true, recoveryAmountKobo: true } },
       _count: { select: { complaints: true } },
     },
   });
@@ -28,7 +33,7 @@ export default async function AdminReferralsPage() {
         </div>
         <div>
           <h1 className="text-xl font-black text-slate-900">Referral Partners</h1>
-          <p className="text-xs text-slate-500">{referrals.length} {referrals.length === 1 ? "partner" : "partners"} have generated referral links.</p>
+          <p className="text-xs text-slate-500">{referrals.length} {referrals.length === 1 ? "partner" : "partners"}. Earned = ₦100k per completed audit + 5% of recovered amounts; balance = earned − paid.</p>
         </div>
       </div>
 
@@ -40,34 +45,47 @@ export default async function AdminReferralsPage() {
               <th className="px-4 py-3">Partner</th>
               <th className="px-4 py-3 text-right">Leads</th>
               <th className="px-4 py-3 text-right">Recovered</th>
-              <th className="px-4 py-3">Joined</th>
+              <th className="px-4 py-3 text-right">Earned</th>
+              <th className="px-4 py-3 text-right">Paid</th>
+              <th className="px-4 py-3 text-right">Balance</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {referrals.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-12 text-center text-sm text-slate-400">No referrals yet.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-slate-400">No referrals yet.</td></tr>
             ) : referrals.map((r) => {
-              const recovered = r.complaints.filter((c) => c.status === "recovered").length;
+              const earned = computeEarned(r.complaints);
+              const balanceKobo = earned.earnedKobo - r.paidOutKobo;
               return (
                 <tr key={r.code} className="hover:bg-slate-50">
                   <td className="px-4 py-3 font-mono text-xs font-semibold text-slate-900">{r.code}</td>
                   <td className="px-4 py-3">
-                    <p className="font-semibold text-slate-900">{r.referrerName}</p>
+                    <p className="flex items-center gap-1.5 font-semibold text-slate-900">
+                      {r.referrerName}
+                      {r.verifiedAt
+                        ? <CheckCircle2 size={12} className="text-emerald-600" aria-label="verified" />
+                        : <Clock size={12} className="text-amber-500" aria-label="unverified" />}
+                    </p>
                     <p className="text-xs text-slate-500">{r.referrerEmail}</p>
                   </td>
                   <td className="px-4 py-3 text-right text-sm font-semibold text-slate-900">{r._count.complaints}</td>
-                  <td className="px-4 py-3 text-right text-sm font-bold text-emerald-700">{recovered}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500">{fmtDate(r.createdAt)}</td>
+                  <td className="px-4 py-3 text-right text-sm font-bold text-emerald-700">{earned.recoveredCount}</td>
+                  <td className="px-4 py-3 text-right text-xs font-semibold text-slate-700">{nairaFromKobo(earned.earnedKobo)}</td>
+                  <td className="px-4 py-3 text-right text-xs text-slate-500">{nairaFromKobo(r.paidOutKobo)}</td>
+                  <td className={`px-4 py-3 text-right text-xs font-bold ${balanceKobo > BigInt(0) ? "text-rose-700" : "text-slate-400"}`}>{nairaFromKobo(balanceKobo > BigInt(0) ? balanceKobo : BigInt(0))}</td>
                   <td className="px-4 py-3 text-right">
-                    <a
-                      href={`/recovery/refer/${r.code}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:text-blue-900"
-                    >
-                      View public dashboard <ExternalLink size={11} />
-                    </a>
+                    <div className="flex items-center justify-end gap-3">
+                      {isOwner && <RecordPayoutButton referralId={r.id} code={r.code} />}
+                      <a
+                        href={`/recovery/refer/${r.code}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:text-blue-900"
+                      >
+                        Dashboard <ExternalLink size={11} />
+                      </a>
+                    </div>
                   </td>
                 </tr>
               );

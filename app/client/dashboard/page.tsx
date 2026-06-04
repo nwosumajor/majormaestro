@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import Image from "next/image";
-import { LayoutDashboard, Scale, ArrowRight, FileText, TrendingUp, Sparkles, Settings, Users } from "lucide-react";
+import { LayoutDashboard, Scale, ArrowRight, FileText, TrendingUp, Sparkles, Settings, Users, Gift } from "lucide-react";
 import { db } from "@/lib/db";
 import { getClientUserFromCookies } from "@/lib/auth";
 import { STEP_DEFS, type StepKey } from "@/lib/recoverySteps";
@@ -178,6 +178,22 @@ export default async function ClientDashboardPage() {
             empty="No saved career roadmaps yet."
             cta={{ href: "/roadmap", label: "Build a roadmap" }}
           />
+        </section>
+
+        {/* Refer & earn */}
+        <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
+          <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white"><Gift size={18} /></div>
+              <div>
+                <p className="text-sm font-bold text-slate-900">Refer &amp; earn</p>
+                <p className="text-xs text-slate-600">Know another company that may be owed money? Earn a fixed bonus plus a share of their recovery.</p>
+              </div>
+            </div>
+            <Link href="/recovery/refer" className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500 transition-colors">
+              Get my referral link <ArrowRight size={12} />
+            </Link>
+          </div>
         </section>
 
         {/* Bulk staff classifications (HR) */}

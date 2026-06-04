@@ -22,6 +22,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import IntakeForm from "@/components/IntakeForm";
+import RefLandingTracker from "@/components/RefLandingTracker";
 import RecoveryTools from "@/components/RecoveryTools";
 import CaseStudies from "@/components/CaseStudies";
 import FAQAccordion from "@/components/FAQAccordion";
@@ -122,6 +123,7 @@ export default async function RecoveryPage({
 
   return (
     <div className="flex flex-col">
+      {referralCode && <RefLandingTracker code={referralCode} />}
 
       {/* ── STATUTE URGENCY BANNER ──────────────────────────── */}
       <div className="bg-red-700 px-4 py-2.5 text-center text-sm text-white">

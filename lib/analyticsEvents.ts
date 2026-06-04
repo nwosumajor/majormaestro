@@ -17,6 +17,7 @@ export const FUNNEL_EVENTS = [
   "bulk_upload",
   "bulk_complete",
   "position_create",
+  "ref_landing",
 ] as const;
 
 export type FunnelEvent = (typeof FUNNEL_EVENTS)[number];

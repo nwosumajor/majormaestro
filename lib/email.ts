@@ -314,6 +314,7 @@ interface StatusUpdateInput {
   stepLabel: string;
   stepDescription: string;
   note?: string;
+  showReferCta?: boolean;
 }
 
 export async function sendStatusUpdate(input: StatusUpdateInput) {
@@ -352,6 +353,12 @@ export async function sendStatusUpdate(input: StatusUpdateInput) {
           View Full Timeline →
         </a>
       </div>
+
+      ${input.showReferCta ? `
+      <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:16px;text-align:center;margin-bottom:20px">
+        <p style="margin:0 0 8px;font-size:13px;color:#065f46">Know another company that may be owed money? <strong>Refer &amp; earn</strong> — a fixed bonus plus a share of their recovery.</p>
+        <a href="${APP_URL}/recovery/refer" style="display:inline-block;background:#059669;color:#ffffff;font-weight:700;font-size:13px;text-decoration:none;padding:9px 20px;border-radius:6px">Refer a company →</a>
+      </div>` : ""}
 
       <p style="margin:0;font-size:13px;color:#475569">
         Questions? Reply to this email or contact us at
