@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Loader2, AlertCircle, CalendarDays, MapPin, Users, CheckCircle2, X } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
+import QrCode from "@/components/gicn/QrCode";
 
 interface ProgramView {
   id: string;
@@ -117,8 +118,9 @@ function RegisterModal({ program, onClose }: { program: ProgramView; onClose: ()
           <div className="text-center">
             <CheckCircle2 size={36} className="mx-auto mb-3 text-accent" />
             <p className="text-sm text-slate-600">{result.status === "WAITLISTED" ? "Added to the waitlist — we'll notify you if a spot opens." : "Registered and confirmed!"}</p>
-            <p className="mt-3 text-xs text-slate-500">Check-in code</p>
+            <p className="mt-3 text-xs text-slate-500">Check-in code — show this QR at the door</p>
             <code className="mt-1 inline-block rounded-lg bg-slate-100 px-3 py-1.5 font-figure text-lg font-semibold text-ink">{result.checkInCode}</code>
+            <div className="mt-3 flex justify-center"><QrCode value={result.checkInCode} size={140} /></div>
             <div className="mt-5"><Button variant="primary" onClick={onClose}>Done</Button></div>
           </div>
         ) : loadingList ? (

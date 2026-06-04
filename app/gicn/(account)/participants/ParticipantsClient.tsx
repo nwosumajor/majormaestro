@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Loader2, AlertCircle, Plus, Trash2, UserPlus, CalendarPlus, X, CheckCircle2 } from "lucide-react";
 import Button from "@/components/ui/Button";
+import QrCode from "@/components/gicn/QrCode";
 
 interface Participant {
   id: string;
@@ -203,8 +204,9 @@ function RegisterModal({ participant, programs, onClose }: { participant: Partic
           <p className="text-sm text-slate-600">
             {result.status === "WAITLISTED" ? "Added to the waitlist — we'll notify you if a spot opens." : "Registered and confirmed!"}
           </p>
-          <p className="mt-3 text-xs text-slate-500">Check-in code</p>
+          <p className="mt-3 text-xs text-slate-500">Check-in code — show this QR at the door</p>
           <code className="mt-1 inline-block rounded-lg bg-slate-100 px-3 py-1.5 font-figure text-lg font-semibold text-ink">{result.checkInCode}</code>
+          <div className="mt-3 flex justify-center"><QrCode value={result.checkInCode} size={140} /></div>
           <div className="mt-5"><Button variant="primary" onClick={onClose}>Done</Button></div>
         </div>
       ) : programs.length === 0 ? (
