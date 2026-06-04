@@ -35,10 +35,10 @@ const RECOVERY_POINTS = [
 const AI_TOOLS = [
   {
     icon: Users,
-    title: "AI Staff Classification",
-    desc: "Evaluate a person's psychographic profile and certifications; receive the top three best-fit departments, ranked and explained.",
-    href: "/assessment",
-    cta: "Run an assessment",
+    title: "HR Staff Classification",
+    desc: "Classify staff into best-fit departments — one person at a time, or a whole team from a spreadsheet. Ranked, scored, and explained.",
+    href: "/classify",
+    cta: "Classify staff",
   },
   {
     icon: Route,
@@ -300,7 +300,7 @@ export default function LandingPage() {
             <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-slate-400">
               <Link href="/recovery" className="hover:text-white">Recovery Portal</Link>
               <Link href="/recovery/track" className="hover:text-white">Track a Case</Link>
-              <Link href="/assessment" className="hover:text-white">Staff Classification</Link>
+              <Link href="/classify" className="hover:text-white">HR Staff Classification</Link>
               <Link href="/roadmap" className="hover:text-white">Career Roadmap</Link>
             </nav>
           </div>

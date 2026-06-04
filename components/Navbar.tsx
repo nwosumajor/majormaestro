@@ -11,7 +11,7 @@ import { track } from "@/lib/analytics";
 const NAV_LINKS = [
   { href: "/recovery", label: "Recovery Portal", accent: true },
   { href: "/recovery/track", label: "Track a Case" },
-  { href: "/assessment", label: "Staff Classification" },
+  { href: "/classify", label: "HR Staff Classification" },
   { href: "/roadmap", label: "Career Roadmap" },
 ];
 
