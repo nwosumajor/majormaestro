@@ -27,9 +27,21 @@ import {
   Send,
   ChevronDown,
   ChevronUp,
+  ListChecks,
 } from "lucide-react";
 import type { Classification, AssessmentInput } from "@/types";
+import type { AttributeKey } from "@/lib/classificationSchema";
 import { saveClassificationSmart } from "@/lib/clientStorage";
+import {
+  CORE_QUESTIONS,
+  OPTIONAL_QUESTIONS,
+  DOMAIN_LABELS,
+  synthesizeAttributes,
+  coreComplete,
+  coreAnsweredCount,
+  type Answers,
+  type Question,
+} from "@/lib/classificationQuestions";
 
 const RANK_STYLES: Record<number, { border: string; badge: string; label: string; bar: string }> = {
   1: { border: "border-amber-300 bg-amber-50", badge: "bg-amber-500 text-white", label: "Best Fit", bar: "bg-amber-500" },
@@ -37,14 +49,14 @@ const RANK_STYLES: Record<number, { border: string; badge: string; label: string
   3: { border: "border-orange-200 bg-orange-50", badge: "bg-orange-400 text-white", label: "Good Fit", bar: "bg-orange-400" },
 };
 
-const ATTRIBUTE_FIELDS = [
-  { key: "psychological" as const, label: "Psychological Attributes", icon: Brain, placeholder: "e.g. Highly analytical, introverted, strong attention to detail, perfectionist tendencies, risk-averse…", hint: "Personality traits, cognitive style, temperament, motivations" },
-  { key: "mental" as const, label: "Mental Attributes", icon: Zap, placeholder: "e.g. Strong quantitative reasoning, fast learner, excellent problem-solver, creative thinker…", hint: "Intellectual strengths, learning style, analytical ability" },
-  { key: "social" as const, label: "Social Attributes", icon: Globe, placeholder: "e.g. Excellent communicator, natural leader, collaborative team player, strong negotiator…", hint: "Interpersonal skills, communication style, leadership tendency" },
-  { key: "environmental" as const, label: "Environmental Attributes", icon: Leaf, placeholder: "e.g. Thrives under pressure, prefers structured environments, adaptable to remote work…", hint: "Work environment preferences, stress tolerance, adaptability" },
-] as const;
-
-type AttributeKey = "psychological" | "mental" | "social" | "environmental";
+const DOMAINS: AttributeKey[] = ["psychological", "mental", "social", "environmental"];
+const DOMAIN_ICON: Record<AttributeKey, React.ElementType> = {
+  psychological: Brain,
+  mental: Zap,
+  social: Globe,
+  environmental: Leaf,
+};
+const CORE_TOTAL = CORE_QUESTIONS.length;
 
 interface ChatMessage { role: "user" | "assistant"; content: string; }
 
@@ -117,8 +129,33 @@ function ChatPanel({ results, input }: { results: Classification[]; input: Asses
   );
 }
 
+function QuestionCard({ q, selected, onSelect }: { q: Question; selected: number | undefined; onSelect: (i: number) => void }) {
+  return (
+    <div>
+      <p className="mb-2 text-sm font-medium text-slate-800">{q.text}</p>
+      <div className="space-y-2">
+        {q.options.map((opt, i) => {
+          const on = selected === i;
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onSelect(i)}
+              className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-2.5 text-left text-sm transition-colors ${on ? "border-blue-600 bg-blue-50 text-blue-900" : "border-slate-200 text-slate-700 hover:border-blue-300 hover:bg-slate-50"}`}
+            >
+              <span>{opt.label}</span>
+              {on && <CheckCircle2 size={15} className="shrink-0 text-blue-600" />}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function AssessmentPage() {
-  const [attributes, setAttributes] = useState<Record<AttributeKey, string>>({ psychological: "", mental: "", social: "", environmental: "" });
+  const [answers, setAnswers] = useState<Answers>({});
+  const [showOptional, setShowOptional] = useState(false);
   const [certificates, setCertificates] = useState<string[]>([""]);
   const [assessmentName, setAssessmentName] = useState("");
   const [results, setResults] = useState<Classification[] | null>(null);
@@ -133,14 +170,15 @@ export default function AssessmentPage() {
   const resultsRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  function updateAttribute(key: AttributeKey, value: string) {
-    setAttributes((prev) => ({ ...prev, [key]: value }));
+  function setAnswer(id: string, idx: number) {
+    setAnswers((prev) => ({ ...prev, [id]: idx }));
   }
 
   function addCertificate() { setCertificates((p) => [...p, ""]); }
   function updateCertificate(i: number, v: string) { setCertificates((p) => p.map((c, j) => (j === i ? v : c))); }
   function removeCertificate(i: number) { setCertificates((p) => p.filter((_, j) => j !== i)); }
 
+  // CV upload now extracts certifications only — attribute signal comes from the questionnaire.
   async function handleCVUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -152,9 +190,13 @@ export default function AssessmentPage() {
       const res = await fetch("/api/parse-cv", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setAttributes({ psychological: data.psychological, mental: data.mental, social: data.social, environmental: data.environmental });
-      setCertificates(data.certificates.length > 0 ? data.certificates : [""]);
-      setCvBanner(`Fields pre-filled from "${file.name}". Please review and edit before submitting.`);
+      const certs: string[] = Array.isArray(data.certificates) ? data.certificates : [];
+      setCertificates(certs.length > 0 ? certs : [""]);
+      setCvBanner(
+        certs.length > 0
+          ? `Pre-filled ${certs.length} certification(s) from "${file.name}". Review before submitting.`
+          : `No certifications detected in "${file.name}". Add them manually if needed.`
+      );
       setShowCVUpload(false);
     } catch (err) {
       setCvBanner(err instanceof Error ? err.message : "CV parsing failed.");
@@ -164,8 +206,13 @@ export default function AssessmentPage() {
     }
   }
 
+  const synthesized = synthesizeAttributes(answers);
+  const isFormValid = coreComplete(answers);
+  const answeredCount = coreAnsweredCount(answers);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!isFormValid) return;
     setError(null);
     setResults(null);
     setSaved(false);
@@ -175,7 +222,7 @@ export default function AssessmentPage() {
       const res = await fetch("/api/classify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...attributes, certificates: cleanedCerts }),
+        body: JSON.stringify({ ...synthesized, certificates: cleanedCerts }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Something went wrong.");
@@ -193,7 +240,7 @@ export default function AssessmentPage() {
     const cleanedCerts = certificates.filter((c) => c.trim().length > 0);
     await saveClassificationSmart({
       label: assessmentName.trim() || `Assessment – ${results[0].departmentName}`,
-      input: { ...attributes, certificates: cleanedCerts },
+      input: { ...synthesized, certificates: cleanedCerts },
       results,
     });
     setSaved(true);
@@ -226,8 +273,7 @@ export default function AssessmentPage() {
     }
   }
 
-  const isFormValid = Object.values(attributes).every((v) => v.trim().length > 0);
-  const currentInput: AssessmentInput = { ...attributes, certificates: certificates.filter(Boolean) };
+  const currentInput: AssessmentInput = { ...synthesized, certificates: certificates.filter(Boolean) };
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
@@ -236,8 +282,10 @@ export default function AssessmentPage() {
         <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white">
           <Users size={24} />
         </div>
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">Staff Classification</h1>
-        <p className="mt-2 text-base text-slate-600">Complete the four attribute sections and list certifications. The AI returns the top 3 best-fit departments with confidence scores and skill gaps.</p>
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">Individual Classification</h1>
+        <p className="mt-2 text-base text-slate-600">
+          Answer {CORE_TOTAL} quick questions across four domains — psychological, mental, social and environmental — and the AI returns the top 3 best-fit departments with confidence scores and skill gaps. Optional refiners sharpen the result.
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -253,15 +301,60 @@ export default function AssessmentPage() {
           />
         </div>
 
-        {/* CV Upload */}
+        {/* Core questionnaire — grouped by domain */}
+        {DOMAINS.map((domain) => {
+          const Icon = DOMAIN_ICON[domain];
+          const qs = CORE_QUESTIONS.filter((q) => q.domain === domain);
+          return (
+            <div key={domain} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-4 flex items-center gap-2">
+                <Icon size={16} className="text-blue-600" />
+                <h3 className="text-sm font-bold text-slate-900">{DOMAIN_LABELS[domain]}</h3>
+              </div>
+              <div className="space-y-5">
+                {qs.map((q) => (
+                  <QuestionCard key={q.id} q={q} selected={answers[q.id]} onSelect={(i) => setAnswer(q.id, i)} />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Optional refiners */}
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <button type="button" onClick={() => setShowOptional((v) => !v)} className="flex w-full items-center justify-between px-5 py-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+            <span className="flex items-center gap-2"><ListChecks size={16} className="text-blue-600" /> Refine your profile — {OPTIONAL_QUESTIONS.length} optional questions</span>
+            {showOptional ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+          {showOptional && (
+            <div className="space-y-6 border-t border-slate-100 px-5 pb-6 pt-5">
+              {DOMAINS.map((domain) => {
+                const qs = OPTIONAL_QUESTIONS.filter((q) => q.domain === domain);
+                if (qs.length === 0) return null;
+                return (
+                  <div key={domain}>
+                    <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">{DOMAIN_LABELS[domain]}</p>
+                    <div className="space-y-5">
+                      {qs.map((q) => (
+                        <QuestionCard key={q.id} q={q} selected={answers[q.id]} onSelect={(i) => setAnswer(q.id, i)} />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* CV Upload — extracts certifications */}
         <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <button type="button" onClick={() => setShowCVUpload((v) => !v)} className="flex w-full items-center justify-between px-5 py-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
-            <span className="flex items-center gap-2"><Upload size={16} className="text-blue-600" /> Auto-fill from CV / Resume (PDF)</span>
+            <span className="flex items-center gap-2"><Upload size={16} className="text-blue-600" /> Extract certifications from CV / Resume (PDF)</span>
             {showCVUpload ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
           {showCVUpload && (
             <div className="border-t border-slate-100 px-5 pb-5 pt-4">
-              <p className="mb-3 text-sm text-slate-500">Upload a PDF CV and the AI will analyse it and pre-fill the fields below. Review and edit before submitting.</p>
+              <p className="mb-3 text-sm text-slate-500">Upload a PDF CV and the AI will extract certifications into the list below. Review and edit before submitting.</p>
               <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-blue-300 bg-blue-50 px-6 py-8 text-center hover:bg-blue-100 transition-colors">
                 {cvLoading ? (
                   <><Loader2 size={24} className="animate-spin text-blue-500" /><span className="text-sm text-blue-600">Analysing CV…</span></>
@@ -276,22 +369,11 @@ export default function AssessmentPage() {
 
         {/* CV banner */}
         {cvBanner && (
-          <div className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${cvBanner.includes("pre-filled") ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-red-200 bg-red-50 text-red-700"}`}>
-            {cvBanner.includes("pre-filled") ? <CheckCircle2 size={16} className="mt-0.5 shrink-0" /> : <AlertCircle size={16} className="mt-0.5 shrink-0" />}
+          <div className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${cvBanner.includes("Pre-filled") ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
+            {cvBanner.includes("Pre-filled") ? <CheckCircle2 size={16} className="mt-0.5 shrink-0" /> : <AlertCircle size={16} className="mt-0.5 shrink-0" />}
             {cvBanner}
           </div>
         )}
-
-        {/* Attribute fields */}
-        {ATTRIBUTE_FIELDS.map(({ key, label, icon: Icon, placeholder, hint }) => (
-          <div key={key} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <label className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-900">
-              <Icon size={16} className="text-blue-600" />{label}
-            </label>
-            <p className="mb-3 text-xs text-slate-500">{hint}</p>
-            <textarea rows={3} value={attributes[key]} onChange={(e) => updateAttribute(key, e.target.value)} placeholder={placeholder} required className="w-full resize-none rounded-lg border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
-          </div>
-        ))}
 
         {/* Certificates */}
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -316,9 +398,19 @@ export default function AssessmentPage() {
           </button>
         </div>
 
-        <button type="submit" disabled={loading || !isFormValid} className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
-          {loading ? <><Loader2 size={16} className="animate-spin" />Analysing profile…</> : <><Trophy size={16} />Run Classification<ChevronRight size={16} /></>}
-        </button>
+        {/* Progress + submit */}
+        <div className="sticky bottom-4 rounded-xl border border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur-sm">
+          <div className="mb-2 flex items-center justify-between text-xs">
+            <span className="font-medium text-slate-600">Core questions answered</span>
+            <span className="font-figure font-bold text-slate-800">{answeredCount} / {CORE_TOTAL}</span>
+          </div>
+          <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+            <div className="h-full rounded-full bg-blue-600 transition-all duration-300" style={{ width: `${(answeredCount / CORE_TOTAL) * 100}%` }} />
+          </div>
+          <button type="submit" disabled={loading || !isFormValid} className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
+            {loading ? <><Loader2 size={16} className="animate-spin" />Analysing profile…</> : isFormValid ? <><Trophy size={16} />Run Classification<ChevronRight size={16} /></> : <>Answer all {CORE_TOTAL} core questions to continue</>}
+          </button>
+        </div>
       </form>
 
       {error && (
