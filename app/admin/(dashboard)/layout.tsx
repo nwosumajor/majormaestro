@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutDashboard, ClipboardList, Users, ShieldCheck, UserCog, ScrollText, Webhook, Settings } from "lucide-react";
+import { LayoutDashboard, ClipboardList, Users, ShieldCheck, UserCog, ScrollText, Webhook, Settings, BarChart3 } from "lucide-react";
 import LogoutButton from "./LogoutButton";
 import { getAdminFromCookies } from "@/lib/auth";
 
@@ -16,6 +16,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </Link>
           <nav className="flex flex-wrap items-center gap-1">
             <NavLink href="/admin" icon={LayoutDashboard} label="Cases" />
+            <NavLink href="/admin/analytics" icon={BarChart3} label="Analytics" />
             <NavLink href="/admin/referrals" icon={Users} label="Referrals" />
             <NavLink href="/admin/audit" icon={ScrollText} label="Audit" />
             <NavLink href="/admin/users" icon={UserCog} label="Users" />
