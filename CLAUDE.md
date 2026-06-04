@@ -66,6 +66,27 @@
 - **Interactive Estimator:** A component that takes an "Annual Turnover Band" and outputs the "Typical Recovery Range" and "Estimated Timeline" (e.g., ₦200M – ₦1B yields ₦5M – ₦40M in 6-10 weeks).
 - **Complaint Lodging Form:** A secure intake form capturing corporate details, banks used, and NDPA 2023/NDA compliance acknowledgments, with secure document uploads (Statements, Letters of Authority).
 
+### 5. Module 4: GICN — Global Impact Christian Network (`/gicn`)
+A youth/NGO arm: programme registration, check-in, certificates, and sponsorship. **Completely separate from `/recovery`** (different audience, different data model, different admin views) but reuses the platform's auth/uploads/email/audit/rate-limit/PDF/AES infrastructure.
+
+**CRITICAL data-protection rules (NDPA 2023, minors) — do not weaken:**
+- **Minors never hold accounts.** Every account holder is an adult — a parent/guardian or a school partner. Children exist only as dependent `Participant` records owned by an adult `User`. No auth, no login, no email for any minor.
+- **No NIN at registration.** NIN is collected ONLY on a `ScholarshipAward` record, later, from the adult, and is stored **encrypted at rest** via `encryptSecret`/`decryptSecret` (`lib/totp.ts`, same AES-256-GCM as TOTP secrets). Plaintext NIN is never persisted and never returned by any list endpoint (`/api/admin/gicn/scholarships` returns `hasNin: boolean` only).
+- **Consent is captured at the point a `Participant` is created** (guardian self-serve, or school-attested per bulk row requiring `guardianConsent=yes`): `consentGrantedAt` (timestamptz) + `consentGrantedByUserId` + optional `mediaReleaseGranted`. Audit-logged (`gicn_participant_create`).
+- Retention/audit conventions apply to all GICN personal data like the rest of the platform.
+
+**Registrant types** (`GicnProfile.kind`): `guardian` (registers own children) | `school` (bulk-registers students; `organizationName` required).
+
+**Prisma models:** `GicnProfile` (1:1 with `User`), `Participant`, `Program` (string status `DRAFT|OPEN|CLOSED|COMPLETED`, string `type` from `PROGRAM_TYPES`), `ProgramRegistration` (`@@unique([participantId, programId])`, status `PENDING|CONFIRMED|WAITLISTED|CANCELLED`, unique `checkInCode`, `checkedInAt`), `Sponsorship` (string status `pending|paid|refunded|cancelled`), `ScholarshipAward` (encrypted `ninEncrypted`). Const-unions + helpers in `lib/gicn.ts`; bulk parse/validate in `lib/gicnRegistrationSchema.ts` (mirrors `lib/classificationSchema.ts`); payment stub in `lib/payments.ts`.
+
+**Public pages:** `/gicn` (landing), `/gicn/sponsor` (sponsor form, payment STUBBED — `initiateSponsorshipPayment`). **Signed-in (account) pages** under route group `app/gicn/(account)/` (guarded by its `layout.tsx` via `getClientUserFromCookies`): `/gicn/register` (profile onboarding), `/gicn/dashboard`, `/gicn/participants` (CRUD + register), `/gicn/programs` (browse OPEN + register), `/gicn/school/bulk` (school-only xlsx/csv upload).
+
+**Registration is capacity-aware:** confirmed-count ≥ `capacity` → auto-`WAITLISTED`, else `CONFIRMED`; both get a `checkInCode` (`GICN-XXXXXX`). Bulk upload is **synchronous** (no AI → no async job) with reject-row-with-reasons.
+
+**Admin** (under `app/admin/(dashboard)/gicn/`, nav link gated by `can(role,"gicn.manage")`): `/admin/gicn` (programme CRUD + stats), `/admin/gicn/[id]` (registrations, check-in by code/QR or row, waitlist promote, certificate PDF via `renderGicnCertificate` in `lib/pdf.ts`), `/admin/gicn/sponsorships` (ledger). New RBAC permissions `gicn.manage` + `gicn.checkin` (both 2FA-required; owner via `*`, manager has both). Admin check-in input is keyboard-driven + auto-focused so a hardware QR scanner works; parents get a scannable QR (`components/gicn/QrCode.tsx`) on registration success.
+
+**Tier-2 scaffolds (not built):** scholarship review/approval *workflow UI* (`ScholarshipAward` model + the encrypting create/list API are real), impact report, reminders cron at `/api/cron/gicn/reminders` (stub, CRON_SECRET-authed — wire into `vercel.json` when implemented).
+
 ## Authentication
 
 Two **separate** systems sharing one signing secret (`ADMIN_SESSION_SECRET`):
@@ -191,6 +212,7 @@ Stored in `prisma/schema.prisma`. Recently-added timestamp columns use `@db.Time
 - **Staff classification (HR):** `Position` (hybrid catalog — system rows have `userId=null`, custom rows are per-user), `ClassificationBatch`, `StaffClassification`. All cuid ids; `selectedPositionIds` is `String[]`. Custom positions + batches cascade-delete with the owning `User`.
 - **Marketing:** `LeadMagnetSubscriber`
 - **Operations:** `Webhook`, `WebhookDelivery`
+- **GICN (youth/NGO):** `GicnProfile`, `Participant`, `Program`, `ProgramRegistration`, `Sponsorship`, `ScholarshipAward` (encrypted NIN). Adults own participant records; minors never authenticate. See Module 4.
 
 ## Cron endpoints
 
@@ -201,6 +223,7 @@ Both require `CRON_SECRET`. Pass it as `Authorization: Bearer <secret>` OR `X-Cr
 | `/api/cron/webhooks/retry` | every 5 minutes | Re-attempts due `WebhookDelivery` rows, escalates backoff, dead-letters at 5 attempts |
 | `/api/cron/cleanup` | daily | Deletes magic-link / email-change / revoked-or-expired session rows older than 1 day past expiry |
 | `/api/cron/classify/process` | daily (backstop) | Drains pending `StaffClassification` rows for bulk HR classification jobs. The upload route also kicks immediate processing via `after()`, so cron is only a backstop; an external scheduler can hit it more often for prompt draining of large batches. |
+| `/api/cron/gicn/reminders` | (not scheduled) | **Tier-2 stub** — GICN programme reminder emails. Authed but unimplemented; wire into `vercel.json` once built. |
 
 ## Environment variables
 
