@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getAdminFromRequest } from "@/lib/auth";
+import { requireAdmin } from "@/lib/rbac";
 import { recordAudit } from "@/lib/audit";
 
 const DEFAULT_RETENTION_DAYS = 730; // 2 years
@@ -17,7 +17,9 @@ function cutoff(): Date {
   return d;
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(req, "audit.purge");
+  if (gate.error) return gate.error;
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
   const cut = cutoff();
   const eligible = await db.auditLog.count({ where: { createdAt: { lt: cut } } });
@@ -29,9 +31,10 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const gate = await requireAdmin(req, "audit.purge");
+  if (gate.error) return gate.error;
+  const { admin } = gate;
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
-  const admin = await getAdminFromRequest(req);
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const cut = cutoff();
   const { count } = await db.auditLog.deleteMany({ where: { createdAt: { lt: cut } } });

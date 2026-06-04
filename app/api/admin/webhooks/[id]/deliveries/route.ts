@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { requireAdmin } from "@/lib/rbac";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
 ) {
+  const gate = await requireAdmin(req, "webhooks.manage");
+  if (gate.error) return gate.error;
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
   const { id } = await ctx.params;
 

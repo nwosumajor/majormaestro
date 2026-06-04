@@ -85,6 +85,7 @@ interface AdminUserSummary {
   id: string;
   email: string;
   role: string;
+  totpEnabled: boolean;
 }
 
 export async function getAdminFromRequest(req: NextRequest): Promise<AdminUserSummary | null> {
@@ -93,7 +94,7 @@ export async function getAdminFromRequest(req: NextRequest): Promise<AdminUserSu
   if (!decoded || !db) return null;
   const user = await db.adminUser.findUnique({
     where: { id: decoded.userId },
-    select: { id: true, email: true, role: true },
+    select: { id: true, email: true, role: true, totpEnabled: true },
   });
   return user;
 }
@@ -105,7 +106,7 @@ export async function getAdminFromCookies(): Promise<AdminUserSummary | null> {
   if (!decoded) return null;
   return db.adminUser.findUnique({
     where: { id: decoded.userId },
-    select: { id: true, email: true, role: true },
+    select: { id: true, email: true, role: true, totpEnabled: true },
   });
 }
 
@@ -175,7 +176,7 @@ export async function tryLogin(
         role: "owner",
         lastLoginAt: new Date(),
       },
-      select: { id: true, email: true, role: true },
+      select: { id: true, email: true, role: true, totpEnabled: true },
     });
     return { ok: true, user: created };
   }
@@ -215,7 +216,7 @@ export async function tryLogin(
   });
   return {
     ok: true,
-    user: { id: user.id, email: user.email, role: user.role },
+    user: { id: user.id, email: user.email, role: user.role, totpEnabled: user.totpEnabled },
     recoveryCodeUsed: recoveryUsed,
     remainingRecoveryCodes,
   };

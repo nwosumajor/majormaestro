@@ -28,7 +28,7 @@ export default function UsersPanel({ initialUsers, currentUserId }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("admin");
+  const [role, setRole] = useState("manager");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,7 +47,7 @@ export default function UsersPanel({ initialUsers, currentUserId }: Props) {
       setUsers((prev) => [...prev, data]);
       setEmail("");
       setPassword("");
-      setRole("admin");
+      setRole("manager");
       setShowForm(false);
       router.refresh();
     } catch (err) {
@@ -116,8 +116,9 @@ export default function UsersPanel({ initialUsers, currentUserId }: Props) {
                 onChange={(e) => setRole(e.target.value)}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-600 focus:outline-none"
               >
-                <option value="admin">Admin</option>
-                <option value="owner">Owner</option>
+                <option value="manager">Manager — works cases (read + write)</option>
+                <option value="viewer">Viewer — read-only</option>
+                <option value="owner">Owner — full control</option>
               </select>
             </div>
           </div>

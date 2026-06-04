@@ -3,11 +3,14 @@ import { db } from "@/lib/db";
 import { recordAudit } from "@/lib/audit";
 import { getObject, type StorageBackend } from "@/lib/uploads";
 import { getAdminFromRequest } from "@/lib/auth";
+import { requireAdmin } from "@/lib/rbac";
 
 export async function GET(
   req: NextRequest,
   ctx: { params: Promise<{ ref: string; id: string }> }
 ) {
+  const gate = await requireAdmin(req, "pii.download");
+  if (gate.error) return gate.error;
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
   const { ref, id } = await ctx.params;
   const referenceId = ref.toUpperCase();

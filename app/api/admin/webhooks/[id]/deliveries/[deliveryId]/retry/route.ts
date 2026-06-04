@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { attemptDelivery } from "@/lib/webhooks";
 import { getAdminFromRequest } from "@/lib/auth";
+import { requireAdmin } from "@/lib/rbac";
 import { recordAudit } from "@/lib/audit";
 
 export async function POST(
   req: NextRequest,
   ctx: { params: Promise<{ id: string; deliveryId: string }> }
 ) {
+  const gate = await requireAdmin(req, "webhooks.manage");
+  if (gate.error) return gate.error;
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
   const { id, deliveryId } = await ctx.params;
   const admin = await getAdminFromRequest(req);

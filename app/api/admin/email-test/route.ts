@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminFromRequest } from "@/lib/auth";
+import { requireAdmin } from "@/lib/rbac";
 import { getEmailConfigStatus, sendPlain } from "@/lib/email";
 import { recordAudit } from "@/lib/audit";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(req, "cases.read");
+  if (gate.error) return gate.error;
   return NextResponse.json(getEmailConfigStatus());
 }
 
 export async function POST(req: NextRequest) {
-  const admin = await getAdminFromRequest(req);
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const gate = await requireAdmin(req, "ops.email_test");
+  if (gate.error) return gate.error;
+  const { admin } = gate;
 
   const status = getEmailConfigStatus();
   if (!status.configured) {

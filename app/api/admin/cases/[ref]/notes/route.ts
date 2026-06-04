@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAdminFromRequest } from "@/lib/auth";
+import { requireAdmin } from "@/lib/rbac";
 import { recordAudit } from "@/lib/audit";
 
 const MAX_NOTE_LENGTH = 4000;
@@ -9,6 +10,8 @@ export async function POST(
   req: NextRequest,
   ctx: { params: Promise<{ ref: string }> }
 ) {
+  const gate = await requireAdmin(req, "cases.write");
+  if (gate.error) return gate.error;
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
   const admin = await getAdminFromRequest(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

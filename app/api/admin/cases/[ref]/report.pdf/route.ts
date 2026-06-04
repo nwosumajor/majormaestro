@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAdminFromRequest } from "@/lib/auth";
+import { requireAdmin } from "@/lib/rbac";
 import { recordAudit } from "@/lib/audit";
 import { renderCaseReport } from "@/lib/pdf";
 
@@ -8,6 +9,8 @@ export async function GET(
   req: NextRequest,
   ctx: { params: Promise<{ ref: string }> }
 ) {
+  const gate = await requireAdmin(req, "cases.read");
+  if (gate.error) return gate.error;
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
   const { ref } = await ctx.params;
   const referenceId = ref.toUpperCase();

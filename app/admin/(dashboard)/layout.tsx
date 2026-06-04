@@ -2,9 +2,11 @@ import Link from "next/link";
 import { LayoutDashboard, ClipboardList, Users, ShieldCheck, UserCog, ScrollText, Webhook, Settings, BarChart3 } from "lucide-react";
 import LogoutButton from "./LogoutButton";
 import { getAdminFromCookies } from "@/lib/auth";
+import { normalizeRole } from "@/lib/rbac";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const admin = await getAdminFromCookies();
+  const isOwner = normalizeRole(admin?.role) === "owner";
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -19,15 +21,21 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <NavLink href="/admin/analytics" icon={BarChart3} label="Analytics" />
             <NavLink href="/admin/referrals" icon={Users} label="Referrals" />
             <NavLink href="/admin/audit" icon={ScrollText} label="Audit" />
-            <NavLink href="/admin/users" icon={UserCog} label="Users" />
-            <NavLink href="/admin/webhooks" icon={Webhook} label="Webhooks" />
+            {isOwner && (
+              <>
+                <NavLink href="/admin/users" icon={UserCog} label="Users" />
+                <NavLink href="/admin/webhooks" icon={Webhook} label="Webhooks" />
+              </>
+            )}
             <NavLink href="/admin/account" icon={Settings} label="Account" />
-            <a
-              href="/api/admin/export/complaints"
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
-            >
-              <ClipboardList size={13} />Export
-            </a>
+            {isOwner && (
+              <a
+                href="/api/admin/export/complaints"
+                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+              >
+                <ClipboardList size={13} />Export
+              </a>
+            )}
             {admin && (
               <span className="ml-2 hidden text-xs text-slate-500 md:inline">
                 {admin.email}

@@ -4,6 +4,7 @@ import { ArrowRight, FolderSearch, Inbox, CheckCircle2, Banknote, Users } from "
 import { STEP_DEFS, type StepKey } from "@/lib/recoverySteps";
 import { getEmailConfigStatus } from "@/lib/email";
 import { getAdminFromCookies } from "@/lib/auth";
+import { normalizeRole } from "@/lib/rbac";
 import EmailStatusCard from "./EmailStatusCard";
 import RetentionCard from "./RetentionCard";
 import { describeStorage } from "@/lib/uploads";
@@ -38,6 +39,7 @@ export default async function AdminDashboardPage({
 
   const emailStatus = getEmailConfigStatus();
   const me = await getAdminFromCookies();
+  const isOwner = normalizeRole(me?.role) === "owner";
   const storage = describeStorage();
   const [cases, totalAll, totalActive, totalRecovered, referralCount] = await Promise.all([
     db.recoveryComplaint.findMany({
@@ -136,7 +138,7 @@ export default async function AdminDashboardPage({
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <EmailStatusCard configured={emailStatus.configured} problems={emailStatus.problems} adminEmail={me?.email ?? null} />
-        <RetentionCard />
+        {isOwner && <RetentionCard />}
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Document storage</p>
           <p className="mt-1 text-sm font-bold text-slate-900">

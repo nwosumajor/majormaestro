@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
+import { requireAdmin } from "@/lib/rbac";
 
 export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(req, "cases.read");
+  if (gate.error) return gate.error;
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
 
   const q = req.nextUrl.searchParams.get("q")?.trim();

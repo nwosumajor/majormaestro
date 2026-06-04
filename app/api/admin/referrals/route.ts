@@ -1,7 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { requireAdmin } from "@/lib/rbac";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(req, "cases.read");
+  if (gate.error) return gate.error;
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
 
   const referrals = await db.referral.findMany({

@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAdminFromRequest } from "@/lib/auth";
+import { requireAdmin } from "@/lib/rbac";
 import { recordAudit } from "@/lib/audit";
 import { WEBHOOK_EVENTS, type WebhookEvent, generateSecret, isValidFilter } from "@/lib/webhooks";
 import type { Prisma } from "@prisma/client";
 
 const URL_RE = /^https:\/\/[^\s]+$/;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(req, "webhooks.manage");
+  if (gate.error) return gate.error;
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
   const hooks = await db.webhook.findMany({ orderBy: { createdAt: "asc" } });
   return NextResponse.json({
@@ -29,6 +32,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const gate = await requireAdmin(req, "webhooks.manage");
+  if (gate.error) return gate.error;
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
 
   const admin = await getAdminFromRequest(req);

@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAdminFromRequest, hashPassword } from "@/lib/auth";
+import { requireAdmin, ASSIGNABLE_ROLES, type AdminRole } from "@/lib/rbac";
 import { recordAudit } from "@/lib/audit";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(req, "users.manage");
+  if (gate.error) return gate.error;
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
   const users = await db.adminUser.findMany({
     orderBy: { createdAt: "asc" },
@@ -27,6 +30,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const gate = await requireAdmin(req, "users.manage");
+  if (gate.error) return gate.error;
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
 
   try {
@@ -49,9 +54,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "An admin with that email already exists." }, { status: 409 });
     }
 
+    // New admins default to Manager (least privilege); only valid roles accepted.
+    const safeRole: AdminRole = ASSIGNABLE_ROLES.includes(role as AdminRole) ? (role as AdminRole) : "manager";
     const passwordHash = await hashPassword(password);
     const user = await db.adminUser.create({
-      data: { email: normEmail, passwordHash, role: role === "owner" ? "owner" : "admin" },
+      data: { email: normEmail, passwordHash, role: safeRole },
       select: { id: true, email: true, role: true, createdAt: true },
     });
 

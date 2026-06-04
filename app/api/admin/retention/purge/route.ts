@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getAdminFromRequest } from "@/lib/auth";
+import { requireAdmin } from "@/lib/rbac";
 import { recordAudit } from "@/lib/audit";
 import { deleteObject, type StorageBackend } from "@/lib/uploads";
 
@@ -19,7 +19,9 @@ function cutoff(): Date {
 }
 
 // GET: preview — count cases & documents eligible for purge
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(req, "retention.purge");
+  if (gate.error) return gate.error;
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
 
   const cut = cutoff();
@@ -41,9 +43,10 @@ export async function GET() {
 // POST: execute — delete document blobs + UploadedDocument rows for eligible closed cases.
 // Cases themselves remain (with metadata) so we keep an audit trail.
 export async function POST(req: NextRequest) {
+  const gate = await requireAdmin(req, "retention.purge");
+  if (gate.error) return gate.error;
+  const { admin } = gate;
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
-  const admin = await getAdminFromRequest(req);
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const cut = cutoff();
   const docs = await db.uploadedDocument.findMany({

@@ -4,6 +4,7 @@ import { STEP_KEYS, STEP_DEFS, type StepKey } from "@/lib/recoverySteps";
 import { recordAudit } from "@/lib/audit";
 import { sendStatusUpdate } from "@/lib/email";
 import { getAdminFromRequest } from "@/lib/auth";
+import { requireAdmin } from "@/lib/rbac";
 import { dispatch as dispatchWebhook } from "@/lib/webhooks";
 
 function isStepKey(s: string): s is StepKey {
@@ -14,6 +15,8 @@ export async function POST(
   req: NextRequest,
   ctx: { params: Promise<{ ref: string }> }
 ) {
+  const gate = await requireAdmin(req, "cases.write");
+  if (gate.error) return gate.error;
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
   const { ref } = await ctx.params;
   const referenceId = ref.toUpperCase();

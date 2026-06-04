@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { recordAudit } from "@/lib/audit";
 import { getAdminFromRequest } from "@/lib/auth";
+import { requireAdmin } from "@/lib/rbac";
 
 function csvEscape(value: unknown): string {
   if (value === null || value === undefined) return "";
@@ -27,6 +28,8 @@ const HEADERS = [
 ];
 
 export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(req, "pii.export");
+  if (gate.error) return gate.error;
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
 
   const status = req.nextUrl.searchParams.get("status")?.trim();

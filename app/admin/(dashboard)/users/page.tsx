@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { UserCog } from "lucide-react";
 import { getAdminFromCookies } from "@/lib/auth";
+import { normalizeRole } from "@/lib/rbac";
 import UsersPanel from "./UsersPanel";
 
 export const dynamic = "force-dynamic";
@@ -8,6 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminUsersPage() {
   if (!db) return <p className="text-sm text-red-700">Database not configured.</p>;
   const me = await getAdminFromCookies();
+  if (normalizeRole(me?.role) !== "owner") redirect("/admin");
   const users = await db.adminUser.findMany({
     orderBy: { createdAt: "asc" },
     select: { id: true, email: true, role: true, createdAt: true, lastLoginAt: true },
