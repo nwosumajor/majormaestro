@@ -98,6 +98,9 @@ model User {
   emailChangeTokens EmailChangeToken[]
   positions       Position[]
   classificationBatches ClassificationBatch[]
+  gicnProfile     GicnProfile?
+  participants    Participant[]
+  sponsorships    Sponsorship[]
 
   @@index([email])
 }
@@ -310,4 +313,109 @@ model AnalyticsEvent {
 
   @@index([name, createdAt])
   @@index([createdAt])
+}
+
+// ─── GICN (Global Impact Christian Network — youth / NGO arm) ───────────────
+// Minors NEVER hold accounts: every account is an adult (guardian or school
+// partner) holding a GicnProfile. Children exist only as dependent Participant
+// records owned by an adult User. Status/type columns are String + const unions
+// (lib/gicn.ts), matching the platform convention.
+
+model GicnProfile {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind             String // guardian | school
+  organizationName String? // school name (school partners)
+  phone            String?
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+}
+
+model Participant {
+  id                    String                @id @default(cuid())
+  ownerUserId           String
+  owner                 User                  @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  fullName              String
+  dateOfBirth           DateTime              @db.Timestamptz(3)
+  schoolName            String?
+  classLevel            String?
+  address               String?
+  guardianName          String
+  consentGrantedAt      DateTime              @db.Timestamptz(3)
+  consentGrantedByUserId String // the adult who granted consent (owner, or school user for bulk)
+  mediaReleaseGranted   Boolean               @default(false)
+  createdAt             DateTime              @default(now()) @db.Timestamptz(3)
+  registrations         ProgramRegistration[]
+  sponsorships          Sponsorship[]
+  awards                ScholarshipAward[]
+
+  @@index([ownerUserId])
+}
+
+model Program {
+  id            String                @id @default(cuid())
+  title         String
+  type          String // SCHOLARSHIP | LEADERSHIP_CONFERENCE | CHRISTIAN_CAMP | INTELLECTUAL_COMPETITION | TALENT_SHOW | ACADEMIC_COMPETITION | OTHER
+  description   String?
+  startsAt      DateTime              @db.Timestamptz(3)
+  endsAt        DateTime              @db.Timestamptz(3)
+  capacity      Int?
+  location      String?
+  status        String                @default("DRAFT") // DRAFT | OPEN | CLOSED | COMPLETED
+  createdAt     DateTime              @default(now()) @db.Timestamptz(3)
+  registrations ProgramRegistration[]
+  sponsorships  Sponsorship[]
+  awards        ScholarshipAward[]
+
+  @@index([status])
+  @@index([startsAt])
+}
+
+model ProgramRegistration {
+  id            String      @id @default(cuid())
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  programId     String
+  program       Program     @relation(fields: [programId], references: [id], onDelete: Cascade)
+  status        String      @default("PENDING") // PENDING | CONFIRMED | WAITLISTED | CANCELLED
+  checkInCode   String      @unique
+  checkedInAt   DateTime?   @db.Timestamptz(3)
+  createdAt     DateTime    @default(now()) @db.Timestamptz(3)
+
+  @@unique([participantId, programId])
+  @@index([programId, status])
+}
+
+model Sponsorship {
+  id            String       @id @default(cuid())
+  sponsorUserId String?
+  sponsorUser   User?        @relation(fields: [sponsorUserId], references: [id], onDelete: SetNull)
+  sponsorName   String
+  sponsorEmail  String
+  amountKobo    BigInt
+  programId     String?
+  program       Program?     @relation(fields: [programId], references: [id], onDelete: SetNull)
+  participantId String?
+  participant   Participant? @relation(fields: [participantId], references: [id], onDelete: SetNull)
+  status        String       @default("pending") // pending | confirmed | failed
+  createdAt     DateTime     @default(now()) @db.Timestamptz(3)
+
+  @@index([programId])
+  @@index([participantId])
+  @@index([createdAt])
+}
+
+model ScholarshipAward {
+  id              String      @id @default(cuid())
+  participantId   String
+  participant     Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  programId       String
+  program         Program     @relation(fields: [programId], references: [id], onDelete: Cascade)
+  status          String      @default("pending") // pending | approved | paid | rejected
+  ninEncrypted    String? // AES-256-GCM (lib/totp encryptSecret); collected only at payout
+  awardAmountKobo BigInt
+  createdAt       DateTime    @default(now()) @db.Timestamptz(3)
+
+  @@index([participantId])
+  @@index([programId])
 }

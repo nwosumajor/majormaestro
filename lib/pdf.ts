@@ -253,3 +253,60 @@ export async function renderCaseReport(
   const arr = doc.output("arraybuffer");
   return Buffer.from(arr);
 }
+
+// ─── GICN certificate (participation / award) ──────────────────────────────
+
+export async function renderGicnCertificate(opts: {
+  participantName: string;
+  programTitle: string;
+  variant: "participation" | "award";
+  awardAmount?: string; // formatted ₦ string, for awards
+  dateLabel: string;
+}): Promise<Buffer> {
+  const { jsPDF } = await import("jspdf");
+  const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+
+  doc.setDrawColor(5, 150, 105);
+  doc.setLineWidth(3);
+  doc.rect(24, 24, W - 48, H - 48);
+  doc.setDrawColor(11, 18, 32);
+  doc.setLineWidth(1);
+  doc.rect(34, 34, W - 68, H - 68);
+
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(11, 18, 32);
+  doc.setFontSize(14);
+  doc.text("GLOBAL IMPACT CHRISTIAN NETWORK", W / 2, 92, { align: "center" });
+
+  doc.setTextColor(5, 150, 105);
+  doc.setFontSize(28);
+  doc.text(opts.variant === "award" ? "Certificate of Award" : "Certificate of Participation", W / 2, 142, { align: "center" });
+
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(71, 85, 105);
+  doc.setFontSize(13);
+  doc.text("This certificate is proudly presented to", W / 2, 188, { align: "center" });
+
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(11, 18, 32);
+  doc.setFontSize(34);
+  doc.text(opts.participantName, W / 2, 238, { align: "center" });
+
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(71, 85, 105);
+  doc.setFontSize(13);
+  const line =
+    opts.variant === "award"
+      ? `for being awarded ${opts.awardAmount ?? ""} under ${opts.programTitle}`.trim()
+      : `for participating in ${opts.programTitle}`;
+  doc.text(line, W / 2, 282, { align: "center", maxWidth: W - 160 });
+
+  doc.setFontSize(11);
+  doc.setTextColor(148, 163, 184);
+  doc.text(opts.dateLabel, W / 2, H - 92, { align: "center" });
+  doc.text("MajorGBN Enterprise Platform · Global Impact Christian Network", W / 2, H - 62, { align: "center" });
+
+  return Buffer.from(doc.output("arraybuffer"));
+}

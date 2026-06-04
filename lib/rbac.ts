@@ -23,6 +23,8 @@ export type Permission =
   | "audit.purge"
   | "referrals.read"
   | "referrals.payout"
+  | "gicn.manage"
+  | "gicn.checkin"
   | "ops.email_test";
 
 /** Map any stored value to a known role. Legacy "admin" → manager. */
@@ -36,7 +38,7 @@ export const ASSIGNABLE_ROLES: AdminRole[] = ["owner", "manager", "viewer"];
 
 const PERMISSIONS: Record<AdminRole, Permission[] | "*"> = {
   owner: "*",
-  manager: ["cases.read", "cases.write", "pii.download", "pii.export", "referrals.read", "ops.email_test"],
+  manager: ["cases.read", "cases.write", "pii.download", "pii.export", "referrals.read", "gicn.manage", "gicn.checkin", "ops.email_test"],
   viewer: ["cases.read"],
 };
 
@@ -50,6 +52,8 @@ const REQUIRE_2FA = new Set<Permission>([
   "retention.purge",
   "audit.purge",
   "referrals.payout",
+  "gicn.manage",
+  "gicn.checkin",
   "ops.email_test",
 ]);
 

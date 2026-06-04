@@ -515,3 +515,61 @@ export async function sendReferralVerification(referrerEmail: string, referrerNa
   await sendOrThrow({ from: FROM, to: referrerEmail, subject: "Confirm your MajorGBN referral account", html });
   return { skipped: false } as const;
 }
+
+// ─── GICN (Global Impact Christian Network) emails ──────────────────────────
+
+function gicnNaira(kobo: bigint): string {
+  return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(Number(kobo) / 100);
+}
+
+export async function sendSponsorshipConfirmation(input: {
+  sponsorEmail: string;
+  sponsorName: string;
+  amountKobo: bigint;
+  programTitle?: string | null;
+}) {
+  if (!resend) return;
+  const html = `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+    ${brandHeader("Global Impact Christian Network")}
+    <div style="padding:32px">
+      <p style="margin:0 0 12px;font-size:15px;color:#1e293b">Dear ${input.sponsorName},</p>
+      <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6">
+        Thank you for your generous pledge of <strong>${gicnNaira(input.amountKobo)}</strong>${input.programTitle ? ` toward <strong>${input.programTitle}</strong>` : ""}. Your support helps young people access scholarships, leadership and faith programmes.
+      </p>
+      <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:14px;margin-bottom:16px">
+        <p style="margin:0;font-size:13px;color:#065f46">Your sponsorship is recorded as <strong>pending</strong>. Our team will contact you with payment details to complete it.</p>
+      </div>
+      <p style="margin:0;font-size:12px;color:#94a3b8">You'll be able to see exactly which programme and beneficiaries your gift supports in the sponsorship ledger.</p>
+    </div>
+    ${brandFooter()}
+  </div>`;
+  await sendOrThrow({ from: FROM, to: input.sponsorEmail, subject: "Thank you for sponsoring with GICN", html });
+}
+
+export async function sendGicnRegistrationConfirmation(input: {
+  ownerEmail: string;
+  participantName: string;
+  programTitle: string;
+  checkInCode: string;
+  waitlisted: boolean;
+}) {
+  if (!resend) return;
+  const html = `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+    ${brandHeader("Global Impact Christian Network")}
+    <div style="padding:32px">
+      <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6">
+        <strong>${input.participantName}</strong> has been ${input.waitlisted ? "added to the <strong>waitlist</strong> for" : "registered for"} <strong>${input.programTitle}</strong>.
+      </p>
+      ${input.waitlisted ? `<p style="margin:0 0 16px;font-size:13px;color:#92400e">The programme is currently full. We'll confirm automatically and notify you if a place opens up.</p>` : `
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px;text-align:center;margin-bottom:16px">
+        <p style="margin:0;font-size:12px;color:#1e40af">Check-in code</p>
+        <p style="margin:4px 0 0;font-size:22px;font-weight:900;color:#1e3a8a;font-family:monospace">${input.checkInCode}</p>
+        <p style="margin:6px 0 0;font-size:11px;color:#64748b">Present this code at the event for check-in.</p>
+      </div>`}
+    </div>
+    ${brandFooter()}
+  </div>`;
+  await sendOrThrow({ from: FROM, to: input.ownerEmail, subject: `GICN: ${input.participantName} — ${input.programTitle}`, html });
+}
