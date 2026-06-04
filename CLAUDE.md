@@ -83,8 +83,9 @@ Two **separate** systems sharing one signing secret (`ADMIN_SESSION_SECRET`):
 
 ### Admin RBAC (roles + enforcement)
 Three roles, enforced **server-side, deny-by-default** via `requireAdmin(req, perm)` in `lib/rbac.ts`. UI hiding is UX only — the API is the source of truth. **Every new `/api/admin/*` mutation/sensitive route MUST call `requireAdmin` with the right `Permission`.**
-- **Roles:** `owner` (full = `*`), `manager` (case work + PII: `cases.read/write`, `pii.download/export`, `ops.email_test`), `viewer` (`cases.read` only). `normalizeRole()` maps any legacy/unknown value → `manager`. New admins **default to `manager`** (least privilege); bootstrap user is `owner`.
-- **Owner-only:** `users.manage`, `webhooks.manage`, `retention.purge`, `audit.purge`. (UI: Users/Webhooks/Export nav + RetentionCard hidden from non-owners; `/admin/users` + `/admin/webhooks` server-redirect non-owners.)
+- **Roles:** `owner` (full = `*`), `manager` (case work + PII + referral view: `cases.read/write`, `pii.download/export`, `referrals.read`, `ops.email_test`), `viewer` (`cases.read` only). `normalizeRole()` maps any legacy/unknown value → `manager`. New admins **default to `manager`** (least privilege); bootstrap user is `owner`.
+- **Owner-only:** `users.manage`, `webhooks.manage`, `retention.purge`, `audit.purge`, `referrals.payout`. (UI: Users/Webhooks/Export nav + RetentionCard hidden from non-owners; `/admin/users` + `/admin/webhooks` server-redirect non-owners.)
+- **Referrals tier:** `referrals.read` (owner + manager) gates the `/admin/referrals` view + nav (referrer emails + earnings) — viewers are excluded (page redirects). `referrals.payout` (owner-only, 2FA + audited) records payments.
 - **Mandatory 2FA:** every non-read permission also requires `totpEnabled` — privileged actions can't be taken from a password-only account. Reads are exempt so a new admin can reach `/admin/account` to enrol.
 - **Step-up re-auth:** retention purges + admin-delete additionally require `verifyStepUp(adminId, { code | password })` (current TOTP, or password if no 2FA) in the request body. UI prompts for the current 2FA code.
 
