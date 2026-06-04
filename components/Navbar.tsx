@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { href: "/recovery/track", label: "Track a Case" },
   { href: "/classify", label: "HR Staff Classification" },
   { href: "/roadmap", label: "Career Roadmap" },
+  { href: "/gicn", label: "GICN" },
 ];
 
 interface ClientUser {

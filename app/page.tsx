@@ -12,6 +12,7 @@ import {
   BrainCircuit,
   Lock,
   Clock,
+  HeartHandshake,
 } from "lucide-react";
 import { Container, Section, SectionHeading } from "@/components/ui/Section";
 import Badge from "@/components/ui/Badge";
@@ -256,6 +257,27 @@ export default function LandingPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </Container>
+      </Section>
+
+      {/* ── GICN (youth / NGO arm) ───────────────────────────── */}
+      <Section surface="white">
+        <Container>
+          <div className="overflow-hidden rounded-2xl border border-emerald-200 bg-accent-soft p-8 sm:p-10">
+            <div className="lg:flex lg:items-center lg:justify-between lg:gap-8">
+              <div>
+                <Badge tone="accent"><HeartHandshake size={13} /> Global Impact Christian Network</Badge>
+                <h2 className="mt-3 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">Our youth &amp; NGO arm — GICN</h2>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
+                  Scholarships, leadership conferences, Christian camps, and academic &amp; talent competitions for young people. Register a child, partner as a school, or sponsor a student.
+                </p>
+              </div>
+              <div className="mt-5 flex shrink-0 flex-wrap gap-3 lg:mt-0">
+                <Button href="/gicn" variant="primary" size="lg">Explore GICN <ArrowRight size={16} /></Button>
+                <Button href="/gicn/sponsor" variant="outline" size="lg">Sponsor a child</Button>
+              </div>
+            </div>
           </div>
         </Container>
       </Section>
