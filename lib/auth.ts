@@ -94,9 +94,12 @@ export async function getAdminFromRequest(req: NextRequest): Promise<AdminUserSu
   if (!decoded || !db) return null;
   const user = await db.adminUser.findUnique({
     where: { id: decoded.userId },
-    select: { id: true, email: true, role: true, totpEnabled: true },
+    select: { id: true, email: true, role: true, totpEnabled: true, tokenInvalidBefore: true },
   });
-  return user;
+  if (!user) return null;
+  // Per-admin revocation: tokens issued before the cutoff are dead.
+  if (user.tokenInvalidBefore && decoded.issuedAt < user.tokenInvalidBefore.getTime()) return null;
+  return { id: user.id, email: user.email, role: user.role, totpEnabled: user.totpEnabled };
 }
 
 export async function getAdminFromCookies(): Promise<AdminUserSummary | null> {
@@ -104,10 +107,38 @@ export async function getAdminFromCookies(): Promise<AdminUserSummary | null> {
   const jar = await cookies();
   const decoded = decodeAdminToken(jar.get(ADMIN_COOKIE)?.value);
   if (!decoded) return null;
-  return db.adminUser.findUnique({
+  const user = await db.adminUser.findUnique({
     where: { id: decoded.userId },
-    select: { id: true, email: true, role: true, totpEnabled: true },
+    select: { id: true, email: true, role: true, totpEnabled: true, tokenInvalidBefore: true },
   });
+  if (!user) return null;
+  if (user.tokenInvalidBefore && decoded.issuedAt < user.tokenInvalidBefore.getTime()) return null;
+  return { id: user.id, email: user.email, role: user.role, totpEnabled: user.totpEnabled };
+}
+
+/**
+ * Step-up re-authentication for destructive actions (retention purges, deleting
+ * an admin). Requires a fresh credential even within a live session: the current
+ * TOTP code if 2FA is enrolled, otherwise the account password.
+ */
+export async function verifyStepUp(
+  adminId: string,
+  creds: { code?: string; password?: string }
+): Promise<boolean> {
+  if (!db) return false;
+  const user = await db.adminUser.findUnique({
+    where: { id: adminId },
+    select: { passwordHash: true, totpEnabled: true, totpSecret: true },
+  });
+  if (!user) return false;
+  if (user.totpEnabled && user.totpSecret) {
+    const code = creds.code?.trim();
+    if (!code) return false;
+    const { verifyCode, decryptSecret } = await import("@/lib/totp");
+    return verifyCode(decryptSecret(user.totpSecret), code);
+  }
+  if (!creds.password) return false;
+  return verifyPassword(creds.password, user.passwordHash);
 }
 
 // ─── Recovery codes ──────────────────────────────────────────────────────

@@ -42,12 +42,17 @@ export default function RetentionCard() {
 
   async function purgeDocs() {
     if (!docPreview || docPreview.eligibleDocuments === 0) return;
-    if (!confirm(`Permanently delete ${docPreview.eligibleDocuments} document(s) from ${docPreview.eligibleCases} closed case(s)? This cannot be undone.`)) return;
+    const code = window.prompt(`Permanently delete ${docPreview.eligibleDocuments} document(s) from ${docPreview.eligibleCases} closed case(s)? This cannot be undone.\n\nEnter your current 2FA code to confirm:`);
+    if (!code) return;
     setBusy("docs");
     setError(null);
     setMessage(null);
     try {
-      const res = await fetch("/api/admin/retention/purge", { method: "POST" });
+      const res = await fetch("/api/admin/retention/purge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stepUpCode: code.trim() }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Purge failed.");
       setMessage(`Purged ${data.deletedDocuments} document records (${data.deletedBlobs} blobs, ${data.failedBlobs} failures).`);
@@ -62,12 +67,17 @@ export default function RetentionCard() {
 
   async function purgeAudit() {
     if (!auditPreview || auditPreview.eligibleEntries === 0) return;
-    if (!confirm(`Permanently delete ${auditPreview.eligibleEntries} audit-log entrie(s) older than ${auditPreview.retentionDays} days? This cannot be undone.`)) return;
+    const code = window.prompt(`Permanently delete ${auditPreview.eligibleEntries} audit-log entrie(s) older than ${auditPreview.retentionDays} days? This cannot be undone.\n\nEnter your current 2FA code to confirm:`);
+    if (!code) return;
     setBusy("audit");
     setError(null);
     setMessage(null);
     try {
-      const res = await fetch("/api/admin/retention/audit/purge", { method: "POST" });
+      const res = await fetch("/api/admin/retention/audit/purge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stepUpCode: code.trim() }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Purge failed.");
       setMessage(`Purged ${data.deletedEntries} audit log entries.`);

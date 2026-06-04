@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, Loader2, AlertCircle, ShieldCheck, X } from "lucide-react";
+import { Plus, Trash2, Loader2, AlertCircle, ShieldCheck, X, LogOut } from "lucide-react";
 
 interface User {
   id: string;
@@ -58,15 +58,33 @@ export default function UsersPanel({ initialUsers, currentUserId }: Props) {
   }
 
   async function handleDelete(id: string, email: string) {
-    if (!confirm(`Delete admin ${email}? They will lose access immediately.`)) return;
+    const code = window.prompt(`Delete admin ${email}? They lose access immediately and this cannot be undone.\n\nEnter your current 2FA code to confirm:`);
+    if (!code) return;
     try {
-      const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stepUpCode: code.trim() }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to delete.");
       setUsers((prev) => prev.filter((u) => u.id !== id));
       router.refresh();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete.");
+    }
+  }
+
+  async function handleRevoke(id: string, email: string) {
+    if (!confirm(`Force sign-out ${email}? All of their active admin sessions will be invalidated immediately.`)) return;
+    try {
+      const res = await fetch(`/api/admin/users/${id}/revoke`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to revoke sessions.");
+      alert(`${email} has been signed out of all sessions.`);
+      router.refresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to revoke sessions.");
     }
   }
 
@@ -167,12 +185,21 @@ export default function UsersPanel({ initialUsers, currentUserId }: Props) {
                 <td className="px-4 py-3 text-xs text-slate-500">{fmt(u.lastLoginAt)}</td>
                 <td className="px-4 py-3 text-right">
                   {u.id !== currentUserId && (
-                    <button
-                      onClick={() => handleDelete(u.id, u.email)}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-800"
-                    >
-                      <Trash2 size={11} /> Delete
-                    </button>
+                    <div className="flex items-center justify-end gap-3">
+                      <button
+                        onClick={() => handleRevoke(u.id, u.email)}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 hover:text-amber-800"
+                        title="Invalidate all of this admin's active sessions"
+                      >
+                        <LogOut size={11} /> Sign out
+                      </button>
+                      <button
+                        onClick={() => handleDelete(u.id, u.email)}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-800"
+                      >
+                        <Trash2 size={11} /> Delete
+                      </button>
+                    </div>
                   )}
                 </td>
               </tr>

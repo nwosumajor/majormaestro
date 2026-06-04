@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/rbac";
+import { verifyStepUp } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
 import { deleteObject, type StorageBackend } from "@/lib/uploads";
 
@@ -47,6 +48,11 @@ export async function POST(req: NextRequest) {
   if (gate.error) return gate.error;
   const { admin } = gate;
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
+
+  const su = (await req.json().catch(() => ({}))) as { stepUpCode?: string; stepUpPassword?: string };
+  if (!(await verifyStepUp(admin.id, { code: su.stepUpCode, password: su.stepUpPassword }))) {
+    return NextResponse.json({ error: "Re-authentication required. Enter your current 2FA code to confirm this purge." }, { status: 401 });
+  }
 
   const cut = cutoff();
   const docs = await db.uploadedDocument.findMany({

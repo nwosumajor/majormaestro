@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getAdminFromRequest } from "@/lib/auth";
+import { getAdminFromRequest, verifyStepUp } from "@/lib/auth";
 import { requireAdmin } from "@/lib/rbac";
 import { recordAudit } from "@/lib/audit";
 
@@ -11,6 +11,10 @@ export async function DELETE(
   const gate = await requireAdmin(req, "users.manage");
   if (gate.error) return gate.error;
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
+  const su = (await req.json().catch(() => ({}))) as { stepUpCode?: string; stepUpPassword?: string };
+  if (!(await verifyStepUp(gate.admin.id, { code: su.stepUpCode, password: su.stepUpPassword }))) {
+    return NextResponse.json({ error: "Re-authentication required. Enter your current 2FA code to confirm." }, { status: 401 });
+  }
   const { id } = await ctx.params;
 
   const actor = await getAdminFromRequest(req);

@@ -79,6 +79,7 @@ model AdminUser {
   recoveryCodeHashes String[]
   createdAt          DateTime  @default(now())
   lastLoginAt        DateTime?
+  tokenInvalidBefore DateTime? @db.Timestamptz(3) // admin tokens issued before this are revoked
 }
 
 model User {
