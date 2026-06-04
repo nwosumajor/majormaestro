@@ -35,6 +35,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Referrals are temporarily unavailable." }, { status: 503 });
     }
 
+    const base = process.env.NEXT_PUBLIC_APP_URL ?? "https://majormaestro.com";
+    const normEmail = email.trim().toLowerCase();
+
+    // One code per email — return the existing one rather than minting duplicates.
+    const existingByEmail = await db.referral.findFirst({
+      where: { referrerEmail: { equals: normEmail, mode: "insensitive" } },
+      select: { code: true },
+    });
+    if (existingByEmail) {
+      return NextResponse.json({ code: existingByEmail.code, url: `${base}/recovery?ref=${existingByEmail.code}`, existing: true });
+    }
+
     // Retry on the (vanishingly rare) chance of a code collision
     let code = makeCode(name);
     for (let attempt = 0; attempt < 5; attempt++) {
@@ -44,14 +56,10 @@ export async function POST(req: NextRequest) {
     }
 
     await db.referral.create({
-      data: { code, referrerName: name.trim(), referrerEmail: email.trim() },
+      data: { code, referrerName: name.trim(), referrerEmail: normEmail },
     });
 
-    const base = process.env.NEXT_PUBLIC_APP_URL ?? "https://majormaestro.com";
-    return NextResponse.json({
-      code,
-      url: `${base}/recovery?ref=${code}`,
-    });
+    return NextResponse.json({ code, url: `${base}/recovery?ref=${code}` });
   } catch (err) {
     console.error("[/api/refer]", err);
     return NextResponse.json({ error: "Failed to generate referral link." }, { status: 500 });

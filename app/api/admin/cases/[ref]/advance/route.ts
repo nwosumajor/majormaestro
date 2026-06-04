@@ -2,7 +2,7 @@ import { NextRequest, NextResponse, after } from "next/server";
 import { db } from "@/lib/db";
 import { STEP_KEYS, STEP_DEFS, type StepKey } from "@/lib/recoverySteps";
 import { recordAudit } from "@/lib/audit";
-import { sendStatusUpdate } from "@/lib/email";
+import { sendStatusUpdate, sendReferralConversion } from "@/lib/email";
 import { getAdminFromRequest } from "@/lib/auth";
 import { requireAdmin } from "@/lib/rbac";
 import { dispatch as dispatchWebhook } from "@/lib/webhooks";
@@ -97,6 +97,28 @@ export async function POST(
         note: note ?? undefined,
       }).catch((e) => console.error("[advance] Status email error:", e))
     );
+  }
+
+  // Referral: when a referred case recovers, notify the introducer (reward due).
+  if (isClosing && complaint.referralCode) {
+    after(async () => {
+      try {
+        const referral = await db!.referral.findUnique({
+          where: { code: complaint.referralCode! },
+          select: { code: true, referrerName: true, referrerEmail: true },
+        });
+        if (referral) {
+          await sendReferralConversion({
+            referrerEmail: referral.referrerEmail,
+            referrerName: referral.referrerName,
+            companyName: complaint.companyName,
+            code: referral.code,
+          });
+        }
+      } catch (e) {
+        console.error("[advance] Referral conversion email error:", e);
+      }
+    });
   }
 
   // Fire webhooks (best-effort, non-blocking response)

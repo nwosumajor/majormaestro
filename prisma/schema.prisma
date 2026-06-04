@@ -214,12 +214,19 @@ model CaseStatusEvent {
 }
 
 model Referral {
-  id            String              @id @default(cuid())
-  code          String              @unique
-  referrerName  String
-  referrerEmail String
-  createdAt     DateTime            @default(now())
-  complaints    RecoveryComplaint[]
+  id                    String              @id @default(cuid())
+  code                  String              @unique
+  referrerName          String
+  referrerEmail         String
+  verifiedAt            DateTime?           @db.Timestamptz(3)
+  verificationTokenHash String?             @unique
+  bankDetails           String?
+  paidOutKobo           BigInt              @default(0)
+  lastPaidAt            DateTime?           @db.Timestamptz(3)
+  createdAt             DateTime            @default(now())
+  complaints            RecoveryComplaint[]
+
+  @@index([referrerEmail])
 }
 
 model LeadMagnetSubscriber {

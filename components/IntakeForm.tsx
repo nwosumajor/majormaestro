@@ -99,7 +99,7 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function IntakeForm({ referralCode }: { referralCode?: string }) {
+export default function IntakeForm({ referralCode, referrerName }: { referralCode?: string; referrerName?: string }) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(INITIAL_STATE);
   const [loading, setLoading] = useState(false);
@@ -302,7 +302,7 @@ export default function IntakeForm({ referralCode }: { referralCode?: string }) 
       {referralCode && (
         <div className="flex items-center gap-2 border-b border-emerald-100 bg-emerald-50 px-6 py-2.5 text-xs text-emerald-800">
           <CheckCircle2 size={13} className="shrink-0 text-emerald-600" />
-          <span>Referred via <span className="font-mono font-semibold">{referralCode}</span> — your introducer will be credited on successful recovery.</span>
+          <span>Referred {referrerName ? <>by <span className="font-semibold">{referrerName}</span></> : <>via <span className="font-mono font-semibold">{referralCode}</span></>} — they&apos;ll be credited on successful recovery.</span>
         </div>
       )}
 

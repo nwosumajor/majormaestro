@@ -433,3 +433,78 @@ export async function sendInternalComplaintNotification(details: ComplaintDetail
     html,
   });
 }
+
+// ─── Referral programme emails ─────────────────────────────────────────────
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://majormaestro.com";
+
+interface ReferralEmailInput {
+  referrerEmail: string;
+  referrerName: string;
+  companyName: string;
+  code: string;
+}
+
+export async function sendReferralLeadNotification(input: ReferralEmailInput) {
+  if (!resend) return;
+  const dash = `${APP_URL}/recovery/refer/${input.code}`;
+  const html = `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+    ${brandHeader("Referral Programme")}
+    <div style="padding:32px">
+      <p style="margin:0 0 12px;font-size:15px;color:#1e293b">Hi ${input.referrerName},</p>
+      <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6">
+        Good news — <strong>${input.companyName}</strong> just lodged a forensic recovery case using your referral link. You're now in line to earn on this introduction.
+      </p>
+      <div style="text-align:center;margin:24px 0">
+        <a href="${dash}" style="display:inline-block;background:#059669;color:#ffffff;font-weight:700;font-size:15px;text-decoration:none;padding:12px 28px;border-radius:10px">View your referral dashboard</a>
+      </div>
+      <p style="margin:0;font-size:12px;color:#94a3b8">You earn a fixed bonus once their forensic audit completes, plus a share of the first recovery. Track progress any time at the link above.</p>
+    </div>
+    ${brandFooter()}
+  </div>`;
+  await sendOrThrow({ from: FROM, to: input.referrerEmail, subject: `Your referral ${input.companyName} just lodged a case`, html });
+}
+
+export async function sendReferralConversion(input: ReferralEmailInput) {
+  if (!resend) return;
+  const dash = `${APP_URL}/recovery/refer/${input.code}`;
+  const html = `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+    ${brandHeader("Referral Programme")}
+    <div style="padding:32px">
+      <p style="margin:0 0 12px;font-size:15px;color:#1e293b">Hi ${input.referrerName},</p>
+      <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6">
+        🎉 <strong>${input.companyName}</strong> — a company you referred — has completed a successful recovery. Your referral reward is now due. Our team will be in touch to arrange payment.
+      </p>
+      <div style="text-align:center;margin:24px 0">
+        <a href="${dash}" style="display:inline-block;background:#059669;color:#ffffff;font-weight:700;font-size:15px;text-decoration:none;padding:12px 28px;border-radius:10px">View your earnings</a>
+      </div>
+      <p style="margin:0;font-size:12px;color:#94a3b8">Make sure your payout details are set on your dashboard so we can pay you promptly.</p>
+    </div>
+    ${brandFooter()}
+  </div>`;
+  await sendOrThrow({ from: FROM, to: input.referrerEmail, subject: `You've earned a referral reward — ${input.companyName} recovered`, html });
+}
+
+export async function sendReferralVerification(referrerEmail: string, referrerName: string, verifyUrl: string, shareUrl: string) {
+  if (!resend) return { skipped: true } as const;
+  const html = `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+    ${brandHeader("Confirm your referral account")}
+    <div style="padding:32px">
+      <p style="margin:0 0 12px;font-size:15px;color:#1e293b">Hi ${referrerName},</p>
+      <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6">
+        Thanks for joining the MajorGBN referral programme. Confirm your email so we can verify rewards and pay you when your referrals recover.
+      </p>
+      <div style="text-align:center;margin:24px 0">
+        <a href="${verifyUrl}" style="display:inline-block;background:#1d4ed8;color:#ffffff;font-weight:700;font-size:15px;text-decoration:none;padding:12px 28px;border-radius:10px">Confirm my email</a>
+      </div>
+      <p style="margin:0 0 8px;font-size:12px;color:#94a3b8">Your share link is ready to use now:</p>
+      <p style="margin:0;font-size:12px;color:#475569;word-break:break-all;background:#f8fafc;padding:10px 12px;border-radius:6px;border:1px solid #e2e8f0">${shareUrl}</p>
+    </div>
+    ${brandFooter()}
+  </div>`;
+  await sendOrThrow({ from: FROM, to: referrerEmail, subject: "Confirm your MajorGBN referral account", html });
+  return { skipped: false } as const;
+}

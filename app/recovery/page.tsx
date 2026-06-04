@@ -19,6 +19,8 @@ import {
   Gift,
 } from "lucide-react";
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { db } from "@/lib/db";
 import IntakeForm from "@/components/IntakeForm";
 import RecoveryTools from "@/components/RecoveryTools";
 import CaseStudies from "@/components/CaseStudies";
@@ -102,7 +104,21 @@ export default async function RecoveryPage({
   searchParams: Promise<{ ref?: string }>;
 }) {
   const { ref } = await searchParams;
-  const referralCode = ref?.trim() || undefined;
+  // Durable attribution: explicit ?ref, else the first-touch gbn_ref cookie.
+  const jar = await cookies();
+  const refCandidate = ref?.trim() || jar.get("gbn_ref")?.value;
+  let referralCode: string | undefined;
+  let referrerName: string | undefined;
+  if (db && refCandidate) {
+    const r = await db.referral.findUnique({
+      where: { code: refCandidate },
+      select: { code: true, referrerName: true },
+    });
+    if (r) {
+      referralCode = r.code;
+      referrerName = r.referrerName;
+    }
+  }
 
   return (
     <div className="flex flex-col">
@@ -115,6 +131,15 @@ export default async function RecoveryPage({
           Lodge Now <ArrowRight size={13} />
         </a>
       </div>
+
+      {/* ── REFERRAL BANNER ─────────────────────────────────── */}
+      {referrerName && (
+        <div className="bg-accent px-4 py-2 text-center text-sm text-white">
+          <Gift size={13} className="mr-1 inline" />
+          You were referred by <span className="font-bold">{referrerName}</span> — referred companies receive{" "}
+          <span className="font-semibold underline">priority forensic review</span>.
+        </div>
+      )}
 
       {/* ── HERO ────────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-ink">
@@ -366,7 +391,7 @@ export default async function RecoveryPage({
             </div>
           </div>
 
-          <IntakeForm referralCode={referralCode} />
+          <IntakeForm referralCode={referralCode} referrerName={referrerName} />
 
           <p className="mt-6 text-center text-xs text-slate-600">
             Prefer to speak first?{" "}

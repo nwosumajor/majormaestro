@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse, after } from "next/server";
 import { db } from "@/lib/db";
-import { sendComplaintConfirmation, sendInternalComplaintNotification } from "@/lib/email";
+import { sendComplaintConfirmation, sendInternalComplaintNotification, sendReferralLeadNotification } from "@/lib/email";
+import { dispatch as dispatchWebhook } from "@/lib/webhooks";
 import { pickTeam } from "@/lib/recoverySteps";
 import { getClientIp, rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
 
@@ -89,12 +90,21 @@ export async function POST(req: NextRequest) {
     const referenceId = generateReference();
     const assignedTeam = pickTeam(referenceId);
 
-    // Validate referral code if supplied — silently drop if unknown
+    // Resolve referral: explicit body code, else the first-touch gbn_ref cookie.
+    // Silently drop unknown codes and self-referrals (can't refer your own company).
     let referralCode: string | undefined;
-    if (db && body.referralCode) {
+    let referralRow: { code: string; referrerName: string; referrerEmail: string } | null = null;
+    const refCandidate = body.referralCode || req.cookies.get("gbn_ref")?.value;
+    if (db && refCandidate) {
       try {
-        const found = await db.referral.findUnique({ where: { code: body.referralCode } });
-        if (found) referralCode = found.code;
+        const found = await db.referral.findUnique({
+          where: { code: refCandidate },
+          select: { code: true, referrerName: true, referrerEmail: true },
+        });
+        if (found && found.referrerEmail.toLowerCase() !== body.contactEmail.trim().toLowerCase()) {
+          referralCode = found.code;
+          referralRow = found;
+        }
       } catch (dbErr) {
         console.error("[recovery] Referral lookup error (non-fatal):", dbErr);
       }
@@ -172,6 +182,22 @@ export async function POST(req: NextRequest) {
         sendInternalComplaintNotification(details).catch((e) =>
           console.error("[recovery] Internal notification error:", e)
         ),
+        // Referral: notify the introducer + fire the referral.created webhook.
+        referralRow
+          ? sendReferralLeadNotification({
+              referrerEmail: referralRow.referrerEmail,
+              referrerName: referralRow.referrerName,
+              companyName: body.companyName,
+              code: referralRow.code,
+            }).catch((e) => console.error("[recovery] Referral email error:", e))
+          : Promise.resolve(),
+        referralRow
+          ? dispatchWebhook({
+              event: "referral.created",
+              data: { referenceId, companyName: body.companyName, referralCode: referralRow.code, referrerEmail: referralRow.referrerEmail },
+              filterContext: { hasReferral: true },
+            }).catch((e) => console.error("[recovery] referral.created webhook error:", e))
+          : Promise.resolve(),
       ]);
     });
 

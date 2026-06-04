@@ -46,5 +46,14 @@ export function proxy(req: NextRequest) {
     }
   }
 
-  return applySecurityHeaders(NextResponse.next());
+  const res = applySecurityHeaders(NextResponse.next());
+
+  // Durable referral attribution: capture ?ref into a first-touch cookie (90d)
+  // so credit survives navigation and multi-session journeys.
+  const ref = req.nextUrl.searchParams.get("ref")?.trim();
+  if (ref && /^[a-z]{1,8}-[A-Z0-9]{8}$/.test(ref) && !req.cookies.get("gbn_ref")) {
+    res.cookies.set("gbn_ref", ref, { path: "/", maxAge: 60 * 60 * 24 * 90, sameSite: "lax" });
+  }
+
+  return res;
 }
