@@ -78,7 +78,15 @@ Two **separate** systems sharing one signing secret (`ADMIN_SESSION_SECRET`):
   - Google OAuth with optional domain lock via `ADMIN_GOOGLE_DOMAIN` — only allows accounts where the email matches an existing `AdminUser` row.
 - **Bootstrap:** when zero `AdminUser` rows exist, the first login attempt with `ADMIN_PASSWORD` env value auto-creates the first user. Once any user exists, env-password is ignored.
 - **Bulk revoke:** rotate `ADMIN_SESSION_SECRET` — invalidates all admin sessions.
-- **Helper:** `getAdminFromRequest(req)` / `getAdminFromCookies()` in `lib/auth.ts`.
+- **Per-admin revoke:** `AdminUser.tokenInvalidBefore` cutoff — `getAdminFromRequest/Cookies` reject tokens issued before it. Set via `POST /api/admin/users/[id]/revoke` (owner-only) or the "Force sign-out" button in `/admin/users`. Kills one admin's sessions without affecting others (offboarding / suspected compromise).
+- **Helper:** `getAdminFromRequest(req)` / `getAdminFromCookies()` in `lib/auth.ts` — return `{ id, email, role, totpEnabled }`.
+
+### Admin RBAC (roles + enforcement)
+Three roles, enforced **server-side, deny-by-default** via `requireAdmin(req, perm)` in `lib/rbac.ts`. UI hiding is UX only — the API is the source of truth. **Every new `/api/admin/*` mutation/sensitive route MUST call `requireAdmin` with the right `Permission`.**
+- **Roles:** `owner` (full = `*`), `manager` (case work + PII: `cases.read/write`, `pii.download/export`, `ops.email_test`), `viewer` (`cases.read` only). `normalizeRole()` maps any legacy/unknown value → `manager`. New admins **default to `manager`** (least privilege); bootstrap user is `owner`.
+- **Owner-only:** `users.manage`, `webhooks.manage`, `retention.purge`, `audit.purge`. (UI: Users/Webhooks/Export nav + RetentionCard hidden from non-owners; `/admin/users` + `/admin/webhooks` server-redirect non-owners.)
+- **Mandatory 2FA:** every non-read permission also requires `totpEnabled` — privileged actions can't be taken from a password-only account. Reads are exempt so a new admin can reach `/admin/account` to enrol.
+- **Step-up re-auth:** retention purges + admin-delete additionally require `verifyStepUp(adminId, { code | password })` (current TOTP, or password if no 2FA) in the request body. UI prompts for the current 2FA code.
 
 ### Client auth (end users)
 - **Storage:** `User` table — `googleSub` (optional), `email` (unique), `name`, `imageUrl`, `emailVerified`.
@@ -314,3 +322,4 @@ These require a real browser, real third-party accounts, or both. Not testable f
 11. **Design system:** public UI uses `components/ui/{Button,Badge,Section}` + tokens in `app/globals.css` (`bg-ink`, `text-accent`, `font-display`=Fraunces, `font-figure` for ₦/numbers) and `lib/cn.ts`. Don't hand-roll button/section className strings. (Admin + client-dashboard still use legacy indigo.) Funnel events go through `lib/analytics.ts` `track()` (`@vercel/analytics`, enabled on the project).
 12. **Crons are effectively daily on this Vercel plan** (the */5 webhook cron was removed) — make cron endpoints scheduler-agnostic (GET+POST, `CRON_SECRET` via `Bearer`/`X-Cron-Secret`), kick work immediately with `after()`, and treat cron as a backstop; an external scheduler can hit them more often.
 13. **Email:** all senders route through `sendOrThrow` in `lib/email.ts` — Resend *resolves* (does not throw) on a rejected send, so the wrapper throws on `result.error` and callers log/handle it. New senders must use it.
+14. **Admin RBAC:** every new `/api/admin/*` mutation/sensitive handler MUST gate with `requireAdmin(req, perm)` from `lib/rbac.ts` (deny-by-default) and use the returned `gate.admin` for `recordAudit` actorLabel. Pick the narrowest `Permission`; owner-only ops use `users.manage`/`webhooks.manage`/`retention.purge`/`audit.purge`. Destructive ops add a `verifyStepUp` check. Mirror the role in the UI (hide controls the role can't use), but never rely on UI hiding for security.
