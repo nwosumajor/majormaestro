@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/rbac";
 
 export async function GET(req: NextRequest) {
-  const gate = await requireAdmin(req, "cases.read");
+  const gate = await requireAdmin(req, "referrals.read");
   if (gate.error) return gate.error;
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
 

@@ -1,7 +1,8 @@
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { Users, ExternalLink, CheckCircle2, Clock } from "lucide-react";
 import { getAdminFromCookies } from "@/lib/auth";
-import { normalizeRole } from "@/lib/rbac";
+import { normalizeRole, can } from "@/lib/rbac";
 import { computeEarned, nairaFromKobo } from "@/lib/referrals";
 import RecordPayoutButton from "./RecordPayoutButton";
 
@@ -13,7 +14,9 @@ function fmtDate(d: Date) {
 
 export default async function AdminReferralsPage() {
   if (!db) return <p className="text-sm text-red-700">Database not configured.</p>;
-  const isOwner = normalizeRole((await getAdminFromCookies())?.role) === "owner";
+  const role = normalizeRole((await getAdminFromCookies())?.role);
+  if (!can(role, "referrals.read")) redirect("/admin");
+  const isOwner = role === "owner";
 
   const referrals = await db.referral.findMany({
     orderBy: { createdAt: "desc" },

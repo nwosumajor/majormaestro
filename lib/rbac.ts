@@ -21,6 +21,7 @@ export type Permission =
   | "users.manage"
   | "retention.purge"
   | "audit.purge"
+  | "referrals.read"
   | "referrals.payout"
   | "ops.email_test";
 
@@ -35,7 +36,7 @@ export const ASSIGNABLE_ROLES: AdminRole[] = ["owner", "manager", "viewer"];
 
 const PERMISSIONS: Record<AdminRole, Permission[] | "*"> = {
   owner: "*",
-  manager: ["cases.read", "cases.write", "pii.download", "pii.export", "ops.email_test"],
+  manager: ["cases.read", "cases.write", "pii.download", "pii.export", "referrals.read", "ops.email_test"],
   viewer: ["cases.read"],
 };
 

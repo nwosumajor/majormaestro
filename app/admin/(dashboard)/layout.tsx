@@ -2,11 +2,13 @@ import Link from "next/link";
 import { LayoutDashboard, ClipboardList, Users, ShieldCheck, UserCog, ScrollText, Webhook, Settings, BarChart3 } from "lucide-react";
 import LogoutButton from "./LogoutButton";
 import { getAdminFromCookies } from "@/lib/auth";
-import { normalizeRole } from "@/lib/rbac";
+import { normalizeRole, can } from "@/lib/rbac";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const admin = await getAdminFromCookies();
-  const isOwner = normalizeRole(admin?.role) === "owner";
+  const role = normalizeRole(admin?.role);
+  const isOwner = role === "owner";
+  const canSeeReferrals = can(role, "referrals.read");
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -19,7 +21,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <nav className="flex flex-wrap items-center gap-1">
             <NavLink href="/admin" icon={LayoutDashboard} label="Cases" />
             <NavLink href="/admin/analytics" icon={BarChart3} label="Analytics" />
-            <NavLink href="/admin/referrals" icon={Users} label="Referrals" />
+            {canSeeReferrals && <NavLink href="/admin/referrals" icon={Users} label="Referrals" />}
             <NavLink href="/admin/audit" icon={ScrollText} label="Audit" />
             {isOwner && (
               <>
