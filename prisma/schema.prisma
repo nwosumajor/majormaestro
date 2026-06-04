@@ -291,3 +291,15 @@ model StaffClassification {
   @@index([batchId])
   @@index([status])
 }
+
+// First-party funnel/event capture (anonymous) — mirrors what @vercel/analytics
+// receives so /admin/analytics can show conversion drop-off from our own DB.
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  name      String
+  props     Json?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([name, createdAt])
+  @@index([createdAt])
+}
