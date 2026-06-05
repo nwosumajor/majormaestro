@@ -1,0 +1,60 @@
+name: Webhook delivery retry
+
+# Reliable retry driver for queued webhook deliveries.
+#
+# WHY THIS EXISTS: the project runs on the Vercel Hobby plan, where Cron Jobs
+# are limited to 2 jobs at daily frequency — too coarse for webhook retries
+# (a down receiver would wait up to 24h). This external scheduler drives
+# /api/cron/webhooks/retry every ~5 minutes instead, draining due deliveries
+# and escalating the backoff (1m → 5m → 30m → 2h → 12h → dead@5).
+#
+# SETUP (one-time):
+#   1. Repo → Settings → Secrets and variables → Actions:
+#        - Secret  CRON_SECRET  = the same value as the Vercel CRON_SECRET env var
+#        - Variable APP_URL     = https://majormaestro.com   (optional; defaults below)
+#   2. That's it — the schedule below activates on the default branch.
+#
+# NOTE: GitHub disables scheduled workflows after 60 days of repository
+# inactivity, and scheduled runs can be delayed under load. If retries must be
+# bulletproof, move this to Vercel Cron (Pro plan) or a dedicated scheduler.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *" # every 5 minutes (UTC)
+  workflow_dispatch: {} # allow manual "Run workflow" from the Actions tab
+
+# Never overlap runs; let an in-flight drain finish before the next starts.
+concurrency:
+  group: webhook-retry
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  retry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Drain due webhook deliveries
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: ${{ vars.APP_URL || 'https://majormaestro.com' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            # Not configured yet — skip cleanly rather than spamming failed runs.
+            echo "::warning::CRON_SECRET repo secret is not set — skipping. Add it under Settings → Secrets and variables → Actions to enable retries."
+            exit 0
+          fi
+          code=$(curl -sS --max-time 60 -o /tmp/resp.json -w '%{http_code}' \
+            -X POST \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${APP_URL%/}/api/cron/webhooks/retry")
+          echo "HTTP ${code}"
+          echo "Response: $(cat /tmp/resp.json 2>/dev/null || echo '<empty>')"
+          # Treat any non-2xx (incl. 401 auth failure) as a failed run so it surfaces.
+          if [ "${code}" -lt 200 ] || [ "${code}" -ge 300 ]; then
+            echo "::error::Retry endpoint returned HTTP ${code}"
+            exit 1
+          fi
