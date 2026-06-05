@@ -43,8 +43,9 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${CRON_SECRET:-}" ]; then
-            echo "::error::CRON_SECRET repo secret is not set — add it under Settings → Secrets and variables → Actions."
-            exit 1
+            # Not configured yet — skip cleanly rather than spamming failed runs.
+            echo "::warning::CRON_SECRET repo secret is not set — skipping. Add it under Settings → Secrets and variables → Actions to enable retries."
+            exit 0
           fi
           code=$(curl -sS --max-time 60 -o /tmp/resp.json -w '%{http_code}' \
             -X POST \

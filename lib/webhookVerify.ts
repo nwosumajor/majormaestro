@@ -105,29 +105,35 @@ export function verifyWebhook(
  * the same warm instance, accidental double-fires) but is not a hard global
  * guarantee. For exactly-once across instances, back this with the DB or Redis.
  */
-const seen = new Map<string, number>(); // signature -> expiry epoch ms
+interface SeenEntry {
+  status: "pending" | "done";
+  expiry: number; // epoch ms
+}
+const seen = new Map<string, SeenEntry>();
+
+/** How long an in-flight claim is held before it's considered abandoned. */
+const LEASE_MS = 60_000;
 
 export type ClaimResult = "fresh" | "in_progress" | "done";
 
 /** Claim a delivery for processing. Returns whether it's new, mid-flight, or already completed. */
 export function claimDelivery(signature: string, now: number = Date.now()): ClaimResult {
-  // opportunistic sweep
+  // opportunistic sweep of expired entries
   if (seen.size > 5000) {
-    for (const [k, exp] of seen) if (exp < now) seen.delete(k);
+    for (const [k, e] of seen) if (e.expiry < now) seen.delete(k);
   }
-  const exp = seen.get(signature);
-  if (exp !== undefined && exp > now) {
-    // Marked done (positive TTL) vs in-flight (0). We store done as now+TTL, in-flight as a short lease.
-    return exp - now > MAX_AGE_MS - 60_000 ? "done" : "in_progress";
+  const entry = seen.get(signature);
+  if (entry && entry.expiry > now) {
+    return entry.status === "done" ? "done" : "in_progress";
   }
-  // Lease for in-flight processing (short — released/upgraded by markDone/release).
-  seen.set(signature, now + 60_000);
+  // Take a short lease for in-flight processing (released by markDone / releaseClaim).
+  seen.set(signature, { status: "pending", expiry: now + LEASE_MS });
   return "fresh";
 }
 
 /** Mark a delivery fully processed so future duplicates are skipped for the freshness window. */
 export function markDone(signature: string, now: number = Date.now()): void {
-  seen.set(signature, now + MAX_AGE_MS);
+  seen.set(signature, { status: "done", expiry: now + MAX_AGE_MS });
 }
 
 /** Release a failed in-flight claim so the sender's retry can be processed. */
