@@ -324,6 +324,7 @@ export default function LandingPage() {
               <Link href="/recovery/track" className="hover:text-white">Track a Case</Link>
               <Link href="/classify" className="hover:text-white">HR Staff Classification</Link>
               <Link href="/roadmap" className="hover:text-white">Career Roadmap</Link>
+              <Link href="/privacy" className="hover:text-white">Privacy Policy</Link>
             </nav>
           </div>
           <p className="mt-6 text-center text-xs leading-relaxed text-slate-500">
