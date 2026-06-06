@@ -8,9 +8,20 @@ name: AI security review
 #   (Settings → Secrets and variables → Actions). Use the same key as your
 #   Vercel ANTHROPIC_API_KEY. Without it the job fails fast with a clear error.
 
+# Runs once per PR (on open / marked-ready / reopen) — NOT on every push — and
+# only when security-relevant code changes, to keep cost down. To re-review after
+# new commits: mark the PR draft then "ready for review" again, or reopen it.
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, ready_for_review, reopened]
+    paths:
+      - "app/api/**"
+      - "app/admin/**"
+      - "lib/**"
+      - "proxy.ts"
+      - "prisma/**"
+      - "components/**"
+      - ".github/workflows/**"
 
 permissions:
   contents: read
@@ -25,8 +36,8 @@ concurrency:
 
 jobs:
   review:
-    # Skip PRs from forks (they can't access secrets) to avoid noisy failures.
-    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    # Skip forks (no secret access) and draft PRs (review when marked ready).
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.draft == false }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -50,7 +61,7 @@ jobs:
           # Opus 4.8 for the deepest reasoning, plus a system-prompt that steers the
           # review toward THIS codebase's risk surface. Reviewer is read-only.
           claude_args: |
-            --model claude-opus-4-8
-            --max-turns 30
+            --model claude-sonnet-4-6
+            --max-turns 20
             --disallowedTools Edit,Write,NotebookEdit
             --append-system-prompt "You are a senior application-security reviewer for an enterprise Next.js platform (forensic financial recovery + a youth/NGO arm, GICN). Prioritise, in order: (1) SECURITY — authn/authz bypass, missing requireAdmin()/permission (RBAC) checks on /api/admin/*, IDOR, injection, SSRF, secrets/PII exposure in API responses or logs, NDPA-2023 personal-data leakage (esp. minors' data and NIN), broken HMAC/signature verification, replay, unsafe redirects; (2) LOGIC — incorrect state transitions, race conditions/TOCTOU, capacity/limit bypass, error-handling gaps; (3) ARCHITECTURE — boundary violations, data-model/migration risks, fragile coupling. For each finding give severity (Critical/High/Medium/Low), the exact file:line, why it is exploitable/wrong, and a concrete fix. If the diff is clean, say so explicitly. Do not modify files."
