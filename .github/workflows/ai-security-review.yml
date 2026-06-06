@@ -50,16 +50,25 @@ jobs:
             exit 1
           fi
 
+      # Check out with full history + token-authed remote so the action can diff
+      # against the base branch without configuring its own git auth (avoids the
+      # "git fetch origin main … exit 128" failure on private repos).
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: AI security review
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
           # Official, maintained review skill (covers correctness/logic + security).
           plugin_marketplaces: "https://github.com/anthropics/claude-code.git"
           plugins: "code-review@claude-code-plugins"
           prompt: "/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}"
-          # Opus 4.8 for the deepest reasoning, plus a system-prompt that steers the
-          # review toward THIS codebase's risk surface. Reviewer is read-only.
+          # Sonnet 4.6 (balanced cost) + a system-prompt that steers the review
+          # toward THIS codebase's risk surface. Reviewer is read-only.
           claude_args: |
             --model claude-sonnet-4-6
             --max-turns 20
