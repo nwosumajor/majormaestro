@@ -79,9 +79,15 @@ at recovery intake; explicit guardian consent captured before any minor's
 
 ## G. Open items to confirm
 
-1. **`STORAGE_BACKEND` value in Vercel.** S3/B2 credentials are all set, but the
-   local `.env.production.local` shows `local`. Confirm prod is `s3` so uploaded
-   documents persist in B2 (not ephemeral function disk).
-2. **Backblaze B2 region** (`S3_REGION`) for the international-transfer disclosure.
+1. ~~`STORAGE_BACKEND` value in Vercel.~~ **Resolved 2026-06-07** — verified at
+   runtime: a live `POST /api/upload` to production returned
+   `storageBackend: "s3"` (HTTP 200), confirming documents persist in B2. The
+   S3/B2 vars are marked **Sensitive** in Vercel, so `vercel env pull` returns
+   them blank (write-only) — that is expected, not a misconfiguration.
+2. **Backblaze B2 region** (`S3_REGION`) for the international-transfer disclosure
+   — value is a Sensitive var; read it from the Backblaze console / Vercel UI.
 3. **NDPC registration / DPO appointment** — confirm whether required at your data
    volume under NDPA 2023, and record the DPO contact here once appointed.
+4. **`POST /api/upload` is unauthenticated and un-rate-limited** — anyone can write
+   files to the bucket (≤50 MB, PDF/XLS/CSV). Abuse/cost vector; should be rate-
+   limited and ideally tied to a session/intake. (See security backlog.)
