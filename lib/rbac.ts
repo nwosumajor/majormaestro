@@ -10,7 +10,7 @@ import { getAdminFromRequest } from "@/lib/auth";
  * enrolled (read access does not), so privileged actions can't be taken from a
  * password-only account.
  */
-export type AdminRole = "owner" | "manager" | "viewer";
+export type AdminRole = "owner" | "manager" | "viewer" | "gicn_manager";
 
 export type Permission =
   | "cases.read"
@@ -31,15 +31,19 @@ export type Permission =
 export function normalizeRole(r: string | null | undefined): AdminRole {
   if (r === "owner") return "owner";
   if (r === "viewer") return "viewer";
+  if (r === "gicn_manager") return "gicn_manager";
   return "manager";
 }
 
-export const ASSIGNABLE_ROLES: AdminRole[] = ["owner", "manager", "viewer"];
+export const ASSIGNABLE_ROLES: AdminRole[] = ["owner", "manager", "viewer", "gicn_manager"];
 
 const PERMISSIONS: Record<AdminRole, Permission[] | "*"> = {
   owner: "*",
   manager: ["cases.read", "cases.write", "pii.download", "pii.export", "referrals.read", "gicn.manage", "gicn.checkin", "ops.email_test"],
   viewer: ["cases.read"],
+  // GICN-only delegate: the GICN youth/NGO surface and nothing else (no cases,
+  // PII, referrals, users, webhooks, audit). Both perms are 2FA-gated below.
+  gicn_manager: ["gicn.manage", "gicn.checkin"],
 };
 
 // Everything except plain reads requires 2FA enrolled.

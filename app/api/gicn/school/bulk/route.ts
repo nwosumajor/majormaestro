@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
   const programId = String(form.get("programId") ?? "");
   const program = programId
-    ? await db.program.findUnique({ where: { id: programId }, select: { id: true, status: true, capacity: true } })
+    ? await db.program.findUnique({ where: { id: programId }, select: { id: true, status: true, capacity: true, requiresApproval: true } })
     : null;
   if (!program || program.status !== "OPEN") {
     return NextResponse.json({ error: "Select an open programme to register the students into." }, { status: 400 });
@@ -50,9 +50,10 @@ export async function POST(req: NextRequest) {
   if (rows.length > MAX_ROWS) return NextResponse.json({ error: `Too many rows (max ${MAX_ROWS}).` }, { status: 400 });
 
   const result = await db.$transaction(async (tx) => {
-    let confirmed = await tx.programRegistration.count({ where: { programId: program.id, status: "CONFIRMED" } });
+    let approved = await tx.programRegistration.count({ where: { programId: program.id, status: "APPROVED" } });
     let accepted = 0;
     let waitlisted = 0;
+    let submitted = 0;
     for (const r of rows) {
       const participant = await tx.participant.create({
         data: {
@@ -69,7 +70,13 @@ export async function POST(req: NextRequest) {
         },
         select: { id: true },
       });
-      const status = program.capacity != null && confirmed >= program.capacity ? "WAITLISTED" : "CONFIRMED";
+      // Approval-gated programmes: every student lands as SUBMITTED for review.
+      // Open programmes: capacity-aware APPROVED/WAITLISTED.
+      const status = program.requiresApproval
+        ? "SUBMITTED"
+        : program.capacity != null && approved >= program.capacity
+          ? "WAITLISTED"
+          : "APPROVED";
       let code = generateCheckInCode();
       for (let i = 0; i < 5; i++) {
         const clash = await tx.programRegistration.findUnique({ where: { checkInCode: code }, select: { id: true } });
@@ -77,9 +84,11 @@ export async function POST(req: NextRequest) {
         code = generateCheckInCode();
       }
       await tx.programRegistration.create({ data: { participantId: participant.id, programId: program.id, status, checkInCode: code } });
-      if (status === "CONFIRMED") { confirmed++; accepted++; } else waitlisted++;
+      if (status === "APPROVED") { approved++; accepted++; }
+      else if (status === "SUBMITTED") submitted++;
+      else waitlisted++;
     }
-    return { accepted, waitlisted };
+    return { accepted, waitlisted, submitted };
   });
 
   await recordAudit({
@@ -90,5 +99,5 @@ export async function POST(req: NextRequest) {
     metadata: { accepted: result.accepted, waitlisted: result.waitlisted, rejected: rejected.length, school: profile.organizationName },
   });
 
-  return NextResponse.json({ accepted: result.accepted, waitlisted: result.waitlisted, rejected }, { status: 201, headers: rateLimitHeaders(rl) });
+  return NextResponse.json({ accepted: result.accepted, waitlisted: result.waitlisted, submitted: result.submitted, rejected }, { status: 201, headers: rateLimitHeaders(rl) });
 }

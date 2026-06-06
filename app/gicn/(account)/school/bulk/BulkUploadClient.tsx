@@ -6,7 +6,7 @@ import Button from "@/components/ui/Button";
 
 interface ProgramOption { id: string; title: string }
 interface RejectedRow { rowNumber: number; reason: string }
-interface Result { accepted: number; waitlisted: number; rejected: RejectedRow[] }
+interface Result { accepted: number; waitlisted: number; submitted?: number; rejected: RejectedRow[] }
 
 export default function BulkUploadClient({ programs }: { programs: ProgramOption[] }) {
   const [programId, setProgramId] = useState(programs[0]?.id ?? "");
@@ -80,7 +80,8 @@ export default function BulkUploadClient({ programs }: { programs: ProgramOption
             <CheckCircle2 size={20} className="text-accent" />
             <h2 className="font-display text-lg font-semibold text-ink">Upload complete</h2>
           </div>
-          <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+          <div className={`mt-4 grid gap-3 text-center ${result.submitted ? "grid-cols-4" : "grid-cols-3"}`}>
+            {result.submitted ? <Stat label="Pending approval" value={result.submitted} tone="text-slate-700" /> : null}
             <Stat label="Confirmed" value={result.accepted} tone="text-emerald-700" />
             <Stat label="Waitlisted" value={result.waitlisted} tone="text-amber-700" />
             <Stat label="Rejected" value={result.rejected.length} tone="text-red-700" />

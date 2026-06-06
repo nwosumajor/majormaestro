@@ -16,7 +16,7 @@ export async function GET() {
       endsAt: true,
       location: true,
       capacity: true,
-      _count: { select: { registrations: { where: { status: "CONFIRMED" } } } },
+      _count: { select: { registrations: { where: { status: "APPROVED" } } } },
     },
   });
   return NextResponse.json({

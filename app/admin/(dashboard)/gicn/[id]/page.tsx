@@ -34,7 +34,9 @@ export default async function AdminGicnProgramPage({ params }: { params: Promise
   });
   if (!program) notFound();
 
-  const confirmed = program.registrations.filter((r) => r.status === "CONFIRMED").length;
+  // "Approved" is the canonical in state (legacy rows may still read CONFIRMED).
+  const confirmed = program.registrations.filter((r) => r.status === "APPROVED" || r.status === "CONFIRMED").length;
+  const pendingReview = program.registrations.filter((r) => r.status === "SUBMITTED" || r.status === "UNDER_REVIEW" || r.status === "PENDING").length;
   const checkedIn = program.registrations.filter((r) => r.checkedInAt).length;
 
   const regs = program.registrations.map((r) => ({
@@ -63,7 +65,7 @@ export default async function AdminGicnProgramPage({ params }: { params: Promise
         <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-600">
           <div className="flex items-center gap-1.5"><CalendarDays size={14} className="text-slate-400" /> {fmt(program.startsAt)} – {fmt(program.endsAt)}</div>
           {program.location && <div className="flex items-center gap-1.5"><MapPin size={14} className="text-slate-400" /> {program.location}</div>}
-          <div className="flex items-center gap-1.5"><Users size={14} className="text-slate-400" /> {confirmed} confirmed{program.capacity != null ? ` / ${program.capacity}` : ""} · {checkedIn} checked in</div>
+          <div className="flex items-center gap-1.5"><Users size={14} className="text-slate-400" /> {confirmed} approved{program.capacity != null ? ` / ${program.capacity}` : ""} · {checkedIn} checked in{pendingReview > 0 ? ` · ${pendingReview} pending` : ""}</div>
         </dl>
       </div>
 

@@ -29,8 +29,45 @@ export const PROGRAM_TYPE_LABELS: Record<ProgramType, string> = {
 export const PROGRAM_STATUSES = ["DRAFT", "OPEN", "CLOSED", "COMPLETED"] as const;
 export type ProgramStatus = (typeof PROGRAM_STATUSES)[number];
 
-export const REGISTRATION_STATUSES = ["PENDING", "CONFIRMED", "WAITLISTED", "CANCELLED"] as const;
+// Registration lifecycle. APPROVED is the canonical "in" state (was CONFIRMED).
+// Programs with requiresApproval start registrations as SUBMITTED; open programs
+// go straight to APPROVED (capacity-aware) or WAITLISTED.
+export const REGISTRATION_STATUSES = [
+  "SUBMITTED",
+  "UNDER_REVIEW",
+  "APPROVED",
+  "REJECTED",
+  "WAITLISTED",
+  "CANCELLED",
+] as const;
 export type RegistrationStatus = (typeof REGISTRATION_STATUSES)[number];
+
+export const REGISTRATION_STATUS_LABELS: Record<RegistrationStatus, string> = {
+  SUBMITTED: "Submitted",
+  UNDER_REVIEW: "Under review",
+  APPROVED: "Approved",
+  REJECTED: "Rejected",
+  WAITLISTED: "Waitlisted",
+  CANCELLED: "Cancelled",
+};
+
+/**
+ * Normalise a stored status to the current vocabulary. Maps legacy values
+ * (CONFIRMED→APPROVED, PENDING→SUBMITTED) so any rows not caught by the data
+ * backfill still render/behave correctly.
+ */
+export function displayRegStatus(raw: string): RegistrationStatus {
+  if (raw === "CONFIRMED") return "APPROVED";
+  if (raw === "PENDING") return "SUBMITTED";
+  return (REGISTRATION_STATUSES as readonly string[]).includes(raw)
+    ? (raw as RegistrationStatus)
+    : "SUBMITTED";
+}
+
+/** A registration counts toward capacity / can check in only once APPROVED. */
+export function isApprovedStatus(raw: string): boolean {
+  return displayRegStatus(raw) === "APPROVED";
+}
 
 export function isProgramType(s: string): s is ProgramType {
   return (PROGRAM_TYPES as readonly string[]).includes(s);

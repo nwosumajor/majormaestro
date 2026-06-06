@@ -21,6 +21,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   if (typeof b.location === "string") data.location = b.location.trim() || null;
   if (typeof b.type === "string" && isProgramType(b.type)) data.type = b.type;
   if (typeof b.status === "string" && isProgramStatus(b.status)) data.status = b.status;
+  if (typeof b.requiresApproval === "boolean") data.requiresApproval = b.requiresApproval;
   if (typeof b.startsAt === "string") { const d = new Date(b.startsAt); if (!isNaN(d.getTime())) data.startsAt = d; }
   if (typeof b.endsAt === "string") { const d = new Date(b.endsAt); if (!isNaN(d.getTime())) data.endsAt = d; }
   if (b.capacity === null || b.capacity === "") data.capacity = null;

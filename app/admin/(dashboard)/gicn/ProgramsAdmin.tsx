@@ -109,7 +109,7 @@ export default function ProgramsAdmin({ programs }: { programs: ProgramView[] })
 }
 
 function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const [f, setF] = useState({ title: "", type: PROGRAM_TYPES[0] as string, description: "", startsAt: "", endsAt: "", capacity: "", location: "", status: "DRAFT" });
+  const [f, setF] = useState({ title: "", type: PROGRAM_TYPES[0] as string, description: "", startsAt: "", endsAt: "", capacity: "", location: "", status: "DRAFT", requiresApproval: false });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
@@ -186,6 +186,10 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
               <input value={f.location} onChange={set("location")} className={input} />
             </div>
           </div>
+          <label className="flex items-start gap-2.5 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+            <input type="checkbox" checked={f.requiresApproval} onChange={(e) => setF({ ...f, requiresApproval: e.target.checked })} className="mt-0.5 h-4 w-4" />
+            <span><span className="font-semibold text-slate-800">Requires approval</span><br /><span className="text-xs text-slate-500">Registrations land as “Submitted” and an admin must approve them. Leave off for instant, capacity-aware confirmation.</span></span>
+          </label>
           {error && <div role="alert" className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"><AlertCircle size={16} className="mt-0.5 shrink-0" /> {error}</div>}
           <button disabled={loading} className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60">
             {loading ? <><Loader2 size={15} className="animate-spin" /> Creating…</> : "Create programme"}

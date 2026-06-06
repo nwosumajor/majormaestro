@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/rbac";
 import { recordAudit } from "@/lib/audit";
+import { displayRegStatus } from "@/lib/gicn";
 
 // Check a participant in by scanning/typing their check-in code, or by id.
 // Admin, gicn.checkin. Idempotent — re-checking returns the existing time.
@@ -20,7 +21,12 @@ export async function POST(req: NextRequest) {
     select: { id: true, status: true, checkedInAt: true, checkInCode: true, participant: { select: { fullName: true } }, program: { select: { title: true } } },
   });
   if (!reg) return NextResponse.json({ error: "No registration found for that code." }, { status: 404 });
-  if (reg.status === "CANCELLED") return NextResponse.json({ error: "That registration was cancelled." }, { status: 409 });
+  const regStatus = displayRegStatus(reg.status);
+  if (regStatus === "CANCELLED") return NextResponse.json({ error: "That registration was cancelled." }, { status: 409 });
+  if (regStatus === "REJECTED") return NextResponse.json({ error: "That registration was declined." }, { status: 409 });
+  if (regStatus === "SUBMITTED" || regStatus === "UNDER_REVIEW") {
+    return NextResponse.json({ error: "Not yet approved — this registration is still pending review." }, { status: 409 });
+  }
 
   if (reg.checkedInAt) {
     return NextResponse.json({
@@ -31,10 +37,10 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Checking in implies presence — promote a waitlisted participant to confirmed.
+  // Checking in implies presence — promote a waitlisted participant to approved.
   const updated = await db.programRegistration.update({
     where: { id: reg.id },
-    data: { checkedInAt: new Date(), status: reg.status === "WAITLISTED" ? "CONFIRMED" : reg.status },
+    data: { checkedInAt: new Date(), status: "APPROVED" }, // only APPROVED/WAITLISTED reach here; presence implies approved
     select: { checkedInAt: true },
   });
 

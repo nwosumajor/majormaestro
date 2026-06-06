@@ -3,8 +3,9 @@ import { db } from "@/lib/db";
 import { ArrowRight, FolderSearch, Inbox, CheckCircle2, Banknote, Users } from "lucide-react";
 import { STEP_DEFS, type StepKey } from "@/lib/recoverySteps";
 import { getEmailConfigStatus } from "@/lib/email";
+import { redirect } from "next/navigation";
 import { getAdminFromCookies } from "@/lib/auth";
-import { normalizeRole } from "@/lib/rbac";
+import { normalizeRole, can } from "@/lib/rbac";
 import EmailStatusCard from "./EmailStatusCard";
 import RetentionCard from "./RetentionCard";
 import { describeStorage } from "@/lib/uploads";
@@ -21,6 +22,11 @@ export default async function AdminDashboardPage({
   searchParams: Promise<{ q?: string; status?: string }>;
 }) {
   const { q, status } = await searchParams;
+
+  // Role guard: this page renders recovery cases (PII) directly from the DB, so
+  // a GICN-only delegate must be redirected to their surface, not just hidden in nav.
+  const guardRole = normalizeRole((await getAdminFromCookies())?.role);
+  if (!can(guardRole, "cases.read")) redirect("/admin/gicn");
 
   if (!db) {
     return <p className="text-sm text-red-700">Database not configured.</p>;

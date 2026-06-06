@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
 
   const b = (await req.json().catch(() => ({}))) as {
     title?: string; type?: string; description?: string; startsAt?: string; endsAt?: string;
-    capacity?: number | null; location?: string; status?: string;
+    capacity?: number | null; location?: string; status?: string; requiresApproval?: boolean;
   };
   const title = (b.title ?? "").trim();
   if (!title) return NextResponse.json({ error: "Title is required." }, { status: 400 });
@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
       capacity,
       location: (b.location ?? "").trim() || null,
       status,
+      requiresApproval: b.requiresApproval === true,
     },
     select: { id: true },
   });

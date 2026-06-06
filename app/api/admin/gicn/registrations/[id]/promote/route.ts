@@ -14,7 +14,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   if (!reg) return NextResponse.json({ error: "Registration not found." }, { status: 404 });
   if (reg.status !== "WAITLISTED") return NextResponse.json({ error: "Only waitlisted registrations can be promoted." }, { status: 400 });
 
-  await db.programRegistration.update({ where: { id }, data: { status: "CONFIRMED" } });
+  await db.programRegistration.update({ where: { id }, data: { status: "APPROVED" } });
   await recordAudit({ action: "gicn_registration_promote", actorLabel: gate.admin.email, targetType: "ProgramRegistration", targetId: id, metadata: { code: reg.checkInCode } });
   return NextResponse.json({ success: true });
 }
