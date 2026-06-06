@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import { putObject } from "@/lib/uploads";
+import { rateLimit, getClientIp, rateLimitHeaders } from "@/lib/rateLimit";
+
+// This endpoint is intentionally public — the recovery intake form uploads
+// documents before the prospect signs in. It is therefore rate-limited per IP
+// to prevent anonymous bucket-stuffing / storage-cost abuse. A single intake
+// typically uploads a handful of files, so the window is generous.
+const UPLOADS_PER_HOUR = 20;
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
 const ALLOWED_TYPES = new Set([
@@ -13,6 +20,15 @@ const ALLOWED_TYPES = new Set([
 const ALLOWED_EXTS = new Set([".pdf", ".xls", ".xlsx", ".csv"]);
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req);
+  const rl = rateLimit(`upload:${ip}`, UPLOADS_PER_HOUR, 60 * 60);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many uploads. Please try again later." },
+      { status: 429, headers: rateLimitHeaders(rl) }
+    );
+  }
+
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
@@ -40,14 +56,17 @@ export async function POST(req: NextRequest) {
     const contentType = file.type || `application/${ext.slice(1)}`;
     const stored = await putObject({ bytes, fileExt: ext, contentType });
 
-    return NextResponse.json({
-      success: true,
-      fileName: file.name,
-      storedAs: stored.key,
-      storageBackend: stored.backend,
-      size: file.size,
-      mimeType: contentType,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        fileName: file.name,
+        storedAs: stored.key,
+        storageBackend: stored.backend,
+        size: file.size,
+        mimeType: contentType,
+      },
+      { headers: rateLimitHeaders(rl) }
+    );
   } catch (err) {
     console.error("[/api/upload]", err);
     return NextResponse.json({ error: "Upload failed. Please try again." }, { status: 500 });
