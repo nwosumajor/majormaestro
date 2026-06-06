@@ -1,0 +1,56 @@
+name: AI security review
+
+# Automated security/logic/architecture review on every PR, using the official
+# Claude Code Action with the maintained `code-review` plugin. Findings are
+# posted back to the PR as comments. Read-only: the reviewer never edits code.
+#
+# SETUP (one-time): add a repo secret ANTHROPIC_API_KEY
+#   (Settings → Secrets and variables → Actions). Use the same key as your
+#   Vercel ANTHROPIC_API_KEY. Without it the job fails fast with a clear error.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  id-token: write
+
+# One review per PR; a new push cancels the in-flight review.
+concurrency:
+  group: ai-security-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    # Skip PRs from forks (they can't access secrets) to avoid noisy failures.
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Guard — require ANTHROPIC_API_KEY
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+            echo "::error::ANTHROPIC_API_KEY repo secret is not set — add it under Settings → Secrets and variables → Actions to enable AI review."
+            exit 1
+          fi
+
+      - name: AI security review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Official, maintained review skill (covers correctness/logic + security).
+          plugin_marketplaces: "https://github.com/anthropics/claude-code.git"
+          plugins: "code-review@claude-code-plugins"
+          prompt: "/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}"
+          # Opus 4.8 for the deepest reasoning, plus a system-prompt that steers the
+          # review toward THIS codebase's risk surface. Reviewer is read-only.
+          claude_args: |
+            --model claude-opus-4-8
+            --max-turns 30
+            --disallowedTools Edit,Write,NotebookEdit
+            --append-system-prompt "You are a senior application-security reviewer for an enterprise Next.js platform (forensic financial recovery + a youth/NGO arm, GICN). Prioritise, in order: (1) SECURITY — authn/authz bypass, missing requireAdmin()/permission (RBAC) checks on /api/admin/*, IDOR, injection, SSRF, secrets/PII exposure in API responses or logs, NDPA-2023 personal-data leakage (esp. minors' data and NIN), broken HMAC/signature verification, replay, unsafe redirects; (2) LOGIC — incorrect state transitions, race conditions/TOCTOU, capacity/limit bypass, error-handling gaps; (3) ARCHITECTURE — boundary violations, data-model/migration risks, fragile coupling. For each finding give severity (Critical/High/Medium/Low), the exact file:line, why it is exploitable/wrong, and a concrete fix. If the diff is clean, say so explicitly. Do not modify files."
