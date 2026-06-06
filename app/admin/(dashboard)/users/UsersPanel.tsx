@@ -136,6 +136,7 @@ export default function UsersPanel({ initialUsers, currentUserId }: Props) {
               >
                 <option value="manager">Manager — works cases (read + write)</option>
                 <option value="viewer">Viewer — read-only</option>
+                <option value="gicn_manager">GICN Manager — GICN only</option>
                 <option value="owner">Owner — full control</option>
               </select>
             </div>

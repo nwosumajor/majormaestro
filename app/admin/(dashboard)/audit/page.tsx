@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { ScrollText, Filter } from "lucide-react";
 import type { Prisma } from "@prisma/client";
+import { getAdminFromCookies } from "@/lib/auth";
+import { normalizeRole, can } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +31,9 @@ export default async function AuditPage({
 }: {
   searchParams: Promise<{ action?: string; actor?: string; targetId?: string }>;
 }) {
+  // Role guard — the audit log spans the whole platform (incl. recovery/PII actions),
+  // so it is outside the GICN-only surface.
+  if (!can(normalizeRole((await getAdminFromCookies())?.role), "cases.read")) redirect("/admin/gicn");
   if (!db) return <p className="text-sm text-red-700">Database not configured.</p>;
   const { action, actor, targetId } = await searchParams;
 

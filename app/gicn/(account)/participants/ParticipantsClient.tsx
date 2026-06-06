@@ -41,6 +41,7 @@ export default function ParticipantsClient({ isSchool }: { isSchool: boolean }) 
     setLoading(false);
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- load-on-mount; state is set after the awaited fetch, not synchronously.
   useEffect(() => { load(); }, [load]);
 
   async function remove(id: string) {
@@ -202,9 +203,13 @@ function RegisterModal({ participant, programs, onClose }: { participant: Partic
         <div className="text-center">
           <CheckCircle2 size={36} className="mx-auto mb-3 text-accent" />
           <p className="text-sm text-slate-600">
-            {result.status === "WAITLISTED" ? "Added to the waitlist — we'll notify you if a spot opens." : "Registered and confirmed!"}
+            {result.status === "SUBMITTED"
+              ? "Submitted — pending approval. We'll email you once it's reviewed."
+              : result.status === "WAITLISTED"
+                ? "Added to the waitlist — we'll notify you if a spot opens."
+                : "Registered and confirmed!"}
           </p>
-          <p className="mt-3 text-xs text-slate-500">Check-in code — show this QR at the door</p>
+          <p className="mt-3 text-xs text-slate-500">{result.status === "SUBMITTED" ? "Your check-in code (valid once approved)" : "Check-in code — show this QR at the door"}</p>
           <code className="mt-1 inline-block rounded-lg bg-slate-100 px-3 py-1.5 font-figure text-lg font-semibold text-ink">{result.checkInCode}</code>
           <div className="mt-3 flex justify-center"><QrCode value={result.checkInCode} size={140} /></div>
           <div className="mt-5"><Button variant="primary" onClick={onClose}>Done</Button></div>

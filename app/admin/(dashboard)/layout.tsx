@@ -8,6 +8,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const admin = await getAdminFromCookies();
   const role = normalizeRole(admin?.role);
   const isOwner = role === "owner";
+  const canSeeCases = can(role, "cases.read"); // gates Cases / Analytics / Audit — false for gicn_manager
   const canSeeReferrals = can(role, "referrals.read");
   const canSeeGicn = can(role, "gicn.manage");
 
@@ -20,11 +21,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <span className="font-bold tracking-tight">MajorGBN Admin</span>
           </Link>
           <nav className="flex flex-wrap items-center gap-1">
-            <NavLink href="/admin" icon={LayoutDashboard} label="Cases" />
-            <NavLink href="/admin/analytics" icon={BarChart3} label="Analytics" />
+            {canSeeCases && <NavLink href="/admin" icon={LayoutDashboard} label="Cases" />}
+            {canSeeCases && <NavLink href="/admin/analytics" icon={BarChart3} label="Analytics" />}
             {canSeeReferrals && <NavLink href="/admin/referrals" icon={Users} label="Referrals" />}
             {canSeeGicn && <NavLink href="/admin/gicn" icon={GraduationCap} label="GICN" />}
-            <NavLink href="/admin/audit" icon={ScrollText} label="Audit" />
+            {canSeeCases && <NavLink href="/admin/audit" icon={ScrollText} label="Audit" />}
             {isOwner && (
               <>
                 <NavLink href="/admin/users" icon={UserCog} label="Users" />

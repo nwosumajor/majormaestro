@@ -547,12 +547,53 @@ export async function sendSponsorshipConfirmation(input: {
   await sendOrThrow({ from: FROM, to: input.sponsorEmail, subject: "Thank you for sponsoring with GICN", html });
 }
 
+function gicnCodeBox(checkInCode: string, caption = "Present this code at the event for check-in.") {
+  return `
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px;text-align:center;margin-bottom:16px">
+        <p style="margin:0;font-size:12px;color:#1e40af">Check-in code</p>
+        <p style="margin:4px 0 0;font-size:22px;font-weight:900;color:#1e3a8a;font-family:monospace">${checkInCode}</p>
+        <p style="margin:6px 0 0;font-size:11px;color:#64748b">${caption}</p>
+      </div>`;
+}
+
 export async function sendGicnRegistrationConfirmation(input: {
   ownerEmail: string;
   participantName: string;
   programTitle: string;
   checkInCode: string;
   waitlisted: boolean;
+  pendingApproval?: boolean;
+}) {
+  if (!resend) return;
+  let bodyLine: string;
+  let detail: string;
+  if (input.pendingApproval) {
+    bodyLine = `<strong>${input.participantName}</strong>'s registration for <strong>${input.programTitle}</strong> has been <strong>submitted for review</strong>.`;
+    detail = `<p style="margin:0 0 16px;font-size:13px;color:#475569">Our team will review the registration and you'll be notified once a decision is made. ${gicnCodeBox(input.checkInCode, "Your check-in code — it becomes valid once the registration is approved.")}</p>`;
+  } else if (input.waitlisted) {
+    bodyLine = `<strong>${input.participantName}</strong> has been added to the <strong>waitlist</strong> for <strong>${input.programTitle}</strong>.`;
+    detail = `<p style="margin:0 0 16px;font-size:13px;color:#92400e">The programme is currently full. We'll confirm automatically and notify you if a place opens up.</p>`;
+  } else {
+    bodyLine = `<strong>${input.participantName}</strong> has been registered for <strong>${input.programTitle}</strong>.`;
+    detail = gicnCodeBox(input.checkInCode);
+  }
+  const html = `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+    ${brandHeader("Global Impact Christian Network")}
+    <div style="padding:32px">
+      <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6">${bodyLine}</p>
+      ${detail}
+    </div>
+    ${brandFooter()}
+  </div>`;
+  await sendOrThrow({ from: FROM, to: input.ownerEmail, subject: `GICN: ${input.participantName} — ${input.programTitle}`, html });
+}
+
+export async function sendGicnRegistrationApproved(input: {
+  ownerEmail: string;
+  participantName: string;
+  programTitle: string;
+  checkInCode: string;
 }) {
   if (!resend) return;
   const html = `
@@ -560,16 +601,33 @@ export async function sendGicnRegistrationConfirmation(input: {
     ${brandHeader("Global Impact Christian Network")}
     <div style="padding:32px">
       <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6">
-        <strong>${input.participantName}</strong> has been ${input.waitlisted ? "added to the <strong>waitlist</strong> for" : "registered for"} <strong>${input.programTitle}</strong>.
+        Good news — <strong>${input.participantName}</strong>'s registration for <strong>${input.programTitle}</strong> has been <strong style="color:#059669">approved</strong>.
       </p>
-      ${input.waitlisted ? `<p style="margin:0 0 16px;font-size:13px;color:#92400e">The programme is currently full. We'll confirm automatically and notify you if a place opens up.</p>` : `
-      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px;text-align:center;margin-bottom:16px">
-        <p style="margin:0;font-size:12px;color:#1e40af">Check-in code</p>
-        <p style="margin:4px 0 0;font-size:22px;font-weight:900;color:#1e3a8a;font-family:monospace">${input.checkInCode}</p>
-        <p style="margin:6px 0 0;font-size:11px;color:#64748b">Present this code at the event for check-in.</p>
-      </div>`}
+      ${gicnCodeBox(input.checkInCode)}
     </div>
     ${brandFooter()}
   </div>`;
-  await sendOrThrow({ from: FROM, to: input.ownerEmail, subject: `GICN: ${input.participantName} — ${input.programTitle}`, html });
+  await sendOrThrow({ from: FROM, to: input.ownerEmail, subject: `GICN: ${input.participantName} approved — ${input.programTitle}`, html });
+}
+
+export async function sendGicnRegistrationRejected(input: {
+  ownerEmail: string;
+  participantName: string;
+  programTitle: string;
+  reason?: string;
+}) {
+  if (!resend) return;
+  const html = `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+    ${brandHeader("Global Impact Christian Network")}
+    <div style="padding:32px">
+      <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6">
+        We're sorry — <strong>${input.participantName}</strong>'s registration for <strong>${input.programTitle}</strong> could not be approved at this time.
+      </p>
+      ${input.reason ? `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 14px;margin-bottom:16px"><p style="margin:0;font-size:13px;color:#991b1b">${input.reason}</p></div>` : ""}
+      <p style="margin:0;font-size:13px;color:#64748b">If you believe this is a mistake or have questions, please reply to this email.</p>
+    </div>
+    ${brandFooter()}
+  </div>`;
+  await sendOrThrow({ from: FROM, to: input.ownerEmail, subject: `GICN: registration update — ${input.programTitle}`, html });
 }

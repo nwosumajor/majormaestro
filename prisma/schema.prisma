@@ -362,6 +362,7 @@ model Program {
   capacity      Int?
   location      String?
   status        String                @default("DRAFT") // DRAFT | OPEN | CLOSED | COMPLETED
+  requiresApproval Boolean            @default(false) // when true, registrations start as SUBMITTED and need admin approval
   createdAt     DateTime              @default(now()) @db.Timestamptz(3)
   registrations ProgramRegistration[]
   sponsorships  Sponsorship[]
@@ -377,9 +378,12 @@ model ProgramRegistration {
   participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
   programId     String
   program       Program     @relation(fields: [programId], references: [id], onDelete: Cascade)
-  status        String      @default("PENDING") // PENDING | CONFIRMED | WAITLISTED | CANCELLED
+  status        String      @default("SUBMITTED") // SUBMITTED | UNDER_REVIEW | APPROVED | REJECTED | WAITLISTED | CANCELLED
   checkInCode   String      @unique
   checkedInAt   DateTime?   @db.Timestamptz(3)
+  reviewedAt    DateTime?   @db.Timestamptz(3) // when an admin last actioned (approve/reject/waitlist/claim)
+  reviewedBy    String? // admin email that actioned
+  reviewNote    String? // rejection reason / review note
   createdAt     DateTime    @default(now()) @db.Timestamptz(3)
 
   @@unique([participantId, programId])

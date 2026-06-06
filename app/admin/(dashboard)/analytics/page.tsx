@@ -1,7 +1,10 @@
 import { db } from "@/lib/db";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { BarChart3, Scale, Banknote, Users, Sparkles, FileSpreadsheet, Mail, UserPlus, ExternalLink } from "lucide-react";
 import { STEP_KEYS, STEP_DEFS, type StepKey } from "@/lib/recoverySteps";
+import { getAdminFromCookies } from "@/lib/auth";
+import { normalizeRole, can } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -12,8 +15,11 @@ function fmtNaira(kobo: bigint | null) {
 }
 
 export default async function AdminAnalyticsPage() {
+  // Role guard — recovery analytics are not part of the GICN-only surface.
+  if (!can(normalizeRole((await getAdminFromCookies())?.role), "cases.read")) redirect("/admin/gicn");
   if (!db) return <p className="text-sm text-red-700">Database not configured.</p>;
 
+  // eslint-disable-next-line react-hooks/purity -- async Server Component (not React-compiled); Date.now() is correctly evaluated at request time.
   const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   const [

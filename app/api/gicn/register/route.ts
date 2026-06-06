@@ -21,14 +21,21 @@ export async function POST(req: NextRequest) {
   const outcome = await db.$transaction(async (tx) => {
     const participant = await tx.participant.findUnique({ where: { id: participantId }, select: { id: true, ownerUserId: true, fullName: true } });
     if (!participant || participant.ownerUserId !== user.id) return { kind: "forbidden" as const };
-    const program = await tx.program.findUnique({ where: { id: programId }, select: { id: true, status: true, capacity: true, title: true } });
+    const program = await tx.program.findUnique({ where: { id: programId }, select: { id: true, status: true, capacity: true, title: true, requiresApproval: true } });
     if (!program) return { kind: "noprogram" as const };
     if (program.status !== "OPEN") return { kind: "notopen" as const };
     const existing = await tx.programRegistration.findUnique({ where: { participantId_programId: { participantId, programId } }, select: { id: true } });
     if (existing) return { kind: "dup" as const };
 
-    const confirmed = await tx.programRegistration.count({ where: { programId, status: "CONFIRMED" } });
-    const status = program.capacity != null && confirmed >= program.capacity ? "WAITLISTED" : "CONFIRMED";
+    // Approval-gated programmes start as SUBMITTED (capacity enforced at approval).
+    // Open programmes keep the capacity-aware auto-assignment.
+    let status: string;
+    if (program.requiresApproval) {
+      status = "SUBMITTED";
+    } else {
+      const approved = await tx.programRegistration.count({ where: { programId, status: "APPROVED" } });
+      status = program.capacity != null && approved >= program.capacity ? "WAITLISTED" : "APPROVED";
+    }
 
     let code = generateCheckInCode();
     for (let i = 0; i < 5; i++) {
@@ -63,6 +70,7 @@ export async function POST(req: NextRequest) {
       programTitle: outcome.programTitle,
       checkInCode: outcome.reg.checkInCode,
       waitlisted: outcome.reg.status === "WAITLISTED",
+      pendingApproval: outcome.reg.status === "SUBMITTED",
     }).catch((e) => console.error("[gicn-register] email error:", e))
   );
 
