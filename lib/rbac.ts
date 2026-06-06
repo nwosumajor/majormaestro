@@ -39,7 +39,9 @@ export const ASSIGNABLE_ROLES: AdminRole[] = ["owner", "manager", "viewer", "gic
 
 const PERMISSIONS: Record<AdminRole, Permission[] | "*"> = {
   owner: "*",
-  manager: ["cases.read", "cases.write", "pii.download", "pii.export", "referrals.read", "gicn.manage", "gicn.checkin", "ops.email_test"],
+  // Enterprise (forensic recovery) manager — NO GICN access. GICN is a separate
+  // domain handled by gicn_manager (or owner). Keeps the two arms isolated.
+  manager: ["cases.read", "cases.write", "pii.download", "pii.export", "referrals.read", "ops.email_test"],
   viewer: ["cases.read"],
   // GICN-only delegate: the GICN youth/NGO surface and nothing else (no cases,
   // PII, referrals, users, webhooks, audit). Both perms are 2FA-gated below.
