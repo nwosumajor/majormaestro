@@ -1,0 +1,10 @@
+# Doppler project mapping for this repo.
+# Run `doppler setup` once to select the project/config (uses the values below),
+# then run the app with secrets injected: `doppler run -- npm run dev`
+# (or the convenience script `npm run dev:doppler`).
+#
+# This file contains NO secrets — only the Doppler project/config names. Safe to commit.
+# See docs/SECRETS.md for the full migration + rotation runbook.
+setup:
+  project: majormaestro
+  config: dev
