@@ -2,11 +2,11 @@ import { Factory, ArrowRight, BadgeCheck, Banknote, Clock } from "lucide-react";
 import Link from "next/link";
 
 const CHARGES = [
-  { name: "Commission on Turnover (COT)", risk: "Applied at up to 4× the CBN limit of ₦1/mille across high-volume production accounts" },
-  { name: "Overdraft / Working Capital Interest", risk: "Rates charged above the MPR+7% ceiling on seasonal credit facilities and import finance lines" },
-  { name: "Letters of Credit Confirmation", risk: "LC confirmation fees exceeding the 1.5% per quarter CBN maximum on raw material imports" },
-  { name: "SWIFT Transfer Fees", risk: "Flat fees above the $25 USD cap on foreign supplier payments — common across multiple transactions per month" },
-  { name: "Annual Facility Review Fees", risk: "Charged at up to ₦150,000 per facility against the CBN cap of ₦10,000" },
+  { name: "Account Maintenance (CAMF)", risk: "CAMF applied above the ₦1/mille (0.1%) cap, or on non-qualifying debits (intra-bank/own-account transfers) — plus recoverable historical COT for pre-2016 periods" },
+  { name: "Overdraft / Working Capital Interest", risk: "Interest charged above the rate in the facility letter, or penal rate above the 1%-flat-per-month cap on seasonal credit and import finance lines" },
+  { name: "Letters of Credit Charges", risk: "LC confirmation fees above the 0.5%-of-face-value maximum, or establishment commission above the 1% / 1.25% / 1.5% tenor caps on raw-material imports" },
+  { name: "SWIFT Transfer Commission", risk: "Commission above the 0.5% cap on foreign supplier payments (SWIFT itself is cost-recovery — there is no flat $25 cap)" },
+  { name: "Impermissible / recurring facility fees", risk: "Recurring 'facility review' fees, or aggregate lending fees above the one-off 2% total — neither is permitted under the Guide" },
 ];
 
 const STATS = [
@@ -60,7 +60,7 @@ export default function ManufacturingPage() {
         <section>
           <h2 className="mb-2 text-xl font-black text-slate-900">Why Manufacturing Companies Are Particularly Exposed</h2>
           <p className="text-slate-600 mb-6 text-sm leading-relaxed">
-            The combination of high monthly debit volumes (triggering repeated COT), foreign currency transactions (SWIFT + LC charges), and working capital facilities (overdraft + term loans) means a mid-sized manufacturer can accumulate hundreds of excess charge events per year across each banking relationship.
+            The combination of high monthly debit volumes (driving account-maintenance/CAMF charges), foreign currency transactions (SWIFT + LC charges), and working capital facilities (overdraft + term loans) means a mid-sized manufacturer can accumulate hundreds of excess charge events per year across each banking relationship.
           </p>
           <div className="space-y-3">
             {CHARGES.map((c) => (
@@ -89,7 +89,7 @@ export default function ManufacturingPage() {
             </div>
           </div>
           <p className="text-sm leading-relaxed text-slate-700">
-            A Lagos-based industrial manufacturer with ₦1.2B annual turnover had maintained two banking relationships for 7 years. Our forensic team identified COT applied at 0.45% — four times the CBN approved rate of 0.1% per mille. Combined with overdraft interest exceeding the MPR+7% ceiling, the total recovery exceeded ₦31M across both banks. The client had no prior awareness of the overcharging.
+            A Lagos-based industrial manufacturer with ₦1.2B annual turnover had maintained two banking relationships for 7 years. Our forensic team found account maintenance (CAMF) applied above the ₦1/mille cap and on non-qualifying debits, plus recoverable historical COT on pre-2016 periods. Combined with overdraft interest charged above the agreed facility-letter rate, the total recovery exceeded ₦31M across both banks. The client had no prior awareness of the overcharging.
           </p>
         </section>
 
@@ -98,12 +98,12 @@ export default function ManufacturingPage() {
           <h2 className="mb-6 text-xl font-black text-slate-900">What the Audit Covers for Manufacturing Companies</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {[
-              "Line-by-line COT analysis across all debit transactions for up to 6 years",
-              "Overdraft and working capital interest rate benchmarking against MPR+7% ceiling",
-              "Import finance and LC confirmation fee rate verification",
-              "SWIFT transfer fee compliance check on all foreign payments",
-              "Facility review fee audit against CBN ₦10,000 cap per facility",
-              "Credit risk premium verification on all loan and overdraft facilities",
+              "CAMF analysis on qualifying current-account debits (and historical COT for pre-2016 periods) for up to 6 years",
+              "Overdraft and working-capital interest benchmarked against the agreed facility rate and the 1%/month penal cap",
+              "LC establishment (tenor-based) and confirmation (≤0.5%) fee verification on imports",
+              "SWIFT commission compliance check (cost recovery + ≤0.5% commission) on all foreign payments",
+              "Identification of impermissible recurring facility/review fees",
+              "Aggregate lending-fee check (one-off, ≤2% total) across all facilities",
             ].map((item, i) => (
               <div key={i} className="flex items-start gap-2.5 rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm">
                 <ArrowRight size={13} className="mt-0.5 shrink-0 text-blue-700" />

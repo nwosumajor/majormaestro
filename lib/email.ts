@@ -185,13 +185,13 @@ export async function sendLeadMagnetGuide(email: string, companyName?: string) {
       <h2 style="margin:0 0 16px;font-size:17px;color:#0f172a">The 10 Signs Your Bank May Be Overcharging You</h2>
 
       ${[
-        ["1. Your COT rate exceeds ₦1 per mille (0.1%)", "The CBN cap is ₦1 per mille per debit transaction. Many banks charge 2–5× this limit without challenge."],
-        ["2. Your overdraft interest is above MPR + 7%", "With the current CBN MPR at 27.5%, the maximum permissible rate is approximately 34.5% p.a. Rates above this are illegal."],
-        ["3. LC confirmation fees exceed 1.5% per quarter", "Banks sometimes charge 2–3% per quarter on Letters of Credit — double the CBN approved ceiling."],
-        ["4. SWIFT transfer fees exceed $25 USD per transaction", "The flat cap is $25 USD. Any excess per transaction is recoverable, and these add up quickly across years of imports."],
-        ["5. Annual facility review fees exceed ₦10,000", "The CBN caps this at ₦10,000 per facility per annum. Charges of ₦50,000–₦200,000 are commonplace."],
-        ["6. Credit risk premiums exceed 2% per annum", "Added to base rates on facilities, this is capped at 2% p.a. Excess beyond that is an overcharge."],
-        ["7. Account maintenance charges exceed ₦1/mille per quarter", "For current accounts, the CBN limit is ₦1 per mille per quarter. Many banks apply 3–5× this rate."],
+        ["1. Account maintenance (CAMF) above ₦1 per mille (0.1%)", "Under the CBN Guide (§3.1), CAMF is capped at ₦1 per mille on qualifying current-account debits to third parties — it does NOT apply to savings accounts or to intra-bank/own-account transfers. Charges above the cap, or on non-qualifying debits, are recoverable."],
+        ["2. Loan or overdraft interest above your agreed rate", "Lending interest is negotiable, not fixed by the CBN — there is no 'MPR + 7%' ceiling. An overcharge arises where the rate charged exceeds the rate in your offer/facility letter, where a rate change is applied without 10 business days' notice, or where interest is charged on an unauthorised overdraft."],
+        ["3. LC confirmation fees above 0.5% of face value", "Under the Guide (§8.3), LC confirmation commission is capped at 0.5% of the LC value. LC establishment commission is 1% / 1.25% / 1.5% by tenor (§8.7) — these are one-off by tenor band, not 'per quarter'."],
+        ["4. SWIFT/foreign-transfer commission above 0.5%", "There is no flat '$25' SWIFT cap. The bank may recover the actual SWIFT cost plus a commission of at most 0.5% on the transfer (§5.6). Commission above 0.5% — or undisclosed uplift — is recoverable."],
+        ["5. Recurring 'facility review' or annual lending fees", "The Guide does not provide for a recurring annual facility-review fee — a repeating review charge is itself an overcharge. Permitted lending fees (management/processing) are one-off and capped at 2% in aggregate (§2.2)."],
+        ["6. Penal interest above 1% flat per month", "On defaulted facilities, penal/default interest is capped at 1% flat per month on the unpaid amount for the period of default (§2.1.9) — 0.25% per month on foreign-currency facilities. Anything above this is recoverable."],
+        ["7. Account maintenance applied per quarter or on every account", "CAMF accrues per qualifying debit, not as a flat 'per quarter' levy, and applies only to current accounts. Banks that apply it to savings accounts, to non-qualifying transfers, or as a recurring periodic charge are overcharging."],
         ["8. You have never had charges reversed after querying", "A refusal to reverse charges is strong evidence of systematic non-compliance — and escalation to the CBN is available."],
         ["9. You have never formally reviewed your charge schedule", "Most companies never conduct a forensic review. Banks rely on this inertia to sustain overcharging indefinitely."],
         ["10. You have been banking for 2+ years", "The longer the banking relationship, the larger the accumulated overcharge exposure — and the stronger the recovery case."],
