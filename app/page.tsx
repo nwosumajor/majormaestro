@@ -18,6 +18,7 @@ import {
 import { Container, Section, SectionHeading } from "@/components/ui/Section";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
+import { CURRENT_MPR, lcCollateralMinRate, lcCollateralInterestOwed } from "@/lib/cbnCharges";
 import TrackedLink from "@/components/TrackedLink";
 
 const RECOVERY_BANDS = [
@@ -231,6 +232,59 @@ export default function LandingPage() {
           </div>
         </Container>
       </Section>
+
+      {/* ── IMPORTERS: LC cash-collateral interest (high-conversion feature) ── */}
+      <section className="relative overflow-hidden bg-ink">
+        <div aria-hidden className="pointer-events-none absolute -right-24 top-1/2 h-96 w-96 -translate-y-1/2 rounded-full bg-accent/20 blur-3xl" />
+        <Container className="relative py-20 sm:py-24">
+          <div className="grid items-center gap-10 lg:grid-cols-2">
+            <div>
+              <span className="mb-4 inline-flex items-center rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-accent-bright">
+                For importers
+              </span>
+              <h2 className="font-display text-3xl font-semibold leading-tight text-white sm:text-4xl">
+                Your bank owes you interest you&apos;ve never collected.
+              </h2>
+              <p className="mt-4 max-w-xl text-base leading-relaxed text-slate-300">
+                The cash you lodge as Letter-of-Credit cover is a <strong className="text-white">special-purpose deposit</strong> — so the bank must pay you at least <strong className="text-white">30% of the MPR</strong> (≈{lcCollateralMinRate()}% p.a.) on it. Most pay nothing. Across years of LCs that quietly compounds into tens of millions — and it&apos;s recoverable up to 6 years back.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Button href="/recovery/trade-finance#calculator" variant="primary" size="lg">
+                  See what you&apos;re owed <ArrowRight size={16} />
+                </Button>
+                <Button href="/recovery/trade-finance" variant="outlineLight" size="lg">
+                  Read the LC recovery guide
+                </Button>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm sm:p-8">
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Worked example</p>
+              <div className="mt-4 space-y-3 text-sm text-slate-300">
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <span>LC cash cover lodged</span>
+                  <span className="font-figure font-bold text-white">₦50,000,000</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <span>Held for</span>
+                  <span className="font-figure font-bold text-white">18 months</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <span>Minimum rate (30% of {CURRENT_MPR}% MPR)</span>
+                  <span className="font-figure font-bold text-white">{lcCollateralMinRate()}% p.a.</span>
+                </div>
+              </div>
+              <div className="mt-5 rounded-xl bg-accent/15 p-4 text-center">
+                <p className="text-xs font-semibold uppercase tracking-wide text-accent-bright">Interest the bank owes you</p>
+                <p className="font-figure text-3xl font-black text-white sm:text-4xl">
+                  ₦{Math.round(lcCollateralInterestOwed(50_000_000, 18)).toLocaleString("en-NG")}
+                </p>
+              </div>
+              <p className="mt-3 text-center text-[11px] text-slate-500">Indicative minimum entitlement. A forensic audit confirms the exact figure across every LC.</p>
+            </div>
+          </div>
+        </Container>
+      </section>
 
       {/* ── AI TOOLS (secondary) ─────────────────────────────── */}
       <Section surface="slate" id="ai-tools">

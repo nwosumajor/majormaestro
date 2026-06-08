@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { CURRENT_MPR, lcCollateralMinRate, lcCollateralInterestOwed } from "@/lib/cbnCharges";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -223,6 +224,87 @@ export async function sendLeadMagnetGuide(email: string, companyName?: string) {
     from: FROM,
     to: email,
     subject: "Your Free Guide: 10 Signs Your Bank Is Overcharging You",
+    html,
+  });
+}
+
+// ─── Campaign: LC Cash-Collateral Interest Guide ──────────────────────────
+
+export async function sendLcInterestGuide(
+  email: string,
+  opts?: { companyName?: string; coverNaira?: number; months?: number; mpr?: number }
+) {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping LC interest guide");
+    return;
+  }
+
+  const { companyName, coverNaira, months, mpr } = opts ?? {};
+  const greeting = companyName ? `Hi ${companyName} team,` : "Hi,";
+  const rate = lcCollateralMinRate(mpr ?? CURRENT_MPR);
+  const owed = lcCollateralInterestOwed(coverNaira ?? 0, months ?? 0, mpr ?? CURRENT_MPR);
+  const naira = (n: number) => "₦" + Math.round(n).toLocaleString("en-NG");
+
+  const personalised =
+    owed > 0
+      ? `<div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:10px;padding:18px 20px;margin-bottom:24px">
+           <p style="margin:0;font-size:13px;font-weight:700;color:#065f46;text-transform:uppercase;letter-spacing:0.5px">Based on the figures you entered</p>
+           <p style="margin:8px 0 0;font-size:24px;font-weight:900;color:#047857">${naira(owed)}</p>
+           <p style="margin:4px 0 0;font-size:13px;color:#065f46;line-height:1.5">is the <strong>minimum interest</strong> your bank may owe you on ${naira(coverNaira ?? 0)} of LC cover held for ${months} month${months === 1 ? "" : "s"}, at ${rate}% p.a. (30% of the ${mpr ?? CURRENT_MPR}% MPR). A forensic audit of your statements confirms the exact figure across every LC.</p>
+         </div>`
+      : "";
+
+  const html = `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+    ${brandHeader("Letters of Credit: The Interest Your Bank Owes You")}
+
+    <div style="padding:32px">
+      <p style="margin:0 0 12px;font-size:15px;color:#1e293b">${greeting}</p>
+      <p style="margin:0 0 20px;font-size:15px;color:#475569;line-height:1.6">
+        Most Nigerian importers don't realise it, but the cash you lodge as cover for a Letter of Credit is a <strong>special-purpose deposit</strong> — and your bank is obliged to pay you credit interest on it. Here's how the entitlement works and how to claim it.
+      </p>
+
+      ${personalised}
+
+      <div style="background:#eff6ff;border-left:4px solid #1d4ed8;padding:16px 20px;border-radius:0 8px 8px 0;margin-bottom:24px">
+        <p style="margin:0;font-size:13px;font-weight:700;color:#1e40af;text-transform:uppercase;letter-spacing:0.5px">The Rule</p>
+        <p style="margin:6px 0 0;font-size:14px;color:#1e3a8a;line-height:1.5">Cash cover locked as a special-purpose deposit must earn a minimum of <strong>30% of the MPR</strong> — about <strong>${rate}% p.a.</strong> at today's ${mpr ?? CURRENT_MPR}% MPR. This flows from the CBN Monetary, Credit, Foreign Trade &amp; Exchange Policy Guidelines (§3.2) and the Guide to Bank Charges, and is reaffirmed in the Bankers' Committee framework on FX-linked obligations.</p>
+      </div>
+
+      <h2 style="margin:0 0 16px;font-size:17px;color:#0f172a">What we audit on your Letters of Credit</h2>
+      ${[
+        ["Uncollected collateral interest", "We reconstruct the interest due on every cash-cover deposit at the 30%-of-MPR floor — for the full period each sum was held — and net off anything already paid. (Cover funded by a bank loan is excluded.)"],
+        ["Offshore charges in SWIFT Field 71D", "Advising, amendment, confirmation, negotiation and transfer charges are recoverable from you only at actual cost. Undisclosed margins on correspondent-bank fees are recoverable."],
+        ["'Pre-/post-negotiation' confirmation-line & refinancing fees", "These terms aren't recognised under CBN rules or UCP600. Where they were applied with a margin that never appeared on your offer letter, they are disputable."],
+        ["FX differentials from bank delay", "You should not bear FX or penal/overdraft costs caused by the bank's own inaction or poor disclosure on settled LCs."],
+      ].map(([title, body]) => `
+        <div style="margin-bottom:16px;padding:14px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">
+          <p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#0f172a">${title}</p>
+          <p style="margin:0;font-size:13px;color:#475569;line-height:1.5">${body}</p>
+        </div>`).join("")}
+
+      <div style="background:#0f172a;padding:20px;border-radius:10px;margin:24px 0;text-align:center">
+        <p style="margin:0 0 6px;font-size:16px;font-weight:900;color:#ffffff">Find out what your LCs are owed</p>
+        <p style="margin:0 0 16px;font-size:13px;color:#94a3b8">No upfront fees. 30% success fee only on recovery. Recoverable up to 6 years back.</p>
+        <a href="${process.env.NEXT_PUBLIC_APP_URL ?? "https://majormaestro.com"}/recovery/trade-finance"
+           style="display:inline-block;background:#10b981;color:#ffffff;font-weight:700;font-size:14px;text-decoration:none;padding:12px 28px;border-radius:8px">
+          Start Your LC Recovery →
+        </a>
+      </div>
+
+      <p style="font-size:12px;color:#94a3b8;margin:0">
+        You received this because you requested our Letters of Credit recovery guide. No spam — this is the only email from this address.<br>
+        Contact us: <a href="mailto:${SUPPORT_EMAIL}" style="color:#3b82f6">${SUPPORT_EMAIL}</a>
+      </p>
+    </div>
+
+    ${brandFooter()}
+  </div>`;
+
+  await sendOrThrow({
+    from: FROM,
+    to: email,
+    subject: owed > 0 ? `Your bank may owe you ${naira(owed)} in LC interest` : "The interest your bank owes you on Letters of Credit",
     html,
   });
 }
