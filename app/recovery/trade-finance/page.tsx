@@ -1,5 +1,6 @@
 import { Ship, ArrowRight, BadgeCheck, Banknote, Clock, ShieldCheck, Coins } from "lucide-react";
 import Link from "next/link";
+import LcCollateralCalculator from "@/components/LcCollateralCalculator";
 
 const CHARGES = [
   { name: "Interest owed on LC cash-collateral", highlight: true, risk: "When you lodge cash cover for an LC, that collateral is a special-purpose deposit — the bank MUST pay you credit interest of at least 30% of MPR (≈8.25% p.a. at a 27.5% MPR). Most importers are paid little or nothing. The shortfall, compounded across years of LCs, is recoverable — unless the cover was funded by a bank loan." },
@@ -69,6 +70,11 @@ export default function TradeFinancePage() {
               </p>
             </div>
           </div>
+        </section>
+
+        {/* Interactive calculator */}
+        <section id="calculator" className="scroll-mt-20">
+          <LcCollateralCalculator />
         </section>
 
         {/* Why importers are exposed */}

@@ -50,6 +50,30 @@ export interface CbnCharge {
 
 export const CBN_GUIDE_LABEL = "CBN Guide to Charges 2020 (in force)";
 
+/**
+ * Current CBN Monetary Policy Rate (MPR), in %. Update this when the CBN MPC
+ * changes it — the LC cash-collateral interest entitlement is derived from it.
+ */
+export const CURRENT_MPR = 27.5;
+
+/**
+ * Minimum credit interest a bank must pay on LC cash-collateral / cover held as
+ * a special-purpose deposit, expressed as a fraction of MPR (Monetary, Credit,
+ * Foreign Trade & Exchange Policy Guidelines 2022/2023 §3.2). 30% of MPR.
+ */
+export const LC_COLLATERAL_MPR_FRACTION = 0.3;
+
+/** Effective minimum interest rate (% p.a.) owed on LC cash-collateral. */
+export function lcCollateralMinRate(mpr: number = CURRENT_MPR): number {
+  return +(mpr * LC_COLLATERAL_MPR_FRACTION).toFixed(2);
+}
+
+/** Minimum interest owed on LC cash-collateral, in naira, for the live calculator. */
+export function lcCollateralInterestOwed(coverNaira: number, months: number, mpr: number = CURRENT_MPR): number {
+  if (!(coverNaira > 0) || !(months > 0)) return 0;
+  return coverNaira * (lcCollateralMinRate(mpr) / 100) * (months / 12);
+}
+
 export const CBN_CHARGES: CbnCharge[] = [
   {
     id: "camf",
