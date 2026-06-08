@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ShieldCheck, Lock, Mail, Loader2, AlertCircle, KeyRound, LifeBuoy } from "lucide-react";
 
@@ -182,10 +183,8 @@ export default function AdminLoginPage() {
     <main className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400">
-            <ShieldCheck size={28} />
-          </div>
-          <h1 className="text-2xl font-black text-white">MajorGBN Admin</h1>
+          <Image src="/logo-white.png" alt="MajorGBN" width={200} height={178} priority className="mx-auto mb-3 h-auto w-36" />
+          <h1 className="text-xl font-black text-white">Admin Console</h1>
           <p className="mt-1 text-sm text-slate-400">Authorised personnel only.</p>
         </div>
 

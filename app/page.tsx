@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
   ShieldCheck,
@@ -314,9 +315,7 @@ export default function LandingPage() {
         <Container>
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-ink font-display text-lg font-black">
-                ₦
-              </span>
+              <Image src="/logo-mark.png" alt="MajorGBN" width={32} height={32} className="h-8 w-8 object-contain" />
               <span className="font-display text-base font-bold text-white">MajorGBN</span>
             </div>
             <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-slate-400">

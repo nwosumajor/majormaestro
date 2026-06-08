@@ -129,9 +129,14 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2.5 group" onClick={() => setMobileOpen(false)}>
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink font-display text-lg font-black text-accent-bright transition-colors group-hover:bg-ink-700">
-            ₦
-          </span>
+          <Image
+            src="/logo-mark.png"
+            alt="MajorGBN"
+            width={36}
+            height={36}
+            priority
+            className="h-9 w-9 object-contain transition-transform group-hover:scale-105"
+          />
           <span className="flex flex-col leading-tight">
             <span className="font-display text-base font-bold tracking-tight text-ink">MajorGBN</span>
             <span className="hidden text-[10px] font-medium uppercase tracking-[0.15em] text-slate-400 sm:block">Forensic Recovery</span>
