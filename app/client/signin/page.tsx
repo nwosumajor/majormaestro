@@ -1,8 +1,9 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { Mail, Loader2, AlertCircle, CheckCircle2, ShieldCheck } from "lucide-react";
+import { Mail, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 
 function GoogleLogo() {
   return (
@@ -136,10 +137,8 @@ export default function SignInPage() {
     <main className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 text-blue-700">
-            <ShieldCheck size={28} />
-          </div>
-          <h1 className="text-2xl font-black text-slate-900">Sign in to MajorGBN</h1>
+          <Image src="/logo.png" alt="MajorGBN" width={200} height={178} priority className="mx-auto mb-4 h-auto w-40" />
+          <h1 className="text-2xl font-black text-slate-900">Sign in to your account</h1>
           <p className="mt-1 text-sm text-slate-500">Access your dashboard, cases, and saved insights.</p>
         </div>
 

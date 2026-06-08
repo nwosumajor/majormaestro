@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { LayoutDashboard, ClipboardList, Users, ShieldCheck, UserCog, ScrollText, Webhook, Settings, BarChart3, GraduationCap } from "lucide-react";
+import Image from "next/image";
+import { LayoutDashboard, ClipboardList, Users, UserCog, ScrollText, Webhook, Settings, BarChart3, GraduationCap } from "lucide-react";
 import LogoutButton from "./LogoutButton";
 import { getAdminFromCookies } from "@/lib/auth";
 import { normalizeRole, can } from "@/lib/rbac";
@@ -17,7 +18,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <header className="border-b border-slate-200 bg-slate-950">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <Link href="/admin" className="flex items-center gap-2 text-white">
-            <ShieldCheck size={18} className="text-emerald-400" />
+            <Image src="/logo-mark.png" alt="MajorGBN" width={22} height={22} className="h-[22px] w-[22px] object-contain" />
             <span className="font-bold tracking-tight">MajorGBN Admin</span>
           </Link>
           <nav className="flex flex-wrap items-center gap-1">
