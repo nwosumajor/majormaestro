@@ -8,6 +8,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/assessment", priority: 0.7, changeFrequency: "monthly" },
     { path: "/roadmap", priority: 0.7, changeFrequency: "monthly" },
     { path: "/recovery", priority: 0.9, changeFrequency: "weekly" },
+    { path: "/recovery/trade-finance", priority: 0.6, changeFrequency: "monthly" },
     { path: "/recovery/banking", priority: 0.6, changeFrequency: "monthly" },
     { path: "/recovery/fmcg", priority: 0.6, changeFrequency: "monthly" },
     { path: "/recovery/manufacturing", priority: 0.6, changeFrequency: "monthly" },

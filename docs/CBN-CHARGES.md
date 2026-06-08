@@ -49,6 +49,26 @@ inaccuracies (all now removed) were:
 | **ATM Withdrawal (other bank's ATM)** | **₦35** after the 3rd withdrawal in the same month (first 3 free) | §10.7.2 | "Not-on-us" withdrawals in Nigeria. On-us withdrawals are free. |
 | **Returned Cheque / Failed Direct Debit (unfunded)** | **1% or ₦5,000, whichever is higher** | §11.5.2 / §9.7.2 | Where due to an unfunded account; borne by the drawer only. |
 
+## Trade finance, FX & Letters of Credit
+
+Sourced from the **Bankers' Committee (CIBN Sub-committee on Ethics & Professionalism)
+framework on unresolved FX-linked obligations, Letters of Credit and Trade Instruments**,
+which interprets the operative CBN regulations it cites. These feed the Rate Checker
+(as informational rules) and the AI pre-screener, and underpin `/recovery/trade-finance`.
+
+| Item | Rule | Source | Notes |
+|---|---|---|---|
+| **Interest on LC cash-collateral / cover** (the bank owes *you*) | Bank must pay credit interest of **≥ 30% of MPR** on cash cover held as a special-purpose deposit (locked 7+ days) | Foreign Trade & Exchange Policy Guidelines 2022/2023 §3.2 + Guide to Charges (deposit interest) | Shortfall is **recoverable**, *unless* the collateral was funded by a bank loan. Liened/restricted balances held for extended periods are deemed entitled to interest. |
+| **Offshore / correspondent LC charges (SWIFT Field 71D)** | Recoverable from the customer at **actual cost only** — no undisclosed margin | UCP600 (Field 71D) + Consumer Protection Regulation §4 | Field 71D covers advising, reimbursement, amendment, confirmation, negotiation, transfer. Undisclosed mark-ups, or costs defaulted to the applicant without documented instruction, are recoverable. |
+| **Confirmation-line & refinancing charges ('pre-/post-negotiation')** | Permissible **only if disclosed & agreed** on the offer letter; no double-charging | Consumer Protection Regulation §4 + UCP600 | "Pre-negotiation"/"post-negotiation" are **not** recognised CBN/UCP600 terms. Margined, undisclosed uses are disputable. |
+| **FX differential / penal costs from bank delay** | Customer should **not** bear FX differentials or nostro-overdraft mark-ups caused by the bank's inaction or poor disclosure | Consumer Protection Regulation §§3 & 5 | Bank must evidence genuine FX-sourcing effort and document consent to refinancing. Penal/overdraft costs = actual cost recovery, prorated. |
+
+> **Disclosure principle (Consumer Protection Regulation §4):** a charge that was not
+> disclosed and agreed *before* it was applied **cannot be earned** — the backbone of
+> every trade-finance recovery above.
+
+---
+
 ## Historical (not a current charge)
 
 | Charge | Status | Notes |
