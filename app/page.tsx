@@ -8,7 +8,6 @@ import {
   Banknote,
   CircleCheck,
   Users,
-  TrendingUp,
   Route,
   BrainCircuit,
   Lock,
@@ -286,6 +285,38 @@ export default function LandingPage() {
         </Container>
       </section>
 
+      {/* ── GICN (youth / NGO arm) — second pillar ───────────── */}
+      <Section surface="white">
+        <Container>
+          <div className="overflow-hidden rounded-2xl border border-emerald-200 bg-accent-soft p-8 sm:p-10 lg:p-12">
+            <div className="lg:flex lg:items-center lg:justify-between lg:gap-10">
+              <div>
+                <Badge tone="accent"><HeartHandshake size={13} /> Global Impact Christian Network</Badge>
+                <h2 className="mt-3 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+                  Our second pillar: investing in young people
+                </h2>
+                <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600 sm:text-base">
+                  Beyond the boardroom, MajorGBN runs <span className="font-semibold text-ink">GICN</span> — scholarships,
+                  leadership conferences, Christian camps, and academic &amp; talent competitions for the next generation.
+                  Register a child, partner as a school, or sponsor a student through to graduation.
+                </p>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {["Scholarships", "Leadership Conferences", "Christian Camps", "Academic & Talent Competitions"].map((t) => (
+                    <span key={t} className="inline-flex items-center rounded-full border border-emerald-200 bg-white/70 px-3 py-1 text-xs font-medium text-emerald-800">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-6 flex shrink-0 flex-col gap-3 sm:flex-row lg:mt-0 lg:flex-col">
+                <Button href="/gicn" variant="primary" size="lg">Explore GICN <ArrowRight size={16} /></Button>
+                <Button href="/gicn/sponsor" variant="outline" size="lg"><HeartHandshake size={15} /> Sponsor a child</Button>
+              </div>
+            </div>
+          </div>
+        </Container>
+      </Section>
+
       {/* ── AI TOOLS (secondary) ─────────────────────────────── */}
       <Section surface="slate" id="ai-tools">
         <Container>
@@ -312,27 +343,6 @@ export default function LandingPage() {
                 </div>
               </div>
             ))}
-          </div>
-        </Container>
-      </Section>
-
-      {/* ── GICN (youth / NGO arm) ───────────────────────────── */}
-      <Section surface="white">
-        <Container>
-          <div className="overflow-hidden rounded-2xl border border-emerald-200 bg-accent-soft p-8 sm:p-10">
-            <div className="lg:flex lg:items-center lg:justify-between lg:gap-8">
-              <div>
-                <Badge tone="accent"><HeartHandshake size={13} /> Global Impact Christian Network</Badge>
-                <h2 className="mt-3 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">Our youth &amp; NGO arm — GICN</h2>
-                <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
-                  Scholarships, leadership conferences, Christian camps, and academic &amp; talent competitions for young people. Register a child, partner as a school, or sponsor a student.
-                </p>
-              </div>
-              <div className="mt-5 flex shrink-0 flex-wrap gap-3 lg:mt-0">
-                <Button href="/gicn" variant="primary" size="lg">Explore GICN <ArrowRight size={16} /></Button>
-                <Button href="/gicn/sponsor" variant="outline" size="lg">Sponsor a child</Button>
-              </div>
-            </div>
           </div>
         </Container>
       </Section>
@@ -375,7 +385,9 @@ export default function LandingPage() {
             <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-slate-400">
               <Link href="/recovery" className="hover:text-white">Recovery Portal</Link>
               <Link href="/recovery/track" className="hover:text-white">Track a Case</Link>
-              <Link href="/classify" className="hover:text-white">HR Staff Classification</Link>
+              <Link href="/recovery/trade-finance" className="hover:text-white">Trade Finance &amp; LCs</Link>
+              <Link href="/gicn" className="hover:text-white">GICN</Link>
+              <Link href="/classify" className="hover:text-white">HR Classification</Link>
               <Link href="/roadmap" className="hover:text-white">Career Roadmap</Link>
               <Link href="/privacy" className="hover:text-white">Privacy Policy</Link>
             </nav>
