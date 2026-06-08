@@ -9,6 +9,10 @@ const FAQS = [
     a: "Absolutely. The CBN Guide to Bank Charges is a legally binding regulatory instrument under the BOFIA Act 2020. Banks are obligated to charge only within CBN-approved limits. Recovering excess charges is not a dispute — it is the enforcement of a legal entitlement. The CBN Consumer Protection Department actively handles such complaints.",
   },
   {
+    q: "We import using Letters of Credit — what can we actually recover?",
+    a: "A great deal, and most importers never realise it. First, the cash cover you lodge for an LC is a special-purpose deposit, so the bank must pay you credit interest of at least 30% of the MPR on it (about 8.25% p.a. at a 27.5% MPR) — an entitlement banks routinely ignore. Second, offshore correspondent charges in SWIFT Field 71D (advising, amendment, confirmation, negotiation, transfer) are recoverable from you only at actual cost; any undisclosed margin is recoverable. Third, 'pre-negotiation' and 'post-negotiation' confirmation-line and refinancing fees that never appeared on your offer letter are disputable — those terms aren't even recognised under CBN rules or UCP600. Our trade-finance audit reconstructs all of this against the CBN Guide, the Foreign Trade & Exchange Policy Guidelines, the Consumer Protection Regulation and the Bankers' Committee FX framework. See our dedicated Trade Finance & Letters of Credit recovery guide for detail.",
+  },
+  {
     q: "Will this damage our banking relationship?",
     a: "This is the most common concern and the answer is almost always no. Banks deal with charge recovery professionally. Our engagement is structured around regulatory compliance, not adversarial litigation. In most cases, the relationship manager is unaware of the overcharges — they originate in automated billing systems. Completing a recovery rarely affects credit access or service levels.",
   },

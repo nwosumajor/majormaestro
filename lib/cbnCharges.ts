@@ -22,6 +22,8 @@ export type CheckKind =
   | "negotiable" // no fixed cap — overcharge = charged above the agreed/contractual rate
   | "cost_recovery" // pass-through cost (+ optional capped commission %)
   | "tiered" // depends on band/tenor — see `notes`
+  | "rate_min" // a minimum the bank must PAY you (e.g. interest on LC collateral) — shortfall is recoverable
+  | "disclosure" // permissible only if fully disclosed & agreed; undisclosed/marked-up = recoverable
   | "historical"; // not a current charge; recovery only for periods when it applied
 
 export interface CbnCharge {
@@ -155,6 +157,53 @@ export const CBN_CHARGES: CbnCharge[] = [
     section: "GBC 2020 §8.3",
   },
   {
+    id: "lc_collateral_interest",
+    label: "Interest on LC Cash-Collateral / Cover (the bank owes YOU)",
+    category: "trade",
+    status: "in_force",
+    kind: "rate_min",
+    basis:
+      "When you place cash cover / collateral for a Letter of Credit in a dedicated or designated collateral / cash-call account — funds locked and inaccessible for 7+ days (a special-purpose deposit) — the bank MUST pay you credit interest. Many corporates are paid nothing, or far below the floor; the shortfall is recoverable. This does NOT apply where the collateral was funded by a bank loan/facility (the bank, not you, funded the cash).",
+    ceiling: "Minimum credit interest of 30% of MPR (≈8.25% p.a. at 27.5% MPR)",
+    section: "Monetary, Credit, Foreign Trade & Exchange Policy Guidelines 2022/2023 §3.2 + CBN Guide to Charges (deposit interest); Bankers' Committee FX Framework",
+    notes:
+      "Where the bank can show you expressly instructed the funds to remain in your operating account, interest may not apply. But where balances were restricted/liened at thresholds for extended periods, they are deemed liened and entitled to interest.",
+  },
+  {
+    id: "lc_offshore_71d",
+    label: "Offshore / Correspondent LC Charges (SWIFT Field 71D)",
+    category: "trade",
+    status: "in_force",
+    kind: "cost_recovery",
+    basis:
+      "MT700 Field 71D covers advising, reimbursement, amendment, confirmation, negotiation and transfer charges — and the phrase 'all overseas/offshore charges' includes ALL of these. They are recoverable from you only at ACTUAL cost: the bank may not add an undisclosed margin/markup. Charges defaulted to the applicant without a clear, documented instruction, or never disclosed on the offer letter / LC application, are recoverable.",
+    ceiling: "Pass-through at actual cost — no undisclosed margin/markup",
+    section: "UCP600 (Field 71D) + Consumer Protection Regulation §4; Bankers' Committee FX Framework",
+    notes: "These offshore correspondent charges are distinct from any 'pre-/post-negotiation' financing fees — banks must not bundle or double-count them.",
+  },
+  {
+    id: "lc_confirmation_line_refinancing",
+    label: "Confirmation-Line & Refinancing Charges (pre-/post-negotiation)",
+    category: "trade",
+    status: "in_force",
+    kind: "disclosure",
+    basis:
+      "The confirmation-line charge is the cost of using the bank's trade-finance line with its offshore correspondent to issue/confirm the LC; the refinancing charge is the cost of repaying/replacing that line after the beneficiary is paid. These are legitimate ONLY where the terms (and any margin) are disclosed and agreed on the offer letter. The labels 'pre-negotiation' and 'post-negotiation' are not recognised under CBN regulations or UCP600 — where used to apply margined charges that were not properly disclosed, they are disputable. Where these are charged with a margin, other offshore charges may only be recovered at cost (no double-charging).",
+    ceiling: "Permissible only if disclosed & agreed — no undisclosed margin, no double-charging",
+    section: "Consumer Protection Regulation §4 + UCP600; Bankers' Committee FX Framework",
+  },
+  {
+    id: "fx_differential_bank_inaction",
+    label: "FX Differential / Penal Costs from Bank Delay on Settled LCs",
+    category: "fx",
+    status: "in_force",
+    kind: "disclosure",
+    basis:
+      "Where an LC is left unsettled because of FX scarcity, the ultimate FX risk normally rests with you — BUT you should NOT bear FX-differential costs caused by the bank's own inaction, delayed engagement or poor disclosure. The bank must evidence genuine FX-sourcing effort (CBN bids, interbank, your CCIs/inflows) and document your consent to any refinancing/rescheduling. Penal / overdraft costs arising from offshore debits to the bank's nostro must be ACTUAL cost recovery, prorated fairly across affected customers — not marked up.",
+    ceiling: "Bank-caused FX differentials & undisclosed mark-ups are recoverable",
+    section: "Consumer Protection Regulation §§3 & 5; Bankers' Committee FX Framework",
+  },
+  {
     id: "swift_outward",
     label: "Outward SWIFT / Telegraphic Transfer",
     category: "fx",
@@ -274,6 +323,7 @@ export function cbnReferenceForAI(): string {
     "- Loan/overdraft interest is NEGOTIABLE — there is NO 'MPR + 7%' cap. An interest overcharge means a rate charged ABOVE the agreed facility-letter rate, missing 10-day rate-change notice, or interest on an unauthorised overdraft.",
     "- There is NO flat '$25' SWIFT cap (SWIFT = cost recovery + max 0.5% commission) and NO recurring 'annual facility review fee' (lending fees are one-off, aggregate ≤2%).",
     "- LC confirmation max is 0.5% of face value; LC establishment is 1%/1.25%/1.5% by tenor (NOT per quarter).",
+    "- TRADE FINANCE / FX (Bankers' Committee FX Framework + cited regulations): (a) The bank OWES the customer credit interest of at least 30% of MPR on LC cash collateral / cover held as a special-purpose deposit (locked 7+ days) — a shortfall is recoverable, UNLESS the collateral was funded by a bank loan. (b) Offshore/correspondent LC charges in SWIFT Field 71D (advising, amendment, confirmation, negotiation, transfer, reimbursement) are recoverable from the customer only at ACTUAL cost — undisclosed margins are recoverable. (c) 'Pre-negotiation'/'post-negotiation' are NOT recognised CBN/UCP600 terms; confirmation-line & refinancing charges are valid only if disclosed and agreed (no double-charging). (d) Customers should NOT bear FX differentials or penal/nostro-overdraft mark-ups caused by the bank's own delay/inaction or poor disclosure. (e) Section 4 of the Consumer Protection Regulation: a charge that was not disclosed and agreed up front cannot be earned.",
     "- Be specific and cite the charge type. If a figure is within limits, say so. Flag only genuine, Guide-based overcharges.",
   ].join("\n");
 }

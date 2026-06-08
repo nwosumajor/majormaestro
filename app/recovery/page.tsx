@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Factory,
   ShoppingCart,
+  Ship,
   ClipboardList,
   Gift,
 } from "lucide-react";
@@ -84,6 +85,7 @@ const PROCESS_STEPS = [
 ];
 
 const SECTOR_LINKS = [
+  { href: "/recovery/trade-finance", icon: Ship, label: "Trade Finance & LCs", desc: "LC collateral interest, FX & offshore charges" },
   { href: "/recovery/manufacturing", icon: Factory, label: "Manufacturing", desc: "High CAMF & overdraft exposure" },
   { href: "/recovery/fmcg", icon: ShoppingCart, label: "FMCG & Distribution", desc: "LC & SWIFT charge recovery" },
   { href: "/recovery/banking", icon: Building2, label: "Banking & Finance", desc: "Correspondent bank charges" },
@@ -270,7 +272,7 @@ export default async function RecoveryPage({
       <section className="border-b border-slate-200 bg-slate-50 py-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <p className="mb-5 text-center text-xs font-bold uppercase tracking-widest text-slate-500">Sector-Specific Recovery Guides</p>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {SECTOR_LINKS.map((s) => (
               <Link
                 key={s.href}
