@@ -2,11 +2,11 @@ import { Building2, ArrowRight, BadgeCheck, Banknote, Clock, AlertTriangle } fro
 import Link from "next/link";
 
 const CHARGES = [
-  { name: "Inter-bank Transfer & Settlement Fees", risk: "High-volume inter-bank transactions often attract undisclosed or inflated processing charges above NIP flat fee caps" },
+  { name: "Inter-bank Transfer & Settlement Fees", risk: "High-volume transfers attract undisclosed or inflated processing charges above the EFT tier (₦10/₦25/₦50 by amount) and RTGS (₦950) caps" },
   { name: "Custody & Securities Handling Fees", risk: "Treasury and investment operations frequently attract fees that exceed disclosed rate schedules" },
-  { name: "Overdraft / Credit Facility Interest", risk: "Even financial institutions that maintain inter-bank lending lines are subject to CBN interest rate caps and can be overcharged" },
-  { name: "SWIFT & Correspondent Banking Charges", risk: "International wire transfers routed through correspondent banks can carry hidden uplift charges above the $25 cap" },
-  { name: "Annual Facility Management Fees", risk: "Credit facilities maintained for liquidity management may carry review fees well above CBN ₦10,000 maximum" },
+  { name: "Overdraft / Credit Facility Interest", risk: "Interest charged above the rate in the facility letter, or penal rate above the 1%-flat-per-month cap, on liquidity-management facilities" },
+  { name: "SWIFT & Correspondent Banking Charges", risk: "Correspondent-routed wires carrying commission above the 0.5% cap or hidden uplift (SWIFT itself is cost-recovery — no flat $25 cap)" },
+  { name: "Impermissible / recurring facility fees", risk: "Recurring 'facility management/review' fees, or aggregate lending fees above the one-off 2% total — neither is permitted under the Guide" },
 ];
 
 const STATS = [
@@ -99,7 +99,7 @@ export default function BankingPage() {
             </div>
           </div>
           <p className="text-sm leading-relaxed text-slate-700">
-            A multi-state private healthcare group with four banking relationships and high transaction volumes illustrates the scale possible in high-turnover organisations. COT charges were consistently applied above CBN rates across all accounts. Credit risk premiums exceeding the 2% p.a. cap were applied on two facilities. This engagement produced the largest single recovery in our portfolio. The principle applies equally to financial sector entities with comparable banking activity.
+            A multi-state private healthcare group with four banking relationships and high transaction volumes illustrates the scale possible in high-turnover organisations. Account maintenance (CAMF) was consistently applied above the ₦1/mille cap and on non-qualifying debits across all accounts. Aggregate lending fees exceeded the one-off 2% ceiling on two facilities, and penal interest above the 1%-flat-per-month cap was identified. This engagement produced the largest single recovery in our portfolio. The principle applies equally to financial sector entities with comparable banking activity.
           </p>
         </section>
 

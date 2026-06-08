@@ -2,11 +2,11 @@ import { ShoppingCart, ArrowRight, BadgeCheck, Banknote, Clock } from "lucide-re
 import Link from "next/link";
 
 const CHARGES = [
-  { name: "Commission on Turnover (COT)", risk: "FMCG distributors process thousands of debit transactions monthly — COT overcharges compound rapidly across high-volume accounts" },
-  { name: "Letters of Credit Confirmation Fees", risk: "LC confirmation charges for import stock purchases are routinely applied above the CBN 1.5% per quarter ceiling" },
-  { name: "SWIFT Transfer Fees", risk: "International supplier payments attract SWIFT fees above the $25 USD flat cap, often charged per transaction across hundreds of transfers annually" },
-  { name: "Trade Finance / Import Finance Interest", risk: "Short-term import finance facilities often carry interest rates exceeding the MPR+7% CBN ceiling" },
-  { name: "Account Maintenance Charges", risk: "Multiple current accounts for distributor collections carry maintenance fees above CBN ₦1/mille per quarter limit" },
+  { name: "Account Maintenance (CAMF)", risk: "FMCG distributors run thousands of monthly debits — CAMF above the ₦1/mille (0.1%) cap, or applied to non-qualifying debits, compounds rapidly (plus historical COT for pre-2016 periods)" },
+  { name: "Letters of Credit Charges", risk: "LC confirmation charges for import stock above the 0.5%-of-face-value maximum, or establishment commission above the 1% / 1.25% / 1.5% tenor caps" },
+  { name: "SWIFT Transfer Commission", risk: "Commission above the 0.5% cap on supplier payments across hundreds of transfers annually (SWIFT itself is cost-recovery — no flat $25 cap)" },
+  { name: "Trade / Import Finance Interest", risk: "Import finance facilities charged above the rate in the facility letter, or penal rate above the 1%-flat-per-month cap" },
+  { name: "Account Maintenance across collections", risk: "Multiple collection current accounts each carrying CAMF above the ₦1/mille cap or on non-qualifying transfers" },
 ];
 
 const STATS = [
@@ -60,7 +60,7 @@ export default function FMCGPage() {
         <section>
           <h2 className="mb-2 text-xl font-black text-slate-900">Where FMCG Distributors Are Most Exposed</h2>
           <p className="text-slate-600 mb-6 text-sm leading-relaxed">
-            FMCG distributors operate on thin margins — meaning excess bank charges represent a disproportionately large drain on profitability. The combination of high-frequency collections (triggering COT) and regular import activity (triggering LC and SWIFT charges) creates multiple simultaneous overcharge vectors.
+            FMCG distributors operate on thin margins — meaning excess bank charges represent a disproportionately large drain on profitability. The combination of high-frequency collections (driving account-maintenance/CAMF charges) and regular import activity (triggering LC and SWIFT charges) creates multiple simultaneous overcharge vectors.
           </p>
           <div className="space-y-3">
             {CHARGES.map((c) => (
@@ -89,7 +89,7 @@ export default function FMCGPage() {
             </div>
           </div>
           <p className="text-sm leading-relaxed text-slate-700">
-            An Abuja-based FMCG distributor with significant import activity was charged LC confirmation fees of up to 3% per quarter — double the CBN maximum of 1.5%. Additionally, SWIFT transfer fees above the $25 flat cap were charged on 94 separate transactions over 4 years, yielding a combined recovery of ₦8.7M. The distributor had assumed the charges were standard industry practice.
+            An Abuja-based FMCG distributor with significant import activity was charged LC confirmation fees well above the CBN maximum of 0.5% of face value. Additionally, SWIFT transfer commission above the 0.5% cap (over and above legitimate cost-recovery) was charged on 94 separate transactions over 4 years, yielding a combined recovery of ₦8.7M. The distributor had assumed the charges were standard industry practice.
           </p>
         </section>
 
@@ -98,11 +98,11 @@ export default function FMCGPage() {
           <h2 className="mb-6 text-xl font-black text-slate-900">What Our Audit Covers for FMCG Companies</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {[
-              "COT analysis across all collection and payment accounts for up to 6 years",
-              "LC confirmation fee compliance check on all import transactions",
-              "SWIFT fee audit on every international transfer in the review period",
-              "Import finance and trade line interest rate benchmarking",
-              "Account maintenance fee review across all current accounts",
+              "CAMF analysis across all collection/payment accounts (and historical COT for pre-2016 periods) for up to 6 years",
+              "LC establishment (tenor-based) and confirmation (≤0.5%) fee compliance on all imports",
+              "SWIFT commission audit (cost recovery + ≤0.5%) on every international transfer",
+              "Import finance / trade-line interest benchmarked to the agreed facility rate and penal cap",
+              "CAMF review across all current accounts (qualifying debits only)",
               "Cash deposit and handling charge verification",
             ].map((item, i) => (
               <div key={i} className="flex items-start gap-2.5 rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm">

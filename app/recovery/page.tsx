@@ -36,12 +36,12 @@ const TRUST_SIGNALS = [
 ];
 
 const CHARGE_TYPES = [
-  "Excess interest charges above CBN approved rates",
-  "Unauthorised COT (Commission on Turnover) deductions",
-  "Inflated Letter of Credit (LC) charges",
-  "Unlawful account maintenance fees",
-  "Excess tenured loan interest overcharges",
-  "Duplicate or phantom transaction charges",
+  "Interest charged above the agreed facility-letter rate",
+  "Penal interest above the 1%-flat-per-month cap",
+  "Inflated Letter of Credit (LC) charges (confirmation > 0.5%, establishment over tenor caps)",
+  "Account maintenance (CAMF) above the ₦1/mille cap or on non-qualifying debits",
+  "Excess SWIFT commission (above 0.5%) & impermissible recurring facility fees",
+  "Recoverable historical Commission on Turnover (COT) — pre-2016 periods",
 ];
 
 const PROCESS_STEPS = [
@@ -84,7 +84,7 @@ const PROCESS_STEPS = [
 ];
 
 const SECTOR_LINKS = [
-  { href: "/recovery/manufacturing", icon: Factory, label: "Manufacturing", desc: "High COT & overdraft exposure" },
+  { href: "/recovery/manufacturing", icon: Factory, label: "Manufacturing", desc: "High CAMF & overdraft exposure" },
   { href: "/recovery/fmcg", icon: ShoppingCart, label: "FMCG & Distribution", desc: "LC & SWIFT charge recovery" },
   { href: "/recovery/banking", icon: Building2, label: "Banking & Finance", desc: "Correspondent bank charges" },
 ];

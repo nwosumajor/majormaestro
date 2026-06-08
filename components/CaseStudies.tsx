@@ -5,41 +5,41 @@ const CASES = [
     industry: "Manufacturing",
     turnover: "₦1.2B annual turnover",
     banks: 2,
-    chargeTypes: ["Excess COT", "Overdraft interest above MPR cap"],
+    chargeTypes: ["Excess CAMF", "Overdraft interest above agreed rate"],
     recovered: "₦31.4M",
     timeline: "10 weeks",
     detail:
-      "A Lagos-based industrial manufacturer had maintained two banking relationships for 7 years. Our forensic team identified COT applied at 0.45% — four times the CBN approved rate of 0.1%. Combined with overdraft interest exceeding the MPR+7% ceiling, the total recovery exceeded ₦31M across both banks.",
+      "A Lagos-based industrial manufacturer had maintained two banking relationships for 7 years. Our forensic team found account maintenance (CAMF) applied above the ₦1/mille cap and on non-qualifying debits, plus recoverable historical COT on pre-2016 periods. Combined with overdraft interest charged above the agreed facility-letter rate, the total recovery exceeded ₦31M across both banks.",
   },
   {
     industry: "FMCG Distribution",
     turnover: "₦450M annual turnover",
     banks: 1,
-    chargeTypes: ["Inflated LC confirmation charges", "Phantom SWIFT fees"],
+    chargeTypes: ["Inflated LC confirmation charges", "Excess SWIFT commission"],
     recovered: "₦8.7M",
     timeline: "7 weeks",
     detail:
-      "An Abuja-based FMCG distributor with significant import activity was charged LC confirmation fees of up to 3% per quarter — double the CBN maximum of 1.5%. Additionally, SWIFT transfer fees above the $25 flat cap were charged on 94 separate transactions over 4 years, yielding a combined recovery of ₦8.7M.",
+      "An Abuja-based FMCG distributor with significant import activity was charged LC confirmation fees well above the CBN maximum of 0.5% of face value. Additionally, SWIFT transfer commission above the 0.5% cap (over and above legitimate cost-recovery) was charged on 94 separate transactions over 4 years, yielding a combined recovery of ₦8.7M.",
   },
   {
     industry: "Construction & Engineering",
     turnover: "₦680M annual turnover",
     banks: 3,
-    chargeTypes: ["Term loan interest overcharge", "Facility management fees"],
+    chargeTypes: ["Term loan interest overcharge", "Impermissible facility fees"],
     recovered: "₦15.2M",
     timeline: "9 weeks",
     detail:
-      "A Port Harcourt construction group had three banking relationships involving term loans and contract financing. Our analysis revealed interest rates on two facilities that exceeded the agreed spread over MPR, compounded over 5 years. Facility annual review fees were charged at ₦150,000 per facility versus the CBN cap of ₦10,000.",
+      "A Port Harcourt construction group had three banking relationships involving term loans and contract financing. Our analysis revealed interest on two facilities charged above the agreed rate in the offer letters, compounded over 5 years. Recurring 'facility review' fees were also levied — a charge not permitted under the Guide, where lending fees are one-off and capped at 2% in aggregate.",
   },
   {
     industry: "Healthcare Group",
     turnover: "₦2.1B annual turnover",
     banks: 4,
-    chargeTypes: ["Aggregate COT overcharge", "Excess credit risk premium", "Account maintenance"],
+    chargeTypes: ["Aggregate CAMF overcharge", "Lending fees above 2% cap", "Penal-rate excess"],
     recovered: "₦67.8M",
     timeline: "14 weeks",
     detail:
-      "A multi-state private healthcare group with four banking relationships and high transaction volumes. COT charges were consistently applied above CBN rates across all accounts. Credit risk premiums exceeding the 2% p.a. cap were applied on two facilities. This engagement produced the largest single recovery in our portfolio to date.",
+      "A multi-state private healthcare group with four banking relationships and high transaction volumes. Account maintenance (CAMF) was consistently applied above the ₦1/mille cap and on non-qualifying debits across all accounts. Aggregate lending fees exceeded the one-off 2% ceiling on two facilities, and penal interest above the 1%-flat-per-month cap was identified. This engagement produced the largest single recovery in our portfolio to date.",
   },
 ];
 
