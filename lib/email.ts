@@ -609,24 +609,32 @@ export async function sendSponsorshipConfirmation(input: {
   sponsorName: string;
   amountKobo: bigint;
   programTitle?: string | null;
+  paid?: boolean;
 }) {
   if (!resend) return;
+  const intro = input.paid
+    ? `Thank you for your generous gift of <strong>${gicnNaira(input.amountKobo)}</strong>${input.programTitle ? ` toward <strong>${input.programTitle}</strong>` : ""}. We've received your payment — your support helps young people access scholarships, leadership and faith programmes.`
+    : `Thank you for your generous pledge of <strong>${gicnNaira(input.amountKobo)}</strong>${input.programTitle ? ` toward <strong>${input.programTitle}</strong>` : ""}. Your support helps young people access scholarships, leadership and faith programmes.`;
+  const statusBox = input.paid
+    ? `<p style="margin:0;font-size:13px;color:#065f46">Your sponsorship is <strong>confirmed</strong> and your payment has been received. A receipt is on its way from our payment processor.</p>`
+    : `<p style="margin:0;font-size:13px;color:#065f46">Your sponsorship is recorded as <strong>pending</strong>. Our team will contact you with payment details to complete it.</p>`;
   const html = `
   <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
     ${brandHeader("Global Impact Christian Network")}
     <div style="padding:32px">
       <p style="margin:0 0 12px;font-size:15px;color:#1e293b">Dear ${input.sponsorName},</p>
-      <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6">
-        Thank you for your generous pledge of <strong>${gicnNaira(input.amountKobo)}</strong>${input.programTitle ? ` toward <strong>${input.programTitle}</strong>` : ""}. Your support helps young people access scholarships, leadership and faith programmes.
-      </p>
-      <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:14px;margin-bottom:16px">
-        <p style="margin:0;font-size:13px;color:#065f46">Your sponsorship is recorded as <strong>pending</strong>. Our team will contact you with payment details to complete it.</p>
-      </div>
+      <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6">${intro}</p>
+      <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:14px;margin-bottom:16px">${statusBox}</div>
       <p style="margin:0;font-size:12px;color:#94a3b8">You'll be able to see exactly which programme and beneficiaries your gift supports in the sponsorship ledger.</p>
     </div>
     ${brandFooter()}
   </div>`;
-  await sendOrThrow({ from: FROM, to: input.sponsorEmail, subject: "Thank you for sponsoring with GICN", html });
+  await sendOrThrow({
+    from: FROM,
+    to: input.sponsorEmail,
+    subject: input.paid ? "Your GICN sponsorship — payment received" : "Thank you for sponsoring with GICN",
+    html,
+  });
 }
 
 function gicnCodeBox(checkInCode: string, caption = "Present this code at the event for check-in.") {

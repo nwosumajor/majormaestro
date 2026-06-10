@@ -6,6 +6,12 @@ import Button from "@/components/ui/Button";
 
 interface ProgramOption { id: string; title: string }
 
+function newKey(): string {
+  return typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `k-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 export default function SponsorForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -15,6 +21,9 @@ export default function SponsorForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  // Idempotency key: stable across double-clicks / retries of the SAME pledge,
+  // regenerated whenever the inputs change (a genuinely new pledge = new key).
+  const [idemKey, setIdemKey] = useState(() => newKey());
 
   useEffect(() => {
     fetch("/api/gicn/programs", { cache: "no-store" })
@@ -23,8 +32,19 @@ export default function SponsorForm() {
       .catch(() => {});
   }, []);
 
+  // Field edits start a fresh payment intent (so an edited pledge is a new
+  // transaction, while pure double-clicks/retries keep the same key).
+  function bump<T>(setter: (v: T) => void) {
+    return (v: T) => { setter(v); setIdemKey(newKey()); };
+  }
+  const onName = bump(setName);
+  const onEmail = bump(setEmail);
+  const onAmount = bump(setAmount);
+  const onProgram = bump(setProgramId);
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return; // re-entrancy guard — a second click can't fire a second request
     setError(null);
     const amountNgn = Number(amount.replace(/[,\s₦]/g, ""));
     if (!Number.isFinite(amountNgn) || amountNgn <= 0) return setError("Enter a valid amount in ₦.");
@@ -33,14 +53,24 @@ export default function SponsorForm() {
       const res = await fetch("/api/gicn/sponsor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sponsorName: name, sponsorEmail: email, amountNgn, programId: programId || undefined }),
+        body: JSON.stringify({ sponsorName: name, sponsorEmail: email, amountNgn, programId: programId || undefined, idempotencyKey: idemKey }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not record your sponsorship.");
+      // Already paid (e.g. a retried submit after success) → go to the completed view, never re-charge.
+      if (data.alreadyPaid && data.redirect) {
+        window.location.href = data.redirect as string;
+        return;
+      }
+      // Configured gateway → redirect to Paystack hosted checkout.
+      if (data.payment?.redirectUrl) {
+        window.location.href = data.payment.redirectUrl as string;
+        return; // keep the spinner up while the browser navigates away
+      }
+      // Stub mode (no gateway) → show the pending acknowledgement.
       setDone(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
-    } finally {
       setLoading(false);
     }
   }
@@ -62,20 +92,20 @@ export default function SponsorForm() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-slate-800">Your name <span className="text-red-500">*</span></label>
-          <input value={name} onChange={(e) => setName(e.target.value)} required className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-accent focus:bg-white focus:outline-none" placeholder="Full name" />
+          <input value={name} onChange={(e) => onName(e.target.value)} required className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-accent focus:bg-white focus:outline-none" placeholder="Full name" />
         </div>
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-slate-800">Email <span className="text-red-500">*</span></label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-accent focus:bg-white focus:outline-none" placeholder="you@email.com" />
+          <input type="email" value={email} onChange={(e) => onEmail(e.target.value)} required className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-accent focus:bg-white focus:outline-none" placeholder="you@email.com" />
         </div>
       </div>
       <div>
         <label className="mb-1.5 block text-sm font-semibold text-slate-800">Amount (₦) <span className="text-red-500">*</span></label>
-        <input value={amount} onChange={(e) => setAmount(e.target.value)} required inputMode="numeric" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-accent focus:bg-white focus:outline-none" placeholder="e.g. 50,000" />
+        <input value={amount} onChange={(e) => onAmount(e.target.value)} required inputMode="numeric" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-accent focus:bg-white focus:outline-none" placeholder="e.g. 50,000" />
       </div>
       <div>
         <label className="mb-1.5 block text-sm font-semibold text-slate-800">Earmark to a programme <span className="font-normal text-slate-400">(optional)</span></label>
-        <select value={programId} onChange={(e) => setProgramId(e.target.value)} className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-accent focus:bg-white focus:outline-none">
+        <select value={programId} onChange={(e) => onProgram(e.target.value)} className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-accent focus:bg-white focus:outline-none">
           <option value="">General fund (where most needed)</option>
           {programs.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
         </select>
@@ -86,9 +116,9 @@ export default function SponsorForm() {
         </div>
       )}
       <Button size="lg" variant="primary" disabled={loading}>
-        {loading ? <><Loader2 size={16} className="animate-spin" /> Submitting…</> : <><HeartHandshake size={16} /> Pledge sponsorship</>}
+        {loading ? <><Loader2 size={16} className="animate-spin" /> Redirecting to secure checkout…</> : <><HeartHandshake size={16} /> Continue to secure payment</>}
       </Button>
-      <p className="text-center text-xs text-slate-400">Payment is arranged after you pledge — no card is charged here yet. Your data is handled under NDPA 2023.</p>
+      <p className="text-center text-xs text-slate-400">You&apos;ll be redirected to Paystack to complete your gift securely — card, bank transfer or USSD. Your data is handled under NDPA 2023.</p>
     </form>
   );
 }

@@ -401,8 +401,13 @@ model Sponsorship {
   program       Program?     @relation(fields: [programId], references: [id], onDelete: SetNull)
   participantId String?
   participant   Participant? @relation(fields: [participantId], references: [id], onDelete: SetNull)
-  status        String       @default("pending") // pending | confirmed | failed
-  createdAt     DateTime     @default(now()) @db.Timestamptz(3)
+  status         String       @default("pending") // pending | paid | failed
+  idempotencyKey String?      @unique // client-supplied; dedupes double-submits / retries
+  reference      String?      @unique // our Paystack transaction reference (set at checkout init)
+  providerRef    String?      // Paystack access_code / transaction id — for reconciliation
+  authorizationUrl String?    // Paystack hosted-checkout URL — reused on retry (no re-charge)
+  paidAt         DateTime?    @db.Timestamptz(3)
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
 
   @@index([programId])
   @@index([participantId])
