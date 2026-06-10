@@ -223,6 +223,7 @@ Both require `CRON_SECRET`. Pass it as `Authorization: Bearer <secret>` OR `X-Cr
 | `/api/cron/webhooks/retry` | every 5 minutes | Re-attempts due `WebhookDelivery` rows, escalates backoff, dead-letters at 5 attempts |
 | `/api/cron/cleanup` | daily | Deletes magic-link / email-change / revoked-or-expired session rows older than 1 day past expiry |
 | `/api/cron/classify/process` | daily (backstop) | Drains pending `StaffClassification` rows for bulk HR classification jobs. The upload route also kicks immediate processing via `after()`, so cron is only a backstop; an external scheduler can hit it more often for prompt draining of large batches. |
+| `/api/cron/gicn/reconcile-payments` | every ~30 min (GitHub Actions: `.github/workflows/gicn-reconcile.yml`) | Reconciles stale `pending` GICN sponsorships against Paystack — confirms successes whose webhook+callback both missed (idempotent paid flip + email), marks failed/abandoned/reversed (and >24h-stuck) transactions as `failed`. No-op when Paystack is unconfigured. |
 | `/api/cron/gicn/reminders` | (not scheduled) | **Tier-2 stub** — GICN programme reminder emails. Authed but unimplemented; wire into `vercel.json` once built. |
 
 ## Environment variables

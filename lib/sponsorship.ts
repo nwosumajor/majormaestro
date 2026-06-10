@@ -4,7 +4,7 @@
 
 import { db } from "@/lib/db";
 import { recordAudit } from "@/lib/audit";
-import { verifyTransaction } from "@/lib/payments";
+import { verifyTransaction, isPaymentConfigured } from "@/lib/payments";
 
 export type ConfirmOutcome =
   | "paid" // already paid, or just confirmed now
@@ -77,4 +77,85 @@ export async function confirmSponsorshipByReference(reference: string): Promise<
     justConfirmed: true,
     email: { sponsorEmail: sp.sponsorEmail, sponsorName: sp.sponsorName, amountKobo: sp.amountKobo, programTitle },
   };
+}
+
+// ── Reconciliation ──────────────────────────────────────────────────────────
+// A stuck `pending` sponsorship is one whose webhook AND callback both missed
+// (a real success to confirm) or whose sponsor abandoned checkout (to fail).
+// The reconcile sweep resolves them so the ledger never drifts.
+
+/** Don't touch fresh pendings — the normal webhook/callback handles those. */
+const RECONCILE_GRACE_MS = 15 * 60 * 1000; // 15 minutes
+/** A pending still not successful at Paystack after this is treated as abandoned. */
+const RECONCILE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+type SponsorEmail = { sponsorEmail: string; sponsorName: string; amountKobo: bigint; programTitle: string | null };
+
+export interface ReconcileSummary {
+  configured: boolean;
+  checked: number;
+  confirmed: number;
+  failed: number;
+  skipped: number;
+  /** Sponsors whose payment was confirmed during this sweep — caller emails them. */
+  emails: SponsorEmail[];
+}
+
+/** Idempotently flip a still-pending sponsorship to `failed` (audited). */
+export async function markSponsorshipFailed(id: string, reason: string): Promise<boolean> {
+  if (!db) return false;
+  const upd = await db.sponsorship.updateMany({ where: { id, status: "pending" }, data: { status: "failed" } });
+  if (upd.count === 0) return false;
+  await recordAudit({ action: "gicn_sponsorship_failed", actorLabel: "system:reconcile", targetType: "Sponsorship", targetId: id, metadata: { reason } });
+  return true;
+}
+
+/**
+ * Sweep stale `pending` sponsorships and resolve each against Paystack:
+ *  - success           → confirm (idempotent paid flip + email)
+ *  - failed/abandoned/reversed → mark failed
+ *  - still ongoing but older than the max age → mark failed (abandoned)
+ *  - transient verify error → leave for the next run
+ * No-op (and never marks anything failed) when Paystack is unconfigured.
+ */
+export async function reconcilePendingSponsorships(limit = 100): Promise<ReconcileSummary> {
+  const summary: ReconcileSummary = { configured: isPaymentConfigured(), checked: 0, confirmed: 0, failed: 0, skipped: 0, emails: [] };
+  if (!db || !summary.configured) return summary;
+
+  const now = Date.now();
+  const rows = await db.sponsorship.findMany({
+    where: { status: "pending", reference: { not: null }, createdAt: { lt: new Date(now - RECONCILE_GRACE_MS) } },
+    select: { id: true, reference: true, createdAt: true },
+    orderBy: { createdAt: "asc" },
+    take: limit,
+  });
+
+  for (const row of rows) {
+    summary.checked++;
+    if (!row.reference) { summary.skipped++; continue; }
+
+    const v = await verifyTransaction(row.reference);
+    if (!v.ok) { summary.skipped++; continue; } // transient — try again next run
+
+    if (v.status === "success") {
+      const r = await confirmSponsorshipByReference(row.reference);
+      if (r.outcome === "paid") {
+        summary.confirmed++;
+        if (r.justConfirmed && r.email) summary.emails.push(r.email);
+      } else {
+        summary.skipped++; // mismatch (logged) or transient
+      }
+    } else if (v.status === "failed" || v.status === "abandoned" || v.status === "reversed") {
+      if (await markSponsorshipFailed(row.id, `paystack:${v.status}`)) summary.failed++;
+      else summary.skipped++;
+    } else if (now - row.createdAt.getTime() > RECONCILE_MAX_AGE_MS) {
+      // ongoing/pending/processing/queued for too long → abandoned
+      if (await markSponsorshipFailed(row.id, `abandoned:${v.status}`)) summary.failed++;
+      else summary.skipped++;
+    } else {
+      summary.skipped++;
+    }
+  }
+
+  return summary;
 }
