@@ -49,7 +49,7 @@ export default function EmailChangePanel({ currentEmail }: Props) {
         <Mail size={14} /> Change email
       </h2>
       <p className="mt-1 text-xs text-slate-500">
-        Currently <span className="font-mono">{currentEmail}</span>. We'll send a confirmation link to the new address before swapping.
+        Currently <span className="font-mono">{currentEmail}</span>. We&apos;ll send a confirmation link to the new address before swapping.
       </p>
 
       {verifyError && (

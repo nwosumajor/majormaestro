@@ -249,7 +249,7 @@ export default function AccountPanel({ totpEnabled, recoveryCodesRemaining }: Pr
                     onClick={() => setIssuedCodes(null)}
                     className="text-xs text-amber-700 underline hover:text-amber-900"
                   >
-                    I've saved them — dismiss
+                    I&apos;ve saved them — dismiss
                   </button>
                 </div>
               </div>
