@@ -85,7 +85,7 @@ A youth/NGO arm: programme registration, check-in, certificates, and sponsorship
 
 **Admin** (under `app/admin/(dashboard)/gicn/`, nav link gated by `can(role,"gicn.manage")`): `/admin/gicn` (programme CRUD + stats), `/admin/gicn/[id]` (registrations, check-in by code/QR or row, waitlist promote, certificate PDF via `renderGicnCertificate` in `lib/pdf.ts`), `/admin/gicn/sponsorships` (ledger). New RBAC permissions `gicn.manage` + `gicn.checkin` (both 2FA-required; held by `owner` via `*` and the dedicated **`gicn_manager`** role only — the enterprise `manager` role has **no** GICN access, keeping the recovery and GICN arms isolated). Admin check-in input is keyboard-driven + auto-focused so a hardware QR scanner works; parents get a scannable QR (`components/gicn/QrCode.tsx`) on registration success.
 
-**Tier-2 scaffolds (not built):** scholarship review/approval *workflow UI* (`ScholarshipAward` model + the encrypting create/list API are real), impact report, reminders cron at `/api/cron/gicn/reminders` (stub, CRON_SECRET-authed — wire into `vercel.json` when implemented).
+**Tier-2 scaffolds (not built):** scholarship review/approval *workflow UI* (`ScholarshipAward` model + the encrypting create/list API are real), impact report. (Programme reminders are now **built** — see the cron table.)
 
 ## Authentication
 
@@ -224,7 +224,7 @@ Both require `CRON_SECRET`. Pass it as `Authorization: Bearer <secret>` OR `X-Cr
 | `/api/cron/cleanup` | daily | Deletes magic-link / email-change / revoked-or-expired session rows older than 1 day past expiry |
 | `/api/cron/classify/process` | daily (backstop) | Drains pending `StaffClassification` rows for bulk HR classification jobs. The upload route also kicks immediate processing via `after()`, so cron is only a backstop; an external scheduler can hit it more often for prompt draining of large batches. |
 | `/api/cron/gicn/reconcile-payments` | every ~30 min (GitHub Actions: `.github/workflows/gicn-reconcile.yml`) | Reconciles stale `pending` GICN sponsorships against Paystack — confirms successes whose webhook+callback both missed (idempotent paid flip + email), marks failed/abandoned/reversed (and >24h-stuck) transactions as `failed`. No-op when Paystack is unconfigured. |
-| `/api/cron/gicn/reminders` | (not scheduled) | **Tier-2 stub** — GICN programme reminder emails. Authed but unimplemented; wire into `vercel.json` once built. |
+| `/api/cron/gicn/reminders` | daily (GitHub Actions: `.github/workflows/gicn-reminders.yml`) | Emails guardians/schools a check-in reminder for every APPROVED registration on an OPEN/CLOSED programme starting within 3 days. Idempotent via the AuditLog (`gicn_reminder_sent`), so re-runs never double-email. Logic in `lib/gicnReminders.ts`. |
 
 ## Environment variables
 
