@@ -604,37 +604,82 @@ function gicnNaira(kobo: bigint): string {
   return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(Number(kobo) / 100);
 }
 
+function gicnReceiptBox(input: { amountKobo: bigint; programTitle?: string | null; reference?: string; paidAt?: Date | null }) {
+  const dateStr = (input.paidAt ?? new Date()).toLocaleDateString("en-NG", { dateStyle: "long" });
+  const rows: [string, string][] = [
+    ["Receipt no.", input.reference ?? "—"],
+    ["Date", dateStr],
+    ["Amount", gicnNaira(input.amountKobo)],
+    ["Designation", input.programTitle ?? "General fund"],
+    ["Method", "Card / bank transfer via Paystack"],
+  ];
+  return `
+      <div style="border:1px solid #e2e8f0;border-radius:8px;padding:16px 18px;margin-bottom:16px">
+        <p style="margin:0 0 10px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#0f172a">Payment receipt</p>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;color:#334155">
+          ${rows.map(([k, v]) => `<tr><td style="padding:4px 0;color:#64748b">${k}</td><td style="padding:4px 0;text-align:right;font-weight:600;color:#0f172a">${v}</td></tr>`).join("")}
+        </table>
+      </div>`;
+}
+
 export async function sendSponsorshipConfirmation(input: {
   sponsorEmail: string;
   sponsorName: string;
   amountKobo: bigint;
   programTitle?: string | null;
   paid?: boolean;
+  reference?: string;
+  paidAt?: Date | null;
 }) {
   if (!resend) return;
   const intro = input.paid
-    ? `Thank you for your generous gift of <strong>${gicnNaira(input.amountKobo)}</strong>${input.programTitle ? ` toward <strong>${input.programTitle}</strong>` : ""}. We've received your payment — your support helps young people access scholarships, leadership and faith programmes.`
+    ? `Thank you for your generous gift of <strong>${gicnNaira(input.amountKobo)}</strong>${input.programTitle ? ` toward <strong>${input.programTitle}</strong>` : ""}. We've received your payment — your support helps young people access scholarships, leadership and faith programmes. Your receipt is below.`
     : `Thank you for your generous pledge of <strong>${gicnNaira(input.amountKobo)}</strong>${input.programTitle ? ` toward <strong>${input.programTitle}</strong>` : ""}. Your support helps young people access scholarships, leadership and faith programmes.`;
-  const statusBox = input.paid
-    ? `<p style="margin:0;font-size:13px;color:#065f46">Your sponsorship is <strong>confirmed</strong> and your payment has been received. A receipt is on its way from our payment processor.</p>`
-    : `<p style="margin:0;font-size:13px;color:#065f46">Your sponsorship is recorded as <strong>pending</strong>. Our team will contact you with payment details to complete it.</p>`;
+  const body = input.paid
+    ? `${gicnReceiptBox(input)}<p style="margin:0;font-size:12px;color:#94a3b8">Keep this email as your receipt. You'll be able to see exactly which programme and beneficiaries your gift supports in the sponsorship ledger.</p>`
+    : `<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:14px;margin-bottom:16px"><p style="margin:0;font-size:13px;color:#065f46">Your sponsorship is recorded as <strong>pending</strong>. Our team will contact you with payment details to complete it.</p></div><p style="margin:0;font-size:12px;color:#94a3b8">You'll be able to see exactly which programme and beneficiaries your gift supports in the sponsorship ledger.</p>`;
   const html = `
   <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
     ${brandHeader("Global Impact Christian Network")}
     <div style="padding:32px">
       <p style="margin:0 0 12px;font-size:15px;color:#1e293b">Dear ${input.sponsorName},</p>
       <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6">${intro}</p>
-      <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:14px;margin-bottom:16px">${statusBox}</div>
-      <p style="margin:0;font-size:12px;color:#94a3b8">You'll be able to see exactly which programme and beneficiaries your gift supports in the sponsorship ledger.</p>
+      ${body}
     </div>
     ${brandFooter()}
   </div>`;
   await sendOrThrow({
     from: FROM,
     to: input.sponsorEmail,
-    subject: input.paid ? "Your GICN sponsorship — payment received" : "Thank you for sponsoring with GICN",
+    subject: input.paid ? "Your GICN sponsorship receipt" : "Thank you for sponsoring with GICN",
     html,
   });
+}
+
+export async function sendSponsorshipRefund(input: {
+  sponsorEmail: string;
+  sponsorName: string;
+  amountKobo: bigint;
+  programTitle?: string | null;
+  reference?: string;
+}) {
+  if (!resend) return;
+  const html = `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+    ${brandHeader("Global Impact Christian Network")}
+    <div style="padding:32px">
+      <p style="margin:0 0 12px;font-size:15px;color:#1e293b">Dear ${input.sponsorName},</p>
+      <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6">
+        We've processed a refund of <strong>${gicnNaira(input.amountKobo)}</strong>${input.programTitle ? ` for your sponsorship toward <strong>${input.programTitle}</strong>` : ""}. The funds will be returned to your original payment method — please allow a few business days for your bank to reflect it.
+      </p>
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px;margin-bottom:16px">
+        <p style="margin:0;font-size:13px;color:#1e3a8a">Refund reference: <strong>${input.reference ?? "—"}</strong></p>
+      </div>
+      <p style="margin:0;font-size:12px;color:#94a3b8">If you didn't expect this or have any questions, just reply to this email and our team will help.</p>
+    </div>
+    ${brandFooter()}
+  </div>`;
+  await sendOrThrow({ from: FROM, to: input.sponsorEmail, subject: "Your GICN sponsorship has been refunded", html });
 }
 
 function gicnCodeBox(checkInCode: string, caption = "Present this code at the event for check-in.") {

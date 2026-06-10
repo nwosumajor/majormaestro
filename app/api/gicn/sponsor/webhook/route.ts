@@ -1,6 +1,6 @@
 import { NextResponse, after, type NextRequest } from "next/server";
 import { verifyPaystackSignature, isPaymentConfigured } from "@/lib/payments";
-import { confirmSponsorshipByReference } from "@/lib/sponsorship";
+import { confirmSponsorshipByReference, handleRefundEvent } from "@/lib/sponsorship";
 import { sendSponsorshipConfirmation } from "@/lib/email";
 
 /**
@@ -42,20 +42,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "invalid_signature" }, { status: 401 });
   }
 
-  let event: { event?: string; data?: { reference?: string } };
+  let event: { event?: string; data?: { reference?: string; transaction_reference?: string } };
   try {
     event = JSON.parse(rawBody);
   } catch {
     return NextResponse.json({ ok: false, error: "malformed_body" }, { status: 400 });
   }
 
-  const reference = event?.data?.reference;
-  // Only charge.success grants value; acknowledge everything else with 200.
-  if (event?.event !== "charge.success" || typeof reference !== "string") {
-    return NextResponse.json({ ok: true, ignored: true });
-  }
-
   try {
+    // Refund lifecycle — keep the ledger truthful. data.transaction_reference is
+    // the original charge reference.
+    if (event?.event === "refund.processed" || event?.event === "refund.failed") {
+      const txnRef = event.data?.transaction_reference;
+      if (typeof txnRef === "string") {
+        await handleRefundEvent(txnRef, event.event === "refund.processed" ? "processed" : "failed");
+      }
+      return NextResponse.json({ ok: true, outcome: event.event });
+    }
+
+    // Only charge.success grants value; acknowledge everything else with 200.
+    const reference = event?.data?.reference;
+    if (event?.event !== "charge.success" || typeof reference !== "string") {
+      return NextResponse.json({ ok: true, ignored: true });
+    }
+
     const result = await confirmSponsorshipByReference(reference);
     if (result.justConfirmed && result.email) {
       const e = result.email;
