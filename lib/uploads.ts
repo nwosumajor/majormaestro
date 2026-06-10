@@ -18,6 +18,20 @@ interface PutInput {
 const LOCAL_DIR = path.join(process.cwd(), "uploads");
 const SAFE_KEY = /^[A-Za-z0-9._-]+$/;
 
+/** Allowed upload extensions — authoritative (MIME is client-supplied/spoofable). */
+export const ALLOWED_UPLOAD_EXTS = new Set([".pdf", ".xls", ".xlsx", ".csv"]);
+
+/**
+ * Validate an upload by its file EXTENSION. The extension is the authoritative
+ * signal: MIME types are client-controlled and easily spoofed (e.g. sending
+ * `application/octet-stream` for an executable), so they must never be sufficient
+ * on their own to admit a file.
+ */
+export function isAllowedUpload(fileName: string): boolean {
+  const ext = path.extname(fileName).toLowerCase();
+  return ALLOWED_UPLOAD_EXTS.has(ext);
+}
+
 function getBackend(): StorageBackend {
   const b = process.env.STORAGE_BACKEND?.toLowerCase();
   if (b === "s3") return "s3";
