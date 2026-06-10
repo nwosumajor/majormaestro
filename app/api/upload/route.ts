@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
-import { putObject } from "@/lib/uploads";
+import { putObject, isAllowedUpload } from "@/lib/uploads";
 import { rateLimit, getClientIp, rateLimitHeaders } from "@/lib/rateLimit";
 
 // This endpoint is intentionally public — the recovery intake form uploads
@@ -10,14 +10,6 @@ import { rateLimit, getClientIp, rateLimitHeaders } from "@/lib/rateLimit";
 const UPLOADS_PER_HOUR = 20;
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
-const ALLOWED_TYPES = new Set([
-  "application/pdf",
-  "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "text/csv",
-  "application/octet-stream",
-]);
-const ALLOWED_EXTS = new Set([".pdf", ".xls", ".xlsx", ".csv"]);
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
@@ -37,13 +29,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided." }, { status: 400 });
     }
 
-    const ext = path.extname(file.name).toLowerCase();
-    if (!ALLOWED_EXTS.has(ext) && !ALLOWED_TYPES.has(file.type)) {
+    // Validate by extension (authoritative) — a spoofed MIME like
+    // application/octet-stream must NOT be able to admit an executable.
+    if (!isAllowedUpload(file.name)) {
       return NextResponse.json(
         { error: "File type not permitted. Upload PDF, Excel, or CSV files only." },
         { status: 400 }
       );
     }
+    const ext = path.extname(file.name).toLowerCase();
 
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
