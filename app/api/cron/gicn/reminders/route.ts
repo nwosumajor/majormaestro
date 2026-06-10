@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sendDueProgrammeReminders } from "@/lib/gicnReminders";
 
-// TIER 2 (scaffold): GICN programme reminders.
+// GICN programme reminders: for each APPROVED registration on an OPEN/CLOSED
+// programme starting within the next few days, email the owning adult a check-in
+// reminder. Idempotent (AuditLog-backed) so re-runs never double-email.
 //
-// Intended behaviour (not yet implemented): for each OPEN/CLOSED programme
-// starting within the next N days, email the owning adult (guardian/school)
-// for every CONFIRMED registration a reminder with the check-in code. Reuse
-// lib/email.ts (Resend) and respect the same CRON_SECRET auth + GET/POST
-// convention as the other cron endpoints. Add to vercel.json crons when built.
+// Scheduler-agnostic (GET or POST; CRON_SECRET via Bearer or X-Cron-Secret).
+// Driven daily by .github/workflows/gicn-reminders.yml.
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 function checkCronAuth(req: NextRequest): boolean {
   const expected = process.env.CRON_SECRET;
   if (!expected) return false;
@@ -17,8 +20,8 @@ function checkCronAuth(req: NextRequest): boolean {
 
 export async function POST(req: NextRequest) {
   if (!checkCronAuth(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  // TODO(tier2): query due programmes + send reminder emails.
-  return NextResponse.json({ ok: true, sent: 0, note: "GICN reminders not yet implemented (Tier 2 scaffold)." });
+  const summary = await sendDueProgrammeReminders();
+  return NextResponse.json({ ok: true, ...summary });
 }
 
 export async function GET(req: NextRequest) {

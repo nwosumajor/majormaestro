@@ -682,6 +682,32 @@ export async function sendSponsorshipRefund(input: {
   await sendOrThrow({ from: FROM, to: input.sponsorEmail, subject: "Your GICN sponsorship has been refunded", html });
 }
 
+export async function sendGicnProgrammeReminder(input: {
+  ownerEmail: string;
+  childName: string;
+  programTitle: string;
+  startsAt: Date;
+  location?: string | null;
+  checkInCode: string;
+}) {
+  if (!resend) return;
+  const when = input.startsAt.toLocaleDateString("en-NG", { dateStyle: "full" });
+  const html = `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+    ${brandHeader("Global Impact Christian Network")}
+    <div style="padding:32px">
+      <p style="margin:0 0 12px;font-size:15px;color:#1e293b">Dear parent/guardian,</p>
+      <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6">
+        This is a friendly reminder that <strong>${input.childName}</strong> is registered for <strong>${input.programTitle}</strong>, starting <strong>${when}</strong>${input.location ? ` at <strong>${input.location}</strong>` : ""}.
+      </p>
+      ${gicnCodeBox(input.checkInCode, "Present this code at check-in on the day.")}
+      <p style="margin:0;font-size:13px;color:#475569;line-height:1.6">We look forward to welcoming ${input.childName}. If anything has changed, please reply to this email and our team will help.</p>
+    </div>
+    ${brandFooter()}
+  </div>`;
+  await sendOrThrow({ from: FROM, to: input.ownerEmail, subject: `Reminder: ${input.programTitle} is coming up`, html });
+}
+
 function gicnCodeBox(checkInCode: string, caption = "Present this code at the event for check-in.") {
   return `
       <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px;text-align:center;margin-bottom:16px">
