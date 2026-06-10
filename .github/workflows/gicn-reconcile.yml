@@ -1,0 +1,54 @@
+name: GICN sponsorship reconciliation
+
+# Drives /api/cron/gicn/reconcile-payments on a schedule to resolve stale
+# `pending` sponsorships against Paystack (confirm missed successes; fail
+# abandoned checkouts). The Vercel Hobby plan caps cron jobs (and vercel.json's
+# two slots are already used by cleanup + classify), so — like the webhook
+# retry driver — this runs as an external scheduler instead.
+#
+# SETUP (one-time):
+#   Repo → Settings → Secrets and variables → Actions:
+#     - Secret  CRON_SECRET = the same value as the Vercel CRON_SECRET env var
+#     - Variable APP_URL    = https://majormaestro.com   (optional; default below)
+#
+# NOTE: GitHub disables scheduled workflows after 60 days of repo inactivity,
+# and scheduled runs can be delayed under load. The webhook + on-return callback
+# already confirm the happy path immediately; this is the backstop.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *" # every 30 minutes (UTC)
+  workflow_dispatch: {} # allow manual "Run workflow" from the Actions tab
+
+concurrency:
+  group: gicn-reconcile
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Reconcile pending sponsorships
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: ${{ vars.APP_URL || 'https://majormaestro.com' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "::warning::CRON_SECRET repo secret is not set — skipping. Add it under Settings → Secrets and variables → Actions to enable reconciliation."
+            exit 0
+          fi
+          code=$(curl -sS --max-time 120 -o /tmp/resp.json -w '%{http_code}' \
+            -X POST \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${APP_URL%/}/api/cron/gicn/reconcile-payments")
+          echo "HTTP ${code}"
+          echo "Response: $(cat /tmp/resp.json 2>/dev/null || echo '<empty>')"
+          if [ "${code}" -lt 200 ] || [ "${code}" -ge 300 ]; then
+            echo "::error::Reconcile endpoint returned HTTP ${code}"
+            exit 1
+          fi
