@@ -119,6 +119,10 @@ optional("INTERNAL_NOTIFY_EMAIL", (v) => (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ?
 // ─── Cron ──────────────────────────────────────────────────────────────────
 optional("CRON_SECRET", (v) => (v.length >= 24 ? null : "should be ≥24 characters"), "cron retry + cleanup endpoints will reject all calls");
 
+// ─── Payments (Paystack) ───────────────────────────────────────────────────
+optional("PAYSTACK_SECRET_KEY", (v) => (v.startsWith("sk_") ? null : "should start with 'sk_' (sk_test_… or sk_live_…)"), "GICN sponsorship checkout is disabled — pledges fall back to the 'pending' no-op stub");
+optional("PAYSTACK_PUBLIC_KEY", (v) => (v.startsWith("pk_") ? null : "should start with 'pk_'"), "only needed for inline checkout; the redirect flow uses the secret key only");
+
 // ─── Google OAuth ──────────────────────────────────────────────────────────
 const googleId = env.GOOGLE_CLIENT_ID;
 const googleSecret = env.GOOGLE_CLIENT_SECRET;
