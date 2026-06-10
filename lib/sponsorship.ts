@@ -4,7 +4,17 @@
 
 import { db } from "@/lib/db";
 import { recordAudit } from "@/lib/audit";
-import { verifyTransaction, isPaymentConfigured } from "@/lib/payments";
+import { verifyTransaction, isPaymentConfigured, refundTransaction } from "@/lib/payments";
+
+/** Receipt-bearing payload the caller emails the sponsor. */
+export type SponsorEmail = {
+  sponsorEmail: string;
+  sponsorName: string;
+  amountKobo: bigint;
+  programTitle: string | null;
+  reference?: string;
+  paidAt?: Date | null;
+};
 
 export type ConfirmOutcome =
   | "paid" // already paid, or just confirmed now
@@ -17,7 +27,7 @@ export interface ConfirmResult {
   outcome: ConfirmOutcome;
   /** True only on the single transition pending → paid (so the caller emails once). */
   justConfirmed: boolean;
-  email?: { sponsorEmail: string; sponsorName: string; amountKobo: bigint; programTitle: string | null };
+  email?: SponsorEmail;
 }
 
 /**
@@ -53,9 +63,10 @@ export async function confirmSponsorshipByReference(reference: string): Promise<
   }
 
   // Idempotent transition: only the first writer flips pending → paid.
+  const paidAt = v.paidAt ?? new Date();
   const upd = await db.sponsorship.updateMany({
     where: { id: sp.id, status: { not: "paid" } },
-    data: { status: "paid", paidAt: v.paidAt ?? new Date(), providerRef: v.providerRef ?? undefined },
+    data: { status: "paid", paidAt, providerRef: v.providerRef ?? undefined },
   });
 
   if (upd.count === 0) return { outcome: "paid", justConfirmed: false };
@@ -75,8 +86,92 @@ export async function confirmSponsorshipByReference(reference: string): Promise<
   return {
     outcome: "paid",
     justConfirmed: true,
-    email: { sponsorEmail: sp.sponsorEmail, sponsorName: sp.sponsorName, amountKobo: sp.amountKobo, programTitle },
+    email: { sponsorEmail: sp.sponsorEmail, sponsorName: sp.sponsorName, amountKobo: sp.amountKobo, programTitle, reference, paidAt },
   };
+}
+
+// ── Refunds ─────────────────────────────────────────────────────────────────
+
+export type RefundOutcome =
+  | "refunded"
+  | "already_refunded"
+  | "not_found"
+  | "not_paid"
+  | "no_reference"
+  | "unconfigured"
+  | "provider_error"
+  | "unavailable";
+
+export interface RefundResultDb {
+  outcome: RefundOutcome;
+  error?: string;
+  /** Present only on the transition paid → refunded, so the caller emails once. */
+  email?: SponsorEmail;
+}
+
+/**
+ * Refund a paid sponsorship. Race-safe: claims the row (paid → refunded) FIRST,
+ * then calls Paystack — so two concurrent refunds can't both move money — and
+ * reverts the claim if the provider call fails.
+ */
+export async function refundSponsorship(id: string, adminEmail: string): Promise<RefundResultDb> {
+  if (!db) return { outcome: "unavailable" };
+  if (!isPaymentConfigured()) return { outcome: "unconfigured" };
+
+  const sp = await db.sponsorship.findUnique({
+    where: { id },
+    select: { id: true, status: true, reference: true, amountKobo: true, sponsorName: true, sponsorEmail: true, programId: true, paidAt: true },
+  });
+  if (!sp) return { outcome: "not_found" };
+  if (sp.status === "refunded") return { outcome: "already_refunded" };
+  if (sp.status !== "paid") return { outcome: "not_paid" };
+  if (!sp.reference) return { outcome: "no_reference" };
+
+  // Claim first to prevent a double-refund race.
+  const claim = await db.sponsorship.updateMany({ where: { id, status: "paid" }, data: { status: "refunded" } });
+  if (claim.count === 0) {
+    const cur = await db.sponsorship.findUnique({ where: { id }, select: { status: true } });
+    return cur?.status === "refunded" ? { outcome: "already_refunded" } : { outcome: "not_paid" };
+  }
+
+  const r = await refundTransaction(sp.reference, Number(sp.amountKobo));
+  if (!r.ok) {
+    // Provider rejected the refund — release the claim so it can be retried.
+    await db.sponsorship.updateMany({ where: { id, status: "refunded" }, data: { status: "paid" } });
+    return { outcome: "provider_error", error: r.message };
+  }
+
+  await recordAudit({
+    action: "gicn_sponsorship_refunded",
+    actorLabel: adminEmail,
+    targetType: "Sponsorship",
+    targetId: id,
+    metadata: { reference: sp.reference, amountKobo: sp.amountKobo.toString(), providerStatus: r.status },
+  });
+
+  const programTitle = sp.programId
+    ? (await db.program.findUnique({ where: { id: sp.programId }, select: { title: true } }))?.title ?? null
+    : null;
+
+  return {
+    outcome: "refunded",
+    email: { sponsorEmail: sp.sponsorEmail, sponsorName: sp.sponsorName, amountKobo: sp.amountKobo, programTitle, reference: sp.reference, paidAt: sp.paidAt },
+  };
+}
+
+/**
+ * Apply a Paystack refund webhook. `processed` confirms paid → refunded;
+ * `failed` reverts refunded → paid (the money was NOT returned), keeping the
+ * ledger truthful. Idempotent and a no-op if the row isn't in the expected state.
+ */
+export async function handleRefundEvent(reference: string, kind: "processed" | "failed"): Promise<void> {
+  if (!db) return;
+  const fromStatus = kind === "processed" ? "paid" : "refunded";
+  const toStatus = kind === "processed" ? "refunded" : "paid";
+  const sp = await db.sponsorship.findUnique({ where: { reference }, select: { id: true, status: true } });
+  if (!sp || sp.status !== fromStatus) return;
+  await db.sponsorship.updateMany({ where: { id: sp.id, status: fromStatus }, data: { status: toStatus } });
+  await recordAudit({ action: `gicn_sponsorship_refund_${kind}`, actorLabel: "system:webhook", targetType: "Sponsorship", targetId: sp.id, metadata: { reference } });
 }
 
 // ── Reconciliation ──────────────────────────────────────────────────────────
@@ -89,7 +184,6 @@ const RECONCILE_GRACE_MS = 15 * 60 * 1000; // 15 minutes
 /** A pending still not successful at Paystack after this is treated as abandoned. */
 const RECONCILE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-type SponsorEmail = { sponsorEmail: string; sponsorName: string; amountKobo: bigint; programTitle: string | null };
 
 export interface ReconcileSummary {
   configured: boolean;

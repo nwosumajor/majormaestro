@@ -6,6 +6,7 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { confirmSponsorshipByReference } from "@/lib/sponsorship";
 import { sendSponsorshipConfirmation } from "@/lib/email";
+import { db } from "@/lib/db";
 
 export const metadata: Metadata = { title: "Sponsorship — payment status", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -55,6 +56,23 @@ export default async function SponsorCompletePage({
     },
   }[outcome];
 
+  // Receipt details for the on-screen confirmation (paid only).
+  let receipt: { reference: string; amount: string; date: string; designation: string } | null = null;
+  if (outcome === "paid" && db && reference) {
+    const row = await db.sponsorship.findUnique({
+      where: { reference },
+      select: { amountKobo: true, paidAt: true, program: { select: { title: true } } },
+    });
+    if (row) {
+      receipt = {
+        reference,
+        amount: "₦" + (Number(row.amountKobo) / 100).toLocaleString("en-NG"),
+        date: (row.paidAt ?? new Date()).toLocaleDateString("en-NG", { dateStyle: "long" }),
+        designation: row.program?.title ?? "General fund",
+      };
+    }
+  }
+
   return (
     <main className="min-h-screen bg-slate-50 py-16">
       <Container className="max-w-xl">
@@ -65,6 +83,18 @@ export default async function SponsorCompletePage({
           {ui.icon}
           <h1 className="font-display text-xl font-semibold text-ink">{ui.title}</h1>
           <p className="mx-auto mt-2 max-w-md text-sm text-slate-600">{ui.body}</p>
+          {receipt && (
+            <div className="mx-auto mt-6 max-w-sm rounded-xl border border-slate-200 bg-slate-50 p-4 text-left">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Payment receipt</p>
+              <dl className="space-y-1.5 text-sm">
+                <div className="flex justify-between gap-4"><dt className="text-slate-500">Receipt no.</dt><dd className="truncate font-mono text-xs text-slate-700">{receipt.reference}</dd></div>
+                <div className="flex justify-between gap-4"><dt className="text-slate-500">Date</dt><dd className="font-semibold text-slate-800">{receipt.date}</dd></div>
+                <div className="flex justify-between gap-4"><dt className="text-slate-500">Amount</dt><dd className="font-semibold text-slate-900">{receipt.amount}</dd></div>
+                <div className="flex justify-between gap-4"><dt className="text-slate-500">Designation</dt><dd className="font-semibold text-slate-800">{receipt.designation}</dd></div>
+              </dl>
+              <p className="mt-3 text-[11px] text-slate-400">A copy has also been emailed to you. Keep it as your receipt.</p>
+            </div>
+          )}
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Button href="/gicn" variant="primary" size="md">Back to GICN</Button>
             <Button href="/gicn/sponsor" variant="outline" size="md">Sponsor again</Button>

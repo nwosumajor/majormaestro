@@ -137,6 +137,39 @@ export async function verifyTransaction(reference: string): Promise<VerifyResult
   };
 }
 
+export interface RefundResult {
+  ok: boolean;
+  /** Paystack refund status: pending | processing | processed | failed | ... */
+  status: string;
+  message?: string;
+}
+
+/**
+ * Create a refund for a transaction. Full refund when `amountKobo` is omitted.
+ * Paystack processes refunds asynchronously (a `refund.processed` / `refund.failed`
+ * webhook follows), so this returns the refund's initial status.
+ */
+export async function refundTransaction(reference: string, amountKobo?: number): Promise<RefundResult> {
+  if (!isPaymentConfigured()) return { ok: false, status: "unconfigured" };
+
+  const body: Record<string, unknown> = { transaction: reference };
+  if (amountKobo != null) body.amount = amountKobo;
+
+  const res = await fetch(`${PAYSTACK_BASE}/refund`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${secret()}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const json = (await res.json().catch(() => null)) as
+    | { status: boolean; message?: string; data?: { status?: string } }
+    | null;
+
+  if (!res.ok || !json?.status) {
+    return { ok: false, status: "refund_failed", message: json?.message ?? `HTTP ${res.status}` };
+  }
+  return { ok: true, status: json.data?.status ?? "pending", message: json.message };
+}
+
 /**
  * Verify a Paystack webhook signature: HMAC-SHA512 of the RAW body with the
  * secret key, constant-time compared to the `x-paystack-signature` header.

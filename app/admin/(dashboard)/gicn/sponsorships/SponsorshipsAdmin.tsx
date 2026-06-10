@@ -13,7 +13,9 @@ interface Row {
   programTitle: string | null;
 }
 
-const STATUSES = ["pending", "paid", "refunded", "cancelled"];
+// Manual bookkeeping statuses only. "refunded" is NOT here — refunds must move
+// money through the real Paystack flow (the Refund button), never a label change.
+const STATUSES = ["pending", "paid", "cancelled"];
 const TONE: Record<string, string> = {
   pending: "bg-amber-100 text-amber-700",
   paid: "bg-emerald-100 text-emerald-700",
@@ -32,6 +34,16 @@ export default function SponsorshipsAdmin({ rows }: { rows: Row[] }) {
     router.refresh();
   }
 
+  async function refund(id: string) {
+    if (!confirm("Refund this sponsorship to the sponsor's original payment method? This moves money via Paystack and cannot be undone.")) return;
+    setBusy(id);
+    const res = await fetch(`/api/admin/gicn/sponsorships/${id}/refund`, { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    setBusy(null);
+    if (!res.ok) alert(data.error ?? "Refund failed.");
+    router.refresh();
+  }
+
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <table className="w-full text-sm">
@@ -42,11 +54,12 @@ export default function SponsorshipsAdmin({ rows }: { rows: Row[] }) {
             <th className="px-4 py-3 text-right">Amount</th>
             <th className="px-4 py-3">Date</th>
             <th className="px-4 py-3">Status</th>
+            <th className="px-4 py-3 text-right">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
           {rows.length === 0 ? (
-            <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">No sponsorships yet.</td></tr>
+            <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">No sponsorships yet.</td></tr>
           ) : rows.map((r) => (
             <tr key={r.id} className="hover:bg-slate-50">
               <td className="px-4 py-3">
@@ -64,7 +77,19 @@ export default function SponsorshipsAdmin({ rows }: { rows: Row[] }) {
                   className={`rounded-full border-0 px-2.5 py-1 text-xs font-semibold ${TONE[r.status] ?? "bg-slate-100 text-slate-600"}`}
                 >
                   {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  {!STATUSES.includes(r.status) && <option value={r.status}>{r.status}</option>}
                 </select>
+              </td>
+              <td className="px-4 py-3 text-right">
+                {r.status === "paid" && (
+                  <button
+                    onClick={() => refund(r.id)}
+                    disabled={busy === r.id}
+                    className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+                  >
+                    Refund
+                  </button>
+                )}
               </td>
             </tr>
           ))}
