@@ -11,11 +11,16 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
 const PAYSTACK_BASE = "https://api.paystack.co";
-const SECRET = process.env.PAYSTACK_SECRET_KEY;
+
+/** Read the secret at call-time (robust to runtime env injection + testable). */
+function secret(): string | undefined {
+  return process.env.PAYSTACK_SECRET_KEY;
+}
 
 /** True when a real Paystack secret key is configured. */
 export function isPaymentConfigured(): boolean {
-  return typeof SECRET === "string" && SECRET.startsWith("sk_");
+  const s = secret();
+  return typeof s === "string" && s.startsWith("sk_");
 }
 
 function appUrl(): string {
@@ -65,7 +70,7 @@ export async function initiateSponsorshipPayment(input: SponsorshipPaymentInput)
 
   const res = await fetch(`${PAYSTACK_BASE}/transaction/initialize`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${SECRET}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${secret()}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       email: input.sponsorEmail,
       amount: Number(input.amountKobo), // kobo
@@ -111,7 +116,7 @@ export async function verifyTransaction(reference: string): Promise<VerifyResult
   if (!isPaymentConfigured()) return { ok: false, status: "unconfigured", amountKobo: 0, currency: "NGN", providerRef: null, paidAt: null };
 
   const res = await fetch(`${PAYSTACK_BASE}/transaction/verify/${encodeURIComponent(reference)}`, {
-    headers: { Authorization: `Bearer ${SECRET}` },
+    headers: { Authorization: `Bearer ${secret()}` },
     cache: "no-store",
   });
   const json = (await res.json().catch(() => null)) as
@@ -138,8 +143,9 @@ export async function verifyTransaction(reference: string): Promise<VerifyResult
  * Fails closed when the secret is missing.
  */
 export function verifyPaystackSignature(rawBody: string, signature: string | null): boolean {
-  if (!SECRET || !signature) return false;
-  const expected = createHmac("sha512", SECRET).update(rawBody, "utf8").digest("hex");
+  const s = secret();
+  if (!s || !signature) return false;
+  const expected = createHmac("sha512", s).update(rawBody, "utf8").digest("hex");
   const a = Buffer.from(expected, "utf8");
   const b = Buffer.from(signature, "utf8");
   if (a.length !== b.length) return false;

@@ -1,0 +1,44 @@
+name: CI
+
+# Regression safety net: typecheck + lint + unit tests on every PR and on push
+# to main. Fast and secret-free — no DB or network needed (the tests cover pure,
+# security/correctness-critical logic: Paystack signature/idempotency, CBN charge
+# math, and the RBAC role-isolation matrix).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # `npm ci` runs postinstall (prisma generate), which only reads the schema
+      # — no database connection required.
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test

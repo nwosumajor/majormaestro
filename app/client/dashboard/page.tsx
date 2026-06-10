@@ -255,7 +255,7 @@ export default async function ClientDashboardPage() {
 
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-sm font-bold text-slate-900">Account</p>
-          <p className="mt-1 text-xs text-slate-500">Signed in via Google as <span className="font-mono">{me.email}</span>. We don't store your password.</p>
+          <p className="mt-1 text-xs text-slate-500">Signed in via Google as <span className="font-mono">{me.email}</span>. We don&apos;t store your password.</p>
         </section>
       </div>
     </main>

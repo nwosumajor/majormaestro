@@ -106,7 +106,7 @@ export default async function GicnLandingPage() {
         <Container className="relative py-16 sm:py-20">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="font-display text-3xl font-semibold tracking-tight text-white sm:text-4xl">Be part of the impact.</h2>
-            <p className="mx-auto mt-3 max-w-xl text-base text-slate-300">Sponsor a student's scholarship or camp place, or register the young people in your care.</p>
+            <p className="mx-auto mt-3 max-w-xl text-base text-slate-300">Sponsor a student&apos;s scholarship or camp place, or register the young people in your care.</p>
             <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Button href="/gicn/sponsor" variant="primary" size="lg"><HeartHandshake size={16} /> Sponsor now</Button>
               <Button href="/gicn/register" variant="outlineLight" size="lg">Create an account</Button>

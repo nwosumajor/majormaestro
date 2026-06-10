@@ -64,7 +64,7 @@ export default function RecoveryEstimator() {
           Annual Turnover Band
         </label>
         <p className="mb-3 text-xs text-slate-500">
-          Select the band that best reflects your organisation's annual turnover.
+          Select the band that best reflects your organisation&apos;s annual turnover.
         </p>
         <div className="relative">
           <select
