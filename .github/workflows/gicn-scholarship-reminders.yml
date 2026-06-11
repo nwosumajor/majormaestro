@@ -1,0 +1,51 @@
+name: GICN scholarship reminders
+
+# Drives /api/cron/gicn/scholarship-reminders once a day: renewal reminders to
+# guardians (scholarships due within ~14 days) and at-risk nudges to the board.
+# The Vercel Hobby plan's two vercel.json cron slots are already used, so — like
+# the other GICN/webhook drivers — this runs as an external scheduler.
+#
+# SETUP (one-time):
+#   Repo → Settings → Secrets and variables → Actions:
+#     - Secret  CRON_SECRET = the same value as the Vercel CRON_SECRET env var
+#     - Variable APP_URL    = https://majormaestro.com   (optional; default below)
+#
+# Idempotent (AuditLog-backed), so re-runs never double-email.
+
+on:
+  schedule:
+    - cron: "30 7 * * *" # 07:30 UTC daily (~08:30 WAT)
+  workflow_dispatch: {}
+
+concurrency:
+  group: gicn-scholarship-reminders
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Send due scholarship reminders
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: ${{ vars.APP_URL || 'https://majormaestro.com' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "::warning::CRON_SECRET repo secret is not set — skipping. Add it under Settings → Secrets and variables → Actions to enable reminders."
+            exit 0
+          fi
+          code=$(curl -sS --max-time 120 -o /tmp/resp.json -w '%{http_code}' \
+            -X POST \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${APP_URL%/}/api/cron/gicn/scholarship-reminders")
+          echo "HTTP ${code}"
+          echo "Response: $(cat /tmp/resp.json 2>/dev/null || echo '<empty>')"
+          if [ "${code}" -lt 200 ] || [ "${code}" -ge 300 ]; then
+            echo "::error::Scholarship reminders endpoint returned HTTP ${code}"
+            exit 1
+          fi

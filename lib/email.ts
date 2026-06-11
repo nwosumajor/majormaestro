@@ -769,6 +769,29 @@ export async function sendScholarshipSuspended(toEmail: string, input: { childNa
   await sendOrThrow({ from: FROM, to: toEmail, subject: `Action needed: ${input.childName}'s scholarship is suspended`, html });
 }
 
+export async function sendScholarshipRenewalReminder(toEmail: string, input: { childName: string; programTitle: string; dueAt: Date }) {
+  if (!resend) return;
+  const when = input.dueAt.toLocaleDateString("en-NG", { dateStyle: "full" });
+  const html = scholarshipEmail(
+    "Scholarship renewal due",
+    `<p style="margin:0 0 12px;font-size:15px;color:#475569;line-height:1.6"><strong>${input.childName}</strong>'s scholarship toward <strong>${input.programTitle}</strong> is due for renewal on <strong>${when}</strong>.</p>
+     <p style="margin:0;font-size:15px;color:#475569;line-height:1.6">Please upload the latest results and any required documents so the review board can renew the award without interruption.</p>`,
+    { label: "Update scholarship", href: SCHOLARSHIPS_URL }
+  );
+  await sendOrThrow({ from: FROM, to: toEmail, subject: `Renewal due: ${input.childName}'s GICN scholarship`, html });
+}
+
+// Internal board nudge — to the team, not the guardian.
+export async function sendScholarshipAtRiskNudge(input: { childName: string; programTitle: string; standing: string; term: string; reference: string | null }) {
+  if (!resend) return;
+  const html = scholarshipEmail(
+    "Scholar flagged",
+    `<p style="margin:0;font-size:15px;color:#475569;line-height:1.6">Scholar <strong>${input.childName}</strong> (${input.programTitle}${input.reference ? `, ${input.reference}` : ""}) is flagged <strong>${input.standing.replace("_", " ")}</strong> for <strong>${input.term}</strong>. Review the academic record and consider conditions, a check-in, or suspension.</p>`,
+    { label: "Open review board", href: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://majormaestro.com"}/admin/gicn/scholarships` }
+  );
+  await sendOrThrow({ from: FROM, to: INTERNAL_TEAM, subject: `At-risk scholar: ${input.childName} (${input.standing})`, html });
+}
+
 function gicnCodeBox(checkInCode: string, caption = "Present this code at the event for check-in.") {
   return `
       <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px;text-align:center;margin-bottom:16px">
