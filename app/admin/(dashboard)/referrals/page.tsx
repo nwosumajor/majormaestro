@@ -16,7 +16,7 @@ export default async function AdminReferralsPage() {
   if (!db) return <p className="text-sm text-red-700">Database not configured.</p>;
   const role = normalizeRole((await getAdminFromCookies())?.role);
   if (!can(role, "referrals.read")) redirect("/admin");
-  const isOwner = role === "owner";
+  const canPayout = can(role, "referrals.payout");
 
   const referrals = await db.referral.findMany({
     orderBy: { createdAt: "desc" },
@@ -79,7 +79,7 @@ export default async function AdminReferralsPage() {
                   <td className={`px-4 py-3 text-right text-xs font-bold ${balanceKobo > BigInt(0) ? "text-rose-700" : "text-slate-400"}`}>{nairaFromKobo(balanceKobo > BigInt(0) ? balanceKobo : BigInt(0))}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-3">
-                      {isOwner && <RecordPayoutButton referralId={r.id} code={r.code} />}
+                      {canPayout && <RecordPayoutButton referralId={r.id} code={r.code} />}
                       <a
                         href={`/recovery/refer/${r.code}`}
                         target="_blank"

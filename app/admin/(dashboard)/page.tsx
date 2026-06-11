@@ -45,7 +45,7 @@ export default async function AdminDashboardPage({
 
   const emailStatus = getEmailConfigStatus();
   const me = await getAdminFromCookies();
-  const isOwner = normalizeRole(me?.role) === "owner";
+  const canRetention = can(normalizeRole(me?.role), "retention.purge");
   const storage = describeStorage();
   const [cases, totalAll, totalActive, totalRecovered, referralCount] = await Promise.all([
     db.recoveryComplaint.findMany({
@@ -144,7 +144,7 @@ export default async function AdminDashboardPage({
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <EmailStatusCard configured={emailStatus.configured} problems={emailStatus.problems} adminEmail={me?.email ?? null} />
-        {isOwner && <RetentionCard />}
+        {canRetention && <RetentionCard />}
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Document storage</p>
           <p className="mt-1 text-sm font-bold text-slate-900">

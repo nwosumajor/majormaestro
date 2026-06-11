@@ -28,7 +28,7 @@ export default function UsersPanel({ initialUsers, currentUserId }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("manager");
+  const [role, setRole] = useState("viewer");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,7 +47,7 @@ export default function UsersPanel({ initialUsers, currentUserId }: Props) {
       setUsers((prev) => [...prev, data]);
       setEmail("");
       setPassword("");
-      setRole("manager");
+      setRole("viewer");
       setShowForm(false);
       router.refresh();
     } catch (err) {
@@ -134,10 +134,18 @@ export default function UsersPanel({ initialUsers, currentUserId }: Props) {
                 onChange={(e) => setRole(e.target.value)}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-600 focus:outline-none"
               >
-                <option value="manager">Manager — works cases (read + write)</option>
-                <option value="viewer">Viewer — read-only</option>
-                <option value="gicn_manager">GICN Manager — GICN only</option>
-                <option value="owner">Owner — full control</option>
+                <optgroup label="Recovery">
+                  <option value="recovery_senior_manager">Recovery Senior Manager — full control of Recovery</option>
+                  <option value="recovery_lead_manager">Recovery Lead Manager — cases + view documents + referrals</option>
+                  <option value="manager">Recovery Manager — works cases (read + write)</option>
+                  <option value="viewer">Viewer — read-only cases</option>
+                </optgroup>
+                <optgroup label="GICN">
+                  <option value="gicn_senior_manager">GICN Senior Manager — full control of GICN (incl. disbursement)</option>
+                  <option value="gicn_lead_manager">GICN Lead Manager — programmes + scholarship review</option>
+                  <option value="gicn_manager">GICN Manager — programmes + check-in</option>
+                </optgroup>
+                <option value="owner">Owner — total control (all sections + admin)</option>
               </select>
             </div>
           </div>

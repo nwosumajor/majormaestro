@@ -5,12 +5,12 @@ import { WEBHOOK_EVENTS } from "@/lib/webhooks";
 import WebhooksPanel from "./WebhooksPanel";
 import { STEP_KEYS, STEP_DEFS } from "@/lib/recoverySteps";
 import { getAdminFromCookies } from "@/lib/auth";
-import { normalizeRole } from "@/lib/rbac";
+import { normalizeRole, can } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
 export default async function WebhooksPage() {
-  if (normalizeRole((await getAdminFromCookies())?.role) !== "owner") redirect("/admin");
+  if (!can(normalizeRole((await getAdminFromCookies())?.role), "webhooks.manage")) redirect("/admin");
   if (!db) return <p className="text-sm text-red-700">Database not configured.</p>;
 
   const hooks = await db.webhook.findMany({ orderBy: { createdAt: "asc" } });

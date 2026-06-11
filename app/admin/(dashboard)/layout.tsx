@@ -13,6 +13,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const canSeeReferrals = can(role, "referrals.read");
   const canSeeGicn = can(role, "gicn.manage");
   const canSeeScholarships = can(role, "scholarship.review");
+  const canManageWebhooks = can(role, "webhooks.manage");
+  const canExport = can(role, "pii.export");
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -29,14 +31,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             {canSeeGicn && <NavLink href="/admin/gicn" icon={GraduationCap} label="GICN" />}
             {canSeeScholarships && <NavLink href="/admin/gicn/scholarships" icon={Award} label="Scholarships" />}
             {canSeeCases && <NavLink href="/admin/audit" icon={ScrollText} label="Audit" />}
-            {isOwner && (
-              <>
-                <NavLink href="/admin/users" icon={UserCog} label="Users" />
-                <NavLink href="/admin/webhooks" icon={Webhook} label="Webhooks" />
-              </>
-            )}
+            {isOwner && <NavLink href="/admin/users" icon={UserCog} label="Users" />}
+            {canManageWebhooks && <NavLink href="/admin/webhooks" icon={Webhook} label="Webhooks" />}
             <NavLink href="/admin/account" icon={Settings} label="Account" />
-            {isOwner && (
+            {canExport && (
               <a
                 href="/api/admin/export/complaints"
                 className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
