@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LayoutDashboard, Users, CalendarDays, Upload, HeartHandshake, ArrowLeft } from "lucide-react";
+import { LayoutDashboard, Users, CalendarDays, Upload, HeartHandshake, ArrowLeft, Award } from "lucide-react";
 import { getClientUserFromCookies } from "@/lib/auth";
 import { db } from "@/lib/db";
 
@@ -23,6 +23,7 @@ export default async function GicnAccountLayout({ children }: { children: React.
     { href: "/gicn/participants", label: "Participants", icon: Users },
     { href: "/gicn/programs", label: "Programmes", icon: CalendarDays },
     ...(kind === "school" ? [{ href: "/gicn/school/bulk", label: "Bulk register", icon: Upload }] : []),
+    { href: "/gicn/scholarships", label: "Scholarships", icon: Award },
     { href: "/gicn/sponsor", label: "Sponsor", icon: HeartHandshake },
   ];
 

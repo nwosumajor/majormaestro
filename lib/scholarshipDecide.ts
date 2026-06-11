@@ -28,6 +28,8 @@ export interface DecisionResult {
   ok: boolean;
   status?: ScholarshipStatus;
   error?: string;
+  /** Guardian-facing notification to fire (caller emails via after()). */
+  notify?: { kind: "awarded" | "activated" | "suspended"; guardianEmail: string; childName: string; programTitle: string; amountNgn: number; reference: string | null; reason?: string };
 }
 
 export async function applyScholarshipDecision(
@@ -38,7 +40,14 @@ export async function applyScholarshipDecision(
 ): Promise<DecisionResult> {
   if (!db) return { ok: false, error: "unavailable" };
 
-  const award = await db.scholarshipAward.findUnique({ where: { id: awardId }, select: { id: true, status: true } });
+  const award = await db.scholarshipAward.findUnique({
+    where: { id: awardId },
+    select: {
+      id: true, status: true, reference: true, awardAmountKobo: true,
+      participant: { select: { fullName: true, owner: { select: { email: true } } } },
+      program: { select: { title: true } },
+    },
+  });
   if (!award) return { ok: false, error: "not_found" };
   if (!isScholarshipStatus(award.status)) return { ok: false, error: "bad_status" };
   if (!canTransition(action, award.status)) {
@@ -110,5 +119,21 @@ export async function applyScholarshipDecision(
     metadata: { from: award.status, to },
   });
 
-  return { ok: true, status: to };
+  // Build a guardian notification for the key lifecycle transitions.
+  let notify: DecisionResult["notify"];
+  const guardianEmail = award.participant.owner?.email;
+  if (guardianEmail && (action === "award" || action === "verify_activate" || action === "suspend")) {
+    const amountNgn = (data.awardAmountKobo as bigint | undefined) != null ? Number(data.awardAmountKobo as bigint) / 100 : Number(award.awardAmountKobo) / 100;
+    notify = {
+      kind: action === "award" ? "awarded" : action === "verify_activate" ? "activated" : "suspended",
+      guardianEmail,
+      childName: award.participant.fullName,
+      programTitle: award.program.title,
+      amountNgn,
+      reference: award.reference,
+      reason: action === "suspend" ? input.note : undefined,
+    };
+  }
+
+  return { ok: true, status: to, notify };
 }

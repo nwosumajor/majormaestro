@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { requireAdmin } from "@/lib/rbac";
 import { isScholarshipAction } from "@/lib/scholarship";
 import { applyScholarshipDecision, type DecisionInput } from "@/lib/scholarshipDecide";
+import { sendScholarshipAwarded, sendScholarshipActivated, sendScholarshipSuspended } from "@/lib/email";
 
 // Apply a review-board decision (claim/award/reject/verify_activate/suspend/
 // reinstate/complete/terminate/withdraw/renew) — admin, scholarship.review.
@@ -22,5 +23,19 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     const code = result.error === "not_found" ? 404 : result.error === "unavailable" ? 503 : 409;
     return NextResponse.json({ error: result.error }, { status: code });
   }
+
+  // Notify the guardian on the key lifecycle transitions.
+  const n = result.notify;
+  if (n) {
+    after(() => {
+      const p = n.kind === "awarded"
+        ? sendScholarshipAwarded(n.guardianEmail, { childName: n.childName, programTitle: n.programTitle, amountNgn: n.amountNgn, reference: n.reference })
+        : n.kind === "activated"
+          ? sendScholarshipActivated(n.guardianEmail, { childName: n.childName, programTitle: n.programTitle })
+          : sendScholarshipSuspended(n.guardianEmail, { childName: n.childName, programTitle: n.programTitle, reason: n.reason });
+      return p.catch((e) => console.error("[scholarship-decide] email error:", e));
+    });
+  }
+
   return NextResponse.json({ ok: true, status: result.status });
 }

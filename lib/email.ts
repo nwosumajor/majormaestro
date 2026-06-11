@@ -708,6 +708,67 @@ export async function sendGicnProgrammeReminder(input: {
   await sendOrThrow({ from: FROM, to: input.ownerEmail, subject: `Reminder: ${input.programTitle} is coming up`, html });
 }
 
+function scholarshipEmail(title: string, bodyHtml: string, cta?: { label: string; href: string }) {
+  const button = cta
+    ? `<div style="margin:24px 0"><a href="${cta.href}" style="display:inline-block;background:#10b981;color:#fff;font-weight:700;font-size:14px;text-decoration:none;padding:12px 28px;border-radius:8px">${cta.label}</a></div>`
+    : "";
+  return `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+    ${brandHeader("Global Impact Christian Network")}
+    <div style="padding:32px">${bodyHtml}${button}
+      <p style="margin:16px 0 0;font-size:12px;color:#94a3b8">Questions? Just reply to this email.</p>
+    </div>
+    ${brandFooter()}
+  </div>`;
+}
+
+const SCHOLARSHIPS_URL = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://majormaestro.com"}/gicn/scholarships`;
+
+export async function sendScholarshipApplicationReceived(toEmail: string, input: { childName: string; programTitle: string }) {
+  if (!resend) return;
+  const html = scholarshipEmail(
+    "Scholarship application received",
+    `<p style="margin:0 0 12px;font-size:15px;color:#1e293b">Dear parent/guardian,</p>
+     <p style="margin:0;font-size:15px;color:#475569;line-height:1.6">We've received your scholarship application for <strong>${input.childName}</strong> toward <strong>${input.programTitle}</strong>. Our review board will assess it and we'll be in touch with the decision.</p>`,
+    { label: "View application", href: SCHOLARSHIPS_URL }
+  );
+  await sendOrThrow({ from: FROM, to: toEmail, subject: "Your GICN scholarship application — received", html });
+}
+
+export async function sendScholarshipAwarded(toEmail: string, input: { childName: string; programTitle: string; amountNgn: number; reference: string | null }) {
+  if (!resend) return;
+  const naira = "₦" + Math.round(input.amountNgn).toLocaleString("en-NG");
+  const html = scholarshipEmail(
+    "Scholarship awarded",
+    `<p style="margin:0 0 12px;font-size:15px;color:#1e293b">Congratulations!</p>
+     <p style="margin:0 0 12px;font-size:15px;color:#475569;line-height:1.6"><strong>${input.childName}</strong> has been <strong>awarded a scholarship</strong> of <strong>${naira}</strong> toward <strong>${input.programTitle}</strong>${input.reference ? ` (ref ${input.reference})` : ""}.</p>
+     <p style="margin:0;font-size:15px;color:#475569;line-height:1.6">Please complete onboarding — provide the required details and documents and accept the conditions — so we can activate the scholarship.</p>`,
+    { label: "Complete onboarding", href: SCHOLARSHIPS_URL }
+  );
+  await sendOrThrow({ from: FROM, to: toEmail, subject: `${input.childName} has been awarded a GICN scholarship`, html });
+}
+
+export async function sendScholarshipActivated(toEmail: string, input: { childName: string; programTitle: string }) {
+  if (!resend) return;
+  const html = scholarshipEmail(
+    "Scholarship active",
+    `<p style="margin:0;font-size:15px;color:#475569;line-height:1.6"><strong>${input.childName}</strong>'s scholarship toward <strong>${input.programTitle}</strong> is now <strong>active</strong>. You can follow progress, conditions and disbursements from your scholarship profile.</p>`,
+    { label: "View scholarship", href: SCHOLARSHIPS_URL }
+  );
+  await sendOrThrow({ from: FROM, to: toEmail, subject: `${input.childName}'s scholarship is now active`, html });
+}
+
+export async function sendScholarshipSuspended(toEmail: string, input: { childName: string; programTitle: string; reason?: string }) {
+  if (!resend) return;
+  const html = scholarshipEmail(
+    "Scholarship suspended",
+    `<p style="margin:0 0 12px;font-size:15px;color:#475569;line-height:1.6"><strong>${input.childName}</strong>'s scholarship toward <strong>${input.programTitle}</strong> has been <strong>suspended</strong>${input.reason ? `: ${input.reason}` : ""}.</p>
+     <p style="margin:0;font-size:15px;color:#475569;line-height:1.6">Please get in touch so we can resolve it and reinstate the award.</p>`,
+    { label: "View scholarship", href: SCHOLARSHIPS_URL }
+  );
+  await sendOrThrow({ from: FROM, to: toEmail, subject: `Action needed: ${input.childName}'s scholarship is suspended`, html });
+}
+
 function gicnCodeBox(checkInCode: string, caption = "Present this code at the event for check-in.") {
   return `
       <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px;text-align:center;margin-bottom:16px">
