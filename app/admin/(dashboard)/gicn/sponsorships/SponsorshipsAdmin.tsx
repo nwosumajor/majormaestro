@@ -44,6 +44,17 @@ export default function SponsorshipsAdmin({ rows }: { rows: Row[] }) {
     router.refresh();
   }
 
+  async function verify(id: string) {
+    setBusy(id);
+    const res = await fetch(`/api/admin/gicn/sponsorships/${id}/verify`, { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    setBusy(null);
+    if (!res.ok) alert(data.error ?? "Verify failed.");
+    else if (data.outcome === "pending") alert("Still pending at Paystack — no payment found yet.");
+    else if (data.outcome === "paid") alert("Confirmed — payment received.");
+    router.refresh();
+  }
+
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <table className="w-full text-sm">
@@ -81,6 +92,15 @@ export default function SponsorshipsAdmin({ rows }: { rows: Row[] }) {
                 </select>
               </td>
               <td className="px-4 py-3 text-right">
+                {r.status === "pending" && (
+                  <button
+                    onClick={() => verify(r.id)}
+                    disabled={busy === r.id}
+                    className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    Verify
+                  </button>
+                )}
                 {r.status === "paid" && (
                   <button
                     onClick={() => refund(r.id)}
