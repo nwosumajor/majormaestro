@@ -416,15 +416,124 @@ model Sponsorship {
 
 model ScholarshipAward {
   id              String      @id @default(cuid())
+  reference       String?     @unique // SCH-XXXXXX (human-facing)
   participantId   String
   participant     Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
   programId       String
   program         Program     @relation(fields: [programId], references: [id], onDelete: Cascade)
-  status          String      @default("pending") // pending | approved | paid | rejected
-  ninEncrypted    String? // AES-256-GCM (lib/totp encryptSecret); collected only at payout
+  // applied | under_review | awarded | rejected | onboarding | active | suspended | completed | terminated | withdrawn
+  status          String      @default("applied")
   awardAmountKobo BigInt
-  createdAt       DateTime    @default(now()) @db.Timestamptz(3)
+  term            String?
+  academicYear    String?
+  conditionsSummary String?
+  appliedByUserId String? // guardian who applied (if guardian-initiated)
+
+  // Encrypted-at-rest, NDPA — never returned in plaintext by any list/detail API.
+  ninEncrypted           String? // AES-256-GCM (lib/totp encryptSecret); collected at onboarding/payout
+  payoutBankName         String?
+  payoutAccountLast4     String?
+  payoutAccountEncrypted String? // full account number, AES-256-GCM; reveal-gated (step-up)
+
+  // Review/lifecycle bookkeeping
+  reviewedBy            String?
+  reviewedAt            DateTime? @db.Timestamptz(3)
+  reviewNote            String?
+  awardedBy            String?
+  awardedAt            DateTime? @db.Timestamptz(3)
+  onboardingSubmittedAt DateTime? @db.Timestamptz(3)
+  activatedAt          DateTime? @db.Timestamptz(3)
+  suspendedReason      String?
+  renewalDueAt         DateTime? @db.Timestamptz(3)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(3)
+
+  reviews         ScholarshipReview[]
+  conditions      ScholarshipCondition[]
+  academicRecords ScholarshipAcademicRecord[]
+  disbursements   ScholarshipDisbursement[]
+  documents       ScholarshipDocument[]
 
   @@index([participantId])
   @@index([programId])
+  @@index([status])
+}
+
+model ScholarshipReview {
+  id            String           @id @default(cuid())
+  awardId       String
+  award         ScholarshipAward @relation(fields: [awardId], references: [id], onDelete: Cascade)
+  reviewerEmail String // admin email, or "guardian"/"system"
+  action        String // apply | nominate | claim | award | reject | request_changes | onboarding_submit | verify_activate | suspend | reinstate | complete | terminate | withdraw | renew
+  note          String?
+  createdAt     DateTime         @default(now()) @db.Timestamptz(3)
+
+  @@index([awardId])
+}
+
+model ScholarshipCondition {
+  id        String           @id @default(cuid())
+  awardId   String
+  award     ScholarshipAward @relation(fields: [awardId], references: [id], onDelete: Cascade)
+  label     String
+  met       Boolean          @default(false)
+  metAt     DateTime?        @db.Timestamptz(3)
+  metBy     String?
+  note      String?
+  createdAt DateTime         @default(now()) @db.Timestamptz(3)
+
+  @@index([awardId])
+}
+
+model ScholarshipAcademicRecord {
+  id           String           @id @default(cuid())
+  awardId      String
+  award        ScholarshipAward @relation(fields: [awardId], references: [id], onDelete: Cascade)
+  term         String
+  academicYear String?
+  school       String?
+  classLevel   String?
+  gradeOrGpa   String?
+  attendancePct Int?
+  standing     String           @default("on_track") // on_track | at_risk | breach
+  note         String?
+  recordedBy   String?
+  createdAt    DateTime         @default(now()) @db.Timestamptz(3)
+
+  @@index([awardId])
+}
+
+model ScholarshipDisbursement {
+  id         String           @id @default(cuid())
+  awardId    String
+  award      ScholarshipAward @relation(fields: [awardId], references: [id], onDelete: Cascade)
+  label      String
+  amountKobo BigInt
+  method     String           @default("bank") // bank | cash | paystack
+  reference  String?
+  status     String           @default("scheduled") // scheduled | paid | failed | cancelled
+  paidAt     DateTime?        @db.Timestamptz(3)
+  recordedBy String?
+  note       String?
+  createdAt  DateTime         @default(now()) @db.Timestamptz(3)
+
+  @@index([awardId])
+}
+
+model ScholarshipDocument {
+  id              String           @id @default(cuid())
+  awardId         String
+  award           ScholarshipAward @relation(fields: [awardId], references: [id], onDelete: Cascade)
+  documentType    String // admission_letter | results | id_card | birth_certificate | other
+  fileName        String
+  storedAs        String
+  fileSize        Int
+  mimeType        String
+  storageBackend  String           @default("local")
+  uploadedByUserId String?
+  uploadedByLabel String?
+  createdAt       DateTime         @default(now()) @db.Timestamptz(3)
+
+  @@index([awardId])
 }
