@@ -2,56 +2,64 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/rbac";
 import { recordAudit } from "@/lib/audit";
-import { encryptSecret } from "@/lib/totp";
+import { newScholarshipReference, isScholarshipStatus } from "@/lib/scholarship";
 
-// Scholarship awards — admin, gicn.manage.
+// Scholarship review board — list/queue + board "nominate".
 //
-// NDPA note: NIN is collected ONLY here, on a scholarship-award record, from
-// the adult account holder (never at participant registration), and is stored
-// ENCRYPTED at rest via the shared AES-256-GCM helper (same as TOTP secrets).
-// The plaintext NIN is never persisted and never returned by the GET list.
-//
-// TIER 2 (scaffold): the multi-step review/approval workflow UI is pending —
-// this endpoint records the award + encrypted NIN so the data-protection path
-// is real and testable today.
+// NDPA: NIN/full account are ENCRYPTED at rest and NEVER returned here (only
+// `hasNin` boolean). Reveal is a separate, step-up-gated, audited endpoint.
 export async function GET(req: NextRequest) {
-  const gate = await requireAdmin(req, "gicn.manage");
+  const gate = await requireAdmin(req, "scholarship.review");
   if (gate.error) return gate.error;
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
 
-  const awards = await db.scholarshipAward.findMany({
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true, status: true, awardAmountKobo: true, createdAt: true,
-      ninEncrypted: true, // mapped to a boolean below — ciphertext never leaves the server
-      participant: { select: { fullName: true } },
-      program: { select: { title: true } },
-    },
-  });
+  const statusFilter = req.nextUrl.searchParams.get("status")?.trim();
+  const where = statusFilter && isScholarshipStatus(statusFilter) ? { status: statusFilter } : {};
+
+  const [awards, counts] = await Promise.all([
+    db.scholarshipAward.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true, reference: true, status: true, awardAmountKobo: true, term: true, academicYear: true,
+        renewalDueAt: true, ninEncrypted: true, createdAt: true,
+        participant: { select: { fullName: true } },
+        program: { select: { title: true } },
+      },
+    }),
+    db.scholarshipAward.groupBy({ by: ["status"], _count: { _all: true } }),
+  ]);
 
   return NextResponse.json({
     items: awards.map((a) => ({
       id: a.id,
+      reference: a.reference,
       status: a.status,
       awardAmountNgn: Number(a.awardAmountKobo) / 100,
-      createdAt: a.createdAt.toISOString(),
+      term: a.term,
+      academicYear: a.academicYear,
+      renewalDueAt: a.renewalDueAt?.toISOString() ?? null,
       hasNin: a.ninEncrypted != null,
       participantName: a.participant.fullName,
       programTitle: a.program.title,
+      createdAt: a.createdAt.toISOString(),
     })),
+    counts: Object.fromEntries(counts.map((c) => [c.status, c._count._all])),
   });
 }
 
+// Board-initiated nomination: create an award row for a participant + programme,
+// entering the queue at "under_review".
 export async function POST(req: NextRequest) {
-  const gate = await requireAdmin(req, "gicn.manage");
+  const gate = await requireAdmin(req, "scholarship.review");
   if (gate.error) return gate.error;
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
 
   const b = (await req.json().catch(() => ({}))) as {
-    participantId?: string; programId?: string; awardAmountNgn?: number; nin?: string; status?: string;
+    participantId?: string; programId?: string; awardAmountNgn?: number; term?: string; academicYear?: string; note?: string;
   };
   if (!b.participantId || !b.programId) return NextResponse.json({ error: "participantId and programId are required." }, { status: 400 });
-  const amountNgn = Number(b.awardAmountNgn);
+  const amountNgn = Number(b.awardAmountNgn ?? 0);
   if (!Number.isFinite(amountNgn) || amountNgn < 0) return NextResponse.json({ error: "A valid award amount (₦) is required." }, { status: 400 });
 
   const participant = await db.participant.findUnique({ where: { id: b.participantId }, select: { id: true } });
@@ -59,31 +67,28 @@ export async function POST(req: NextRequest) {
   const program = await db.program.findUnique({ where: { id: b.programId }, select: { id: true } });
   if (!program) return NextResponse.json({ error: "Programme not found." }, { status: 404 });
 
-  // Validate + encrypt NIN if supplied. NIN is an 11-digit Nigerian identifier.
-  let ninEncrypted: string | null = null;
-  if (b.nin != null && String(b.nin).trim()) {
-    const nin = String(b.nin).replace(/\s/g, "");
-    if (!/^\d{11}$/.test(nin)) return NextResponse.json({ error: "NIN must be 11 digits." }, { status: 400 });
-    ninEncrypted = encryptSecret(nin);
-  }
-
   const award = await db.scholarshipAward.create({
     data: {
+      reference: newScholarshipReference(),
       participantId: b.participantId,
       programId: b.programId,
       awardAmountKobo: BigInt(Math.round(amountNgn * 100)),
-      status: b.status?.trim() || "awarded",
-      ninEncrypted,
+      term: b.term?.trim() || null,
+      academicYear: b.academicYear?.trim() || null,
+      status: "under_review",
+      reviewedBy: gate.admin.email,
+      reviewedAt: new Date(),
     },
     select: { id: true },
   });
 
+  await db.scholarshipReview.create({ data: { awardId: award.id, reviewerEmail: gate.admin.email, action: "nominate", note: b.note ?? null } });
   await recordAudit({
-    action: "gicn_scholarship_award_create",
+    action: "gicn_scholarship_nominate",
     actorLabel: gate.admin.email,
     targetType: "ScholarshipAward",
     targetId: award.id,
-    metadata: { participantId: b.participantId, programId: b.programId, ninProvided: ninEncrypted != null },
+    metadata: { participantId: b.participantId, programId: b.programId },
   });
 
   return NextResponse.json({ id: award.id }, { status: 201 });

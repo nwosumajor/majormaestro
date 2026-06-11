@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { LayoutDashboard, ClipboardList, Users, UserCog, ScrollText, Webhook, Settings, BarChart3, GraduationCap } from "lucide-react";
+import { LayoutDashboard, ClipboardList, Users, UserCog, ScrollText, Webhook, Settings, BarChart3, GraduationCap, Award } from "lucide-react";
 import LogoutButton from "./LogoutButton";
 import { getAdminFromCookies } from "@/lib/auth";
 import { normalizeRole, can } from "@/lib/rbac";
@@ -12,6 +12,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const canSeeCases = can(role, "cases.read"); // gates Cases / Analytics / Audit — false for gicn_manager
   const canSeeReferrals = can(role, "referrals.read");
   const canSeeGicn = can(role, "gicn.manage");
+  const canSeeScholarships = can(role, "scholarship.review");
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -26,6 +27,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             {canSeeCases && <NavLink href="/admin/analytics" icon={BarChart3} label="Analytics" />}
             {canSeeReferrals && <NavLink href="/admin/referrals" icon={Users} label="Referrals" />}
             {canSeeGicn && <NavLink href="/admin/gicn" icon={GraduationCap} label="GICN" />}
+            {canSeeScholarships && <NavLink href="/admin/gicn/scholarships" icon={Award} label="Scholarships" />}
             {canSeeCases && <NavLink href="/admin/audit" icon={ScrollText} label="Audit" />}
             {isOwner && (
               <>

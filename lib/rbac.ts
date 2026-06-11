@@ -25,6 +25,8 @@ export type Permission =
   | "referrals.payout"
   | "gicn.manage"
   | "gicn.checkin"
+  | "scholarship.review"
+  | "scholarship.disburse"
   | "ops.email_test";
 
 /** Map any stored value to a known role. Legacy "admin" → manager. */
@@ -45,7 +47,7 @@ const PERMISSIONS: Record<AdminRole, Permission[] | "*"> = {
   viewer: ["cases.read"],
   // GICN-only delegate: the GICN youth/NGO surface and nothing else (no cases,
   // PII, referrals, users, webhooks, audit). Both perms are 2FA-gated below.
-  gicn_manager: ["gicn.manage", "gicn.checkin"],
+  gicn_manager: ["gicn.manage", "gicn.checkin", "scholarship.review", "scholarship.disburse"],
 };
 
 // Everything except plain reads requires 2FA enrolled.
@@ -60,6 +62,8 @@ const REQUIRE_2FA = new Set<Permission>([
   "referrals.payout",
   "gicn.manage",
   "gicn.checkin",
+  "scholarship.review",
+  "scholarship.disburse",
   "ops.email_test",
 ]);
 
