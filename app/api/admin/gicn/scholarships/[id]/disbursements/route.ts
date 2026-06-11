@@ -20,8 +20,19 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   if (!Number.isFinite(amountNgn) || amountNgn <= 0) return NextResponse.json({ error: "A valid amount (₦) is required." }, { status: 400 });
   const method = b.method && METHODS.has(b.method) ? b.method : "bank";
 
-  const award = await db.scholarshipAward.findUnique({ where: { id }, select: { id: true } });
+  const award = await db.scholarshipAward.findUnique({ where: { id }, select: { id: true, awardAmountKobo: true } });
   if (!award) return NextResponse.json({ error: "Not found." }, { status: 404 });
+
+  // Don't let total (non-cancelled) disbursements exceed the award amount.
+  const cap = Number(award.awardAmountKobo);
+  if (cap > 0) {
+    const agg = await db.scholarshipDisbursement.aggregate({ _sum: { amountKobo: true }, where: { awardId: id, status: { not: "cancelled" } } });
+    const already = Number(agg._sum.amountKobo ?? 0);
+    const next = already + Math.round(amountNgn * 100);
+    if (next > cap) {
+      return NextResponse.json({ error: `This would bring total disbursements to ₦${(next / 100).toLocaleString("en-NG")}, above the award of ₦${(cap / 100).toLocaleString("en-NG")}.` }, { status: 409 });
+    }
+  }
 
   const d = await db.scholarshipDisbursement.create({
     data: { awardId: id, label, amountKobo: BigInt(Math.round(amountNgn * 100)), method, reference: b.reference?.trim() || null, note: b.note?.trim() || null, status: "scheduled", recordedBy: gate.admin.email },

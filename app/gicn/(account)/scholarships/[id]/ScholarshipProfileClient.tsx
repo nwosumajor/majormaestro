@@ -103,7 +103,12 @@ export default function ScholarshipProfileClient({ award }: { award: Award }) {
       <Card title="Documents">
         <ul className="space-y-1.5 text-sm">
           {award.documents.length === 0 && <li className="text-xs text-slate-400">No documents uploaded yet.</li>}
-          {award.documents.map((d) => <li key={d.id} className="text-slate-700">{d.fileName} <span className="text-xs text-slate-400">({d.documentType})</span></li>)}
+          {award.documents.map((d) => (
+            <li key={d.id} className="flex items-center justify-between gap-2">
+              <span className="text-slate-700">{d.fileName} <span className="text-xs text-slate-400">({d.documentType})</span></span>
+              <a href={`/api/gicn/scholarships/${award.id}/documents/${d.id}`} className="text-xs font-semibold text-emerald-700 hover:underline">Download</a>
+            </li>
+          ))}
         </ul>
         {canUpload && <DocumentUpload awardId={award.id} onDone={() => router.refresh()} />}
       </Card>
