@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, FileText, Download, Building2, User, Phone, Mail, Users, CheckCircle2, Clock, MessageSquare, FileSpreadsheet } from "lucide-react";
 import { db } from "@/lib/db";
+import { getAdminFromCookies } from "@/lib/auth";
+import { normalizeRole, can } from "@/lib/rbac";
 import { STEP_KEYS, STEP_DEFS, type StepKey } from "@/lib/recoverySteps";
 import AdvanceForm from "./AdvanceForm";
 import NotesPanel from "./NotesPanel";
@@ -26,6 +28,11 @@ export default async function AdminCaseDetailPage({
 }) {
   const { ref } = await params;
   if (!db) return <p className="text-sm text-red-700">Database not configured.</p>;
+
+  // Server-side role guard — match the cases list/analytics/audit pages so a
+  // GICN-only admin can't read a recovery case's PII via a direct URL.
+  const role = normalizeRole((await getAdminFromCookies())?.role);
+  if (!can(role, "cases.read")) redirect("/admin/gicn");
 
   const referenceId = ref.toUpperCase();
   const complaint = await db.recoveryComplaint.findUnique({
