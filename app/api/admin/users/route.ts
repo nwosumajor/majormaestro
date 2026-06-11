@@ -54,8 +54,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "An admin with that email already exists." }, { status: 409 });
     }
 
-    // New admins default to Manager (least privilege); only valid roles accepted.
-    const safeRole: AdminRole = ASSIGNABLE_ROLES.includes(role as AdminRole) ? (role as AdminRole) : "manager";
+    // Unknown role → viewer (deny-by-default least privilege); only valid roles accepted.
+    const safeRole: AdminRole = ASSIGNABLE_ROLES.includes(role as AdminRole) ? (role as AdminRole) : "viewer";
     const passwordHash = await hashPassword(password);
     const user = await db.adminUser.create({
       data: { email: normEmail, passwordHash, role: safeRole },

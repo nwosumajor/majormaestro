@@ -10,7 +10,24 @@ import { getAdminFromRequest } from "@/lib/auth";
  * enrolled (read access does not), so privileged actions can't be taken from a
  * password-only account.
  */
-export type AdminRole = "owner" | "manager" | "viewer" | "gicn_manager";
+/**
+ * Roles form a per-section hierarchy. The owner spans everything; each section
+ * (Recovery, GICN) has senior → lead → base tiers with least-privilege access,
+ * and the two sections are mutually isolated (only owner spans both).
+ *   owner
+ *   recovery: recovery_senior_manager > recovery_lead_manager > manager
+ *   gicn:     gicn_senior_manager     > gicn_lead_manager     > gicn_manager
+ *   viewer (read-only recovery oversight — retained)
+ */
+export type AdminRole =
+  | "owner"
+  | "recovery_senior_manager"
+  | "recovery_lead_manager"
+  | "manager" // base recovery tier (lowest)
+  | "gicn_senior_manager"
+  | "gicn_lead_manager"
+  | "gicn_manager" // base GICN tier (lowest)
+  | "viewer";
 
 export type Permission =
   | "cases.read"
@@ -29,25 +46,52 @@ export type Permission =
   | "scholarship.disburse"
   | "ops.email_test";
 
-/** Map any stored value to a known role. Legacy "admin" → manager. */
+const KNOWN_ROLES: AdminRole[] = [
+  "owner",
+  "recovery_senior_manager",
+  "recovery_lead_manager",
+  "manager",
+  "gicn_senior_manager",
+  "gicn_lead_manager",
+  "gicn_manager",
+  "viewer",
+];
+
+/**
+ * Map any stored value to a known role. Unknown/legacy-unmigrated values fall
+ * back to the LEAST-privileged role (viewer) — deny-by-default. (Existing
+ * `manager`/`gicn_manager` rows are migrated to the lead tier in the role
+ * migration; the bare strings going forward mean the base section tier.)
+ */
 export function normalizeRole(r: string | null | undefined): AdminRole {
-  if (r === "owner") return "owner";
-  if (r === "viewer") return "viewer";
-  if (r === "gicn_manager") return "gicn_manager";
-  return "manager";
+  return r && (KNOWN_ROLES as string[]).includes(r) ? (r as AdminRole) : "viewer";
 }
 
-export const ASSIGNABLE_ROLES: AdminRole[] = ["owner", "manager", "viewer", "gicn_manager"];
+export const ASSIGNABLE_ROLES: AdminRole[] = [...KNOWN_ROLES];
 
 const PERMISSIONS: Record<AdminRole, Permission[] | "*"> = {
-  owner: "*",
-  // Enterprise (forensic recovery) manager — NO GICN access. GICN is a separate
-  // domain handled by gicn_manager (or owner). Keeps the two arms isolated.
-  manager: ["cases.read", "cases.write", "pii.download", "pii.export", "referrals.read", "ops.email_test"],
+  owner: "*", // total control: every section + app-global admin (users, audit purge)
+
+  // ── Recovery (forensic) section — no GICN access ──────────────────────────
+  // Senior: total control over Recovery (incl. PII export, referral payouts,
+  // case webhooks, and document-retention purge — all section operations).
+  recovery_senior_manager: ["cases.read", "cases.write", "pii.download", "pii.export", "referrals.read", "referrals.payout", "webhooks.manage", "retention.purge", "ops.email_test"],
+  // Lead: full case work + view sensitive documents + referral visibility.
+  recovery_lead_manager: ["cases.read", "cases.write", "pii.download", "referrals.read", "ops.email_test"],
+  // Base: day-to-day case handling only (no bulk PII export, no doc downloads).
+  manager: ["cases.read", "cases.write"],
+
+  // ── GICN (youth/NGO) section — no Recovery access ─────────────────────────
+  // Senior: total control over GICN (incl. scholarship disbursement + the
+  // step-up NIN/account reveal).
+  gicn_senior_manager: ["gicn.manage", "gicn.checkin", "scholarship.review", "scholarship.disburse"],
+  // Lead: programmes/check-in + scholarship review (no money/NIN reveal).
+  gicn_lead_manager: ["gicn.manage", "gicn.checkin", "scholarship.review"],
+  // Base: programmes + check-in only.
+  gicn_manager: ["gicn.manage", "gicn.checkin"],
+
+  // Read-only recovery oversight.
   viewer: ["cases.read"],
-  // GICN-only delegate: the GICN youth/NGO surface and nothing else (no cases,
-  // PII, referrals, users, webhooks, audit). Both perms are 2FA-gated below.
-  gicn_manager: ["gicn.manage", "gicn.checkin", "scholarship.review", "scholarship.disburse"],
 };
 
 // Everything except plain reads requires 2FA enrolled.
