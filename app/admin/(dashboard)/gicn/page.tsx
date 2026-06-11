@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { HeartHandshake, Users, CalendarDays, GraduationCap } from "lucide-react";
+import { HeartHandshake, Users, CalendarDays, GraduationCap, BarChart3, Award } from "lucide-react";
 import { db } from "@/lib/db";
 import { getAdminFromCookies } from "@/lib/auth";
 import { normalizeRole, can } from "@/lib/rbac";
@@ -61,6 +61,11 @@ export default async function AdminGicnPage() {
           <p className="mt-2 text-2xl font-black text-slate-900">₦{raisedNgn.toLocaleString("en-NG")}</p>
           <p className="text-xs text-slate-500">Sponsorship raised ({sponsorships._count} paid)</p>
         </Link>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Link href="/admin/gicn/scholarships" className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:border-emerald-300"><Award size={15} className="text-emerald-600" /> Scholarship board</Link>
+        <Link href="/admin/gicn/impact" className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:border-emerald-300"><BarChart3 size={15} className="text-emerald-600" /> Impact report</Link>
       </div>
 
       <ProgramsAdmin programs={view} />
