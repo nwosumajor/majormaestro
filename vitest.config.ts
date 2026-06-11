@@ -5,7 +5,9 @@ import { fileURLToPath } from "node:url";
 export default defineConfig({
   test: {
     environment: "node",
-    include: ["tests/**/*.test.ts"],
+    // Unit tests only (top-level). Integration tests (tests/integration/**, which
+    // need a real Postgres) run via vitest.integration.config.ts in their own CI job.
+    include: ["tests/*.test.ts"],
   },
   resolve: {
     alias: {
