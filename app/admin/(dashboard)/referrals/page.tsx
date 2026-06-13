@@ -21,7 +21,7 @@ export default async function AdminReferralsPage() {
   const referrals = await db.referral.findMany({
     orderBy: { createdAt: "desc" },
     include: {
-      complaints: { select: { status: true, recoveryAmountKobo: true } },
+      complaints: { select: { status: true, recoveryAmountKobo: true, turnoverBand: true } },
       _count: { select: { complaints: true } },
     },
   });

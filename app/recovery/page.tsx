@@ -25,6 +25,8 @@ import { db } from "@/lib/db";
 import IntakeForm from "@/components/IntakeForm";
 import RefLandingTracker from "@/components/RefLandingTracker";
 import RecoveryTools from "@/components/RecoveryTools";
+import SmeSection from "@/components/SmeSection";
+import TeamSection from "@/components/TeamSection";
 import CaseStudies from "@/components/CaseStudies";
 import FAQAccordion from "@/components/FAQAccordion";
 import LeadMagnet from "@/components/LeadMagnet";
@@ -296,6 +298,9 @@ export default async function RecoveryPage({
       {/* ── INTERACTIVE TOOLS (tabbed — estimator / pre-screen / quiz / CBN checker) ── */}
       <RecoveryTools />
 
+      {/* ── SME-FOCUSED SECTION ──────────────────────────────── */}
+      <SmeSection />
+
       {/* ── CASE STUDIES ─────────────────────────────────────── */}
       <section id="case-studies" className="bg-white py-16 sm:py-24 border-b border-slate-200">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
@@ -349,6 +354,9 @@ export default async function RecoveryPage({
           </div>
         </div>
       </section>
+
+      {/* ── FORENSIC TEAM & CONTACT ──────────────────────────── */}
+      <TeamSection />
 
       {/* ── FAQ ──────────────────────────────────────────────── */}
       <section id="faq" className="bg-white py-16 sm:py-24 border-b border-slate-200">

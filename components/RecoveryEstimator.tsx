@@ -15,6 +15,12 @@ interface EstimatorEntry {
 }
 
 const TURNOVER_BANDS: Record<string, EstimatorEntry> = {
+  "₦5M – ₦49M": {
+    label: "₦5M – ₦49M",
+    recoveryRange: "₦150,000 – ₦1,200,000",
+    timeline: "3 – 5 weeks",
+    note: "Built for SMEs — a focused, fast audit that recovers excess charges most small businesses never know they're owed.",
+  },
   "₦50M – ₦200M": {
     label: "₦50M – ₦200M",
     recoveryRange: "₦800,000 – ₦8,000,000",
