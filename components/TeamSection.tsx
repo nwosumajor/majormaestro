@@ -29,7 +29,7 @@ const TEAM: TeamMember[] = [
       "PMP",
       "HSE",
     ],
-    bio: "Former Forensic Auditor at a tier-1 Nigerian bank; has led forensic recoveries totalling over ₦400M across 60+ corporate organisations.",
+    bio: "A forensic banking specialist and former Forensic Auditor at a tier-1 Nigerian bank, Ayodele has led recoveries totalling over ₦400M across 60+ corporate organisations. His expertise spans SWIFT and UCP600 documentary-credit review, recovery of excess LC and trade-finance charges, AML/CFT compliance, and complex bank dispute resolution — all grounded in the CBN and BOFIA regulatory framework and Nigeria's consumer-protection rules. Every engagement is handled personally, under strict confidentiality (NDA-backed, NDPA 2023 compliant) and on a pure success-fee basis: if nothing is recovered, you pay nothing.",
     headshot: "/team/ayodele-nwosu.jpg",
   },
   // Add further team members here (see docs/TEAM-DETAILS-TEMPLATE.md).
