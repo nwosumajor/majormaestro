@@ -4,9 +4,19 @@ import { useState } from "react";
 import { Gift, Copy, CheckCircle2, Users, TrendingUp, Shield, ArrowRight, Mail, MessageCircle, Loader2, AlertCircle } from "lucide-react";
 
 const BENEFITS = [
-  { pct: "5%", desc: "of the first recovery achieved by your referred client, paid on completion" },
-  { pct: "3%", desc: "of all subsequent recoveries from the same client, for the lifetime of the relationship" },
-  { pct: "₦100K", desc: "guaranteed bonus for every referral that completes a forensic audit, regardless of outcome" },
+  { pct: "₦50K–₦200K", desc: "tiered bonus for every referral that completes a forensic audit — regardless of outcome — scaled to the company's annual turnover" },
+  { pct: "5%", desc: "of the recovered amount on every successful recovery, paid on completion — on top of the bonus" },
+  { pct: "No cap", desc: "unlimited referrals, no minimum threshold, paid by bank transfer within 5 business days" },
+];
+
+// Bonus scales with the referred organisation's annual turnover — larger
+// businesses (and high-volume LC / trade-finance importers) carry more
+// recoverable excess. Mirrors BONUS_TIERS_KOBO in lib/referrals.ts.
+const BONUS_TIERS = [
+  { band: "₦5M – ₦49M", bonus: "₦50,000" },
+  { band: "₦50M – ₦200M", bonus: "₦75,000" },
+  { band: "₦200M – ₦1B", bonus: "₦100,000" },
+  { band: "₦1B+ · high-volume / LC trade finance", bonus: "₦200,000" },
 ];
 
 const HOW: { step: string; title: string; desc: string }[] = [
@@ -85,7 +95,24 @@ export default function ReferPage() {
               </div>
             ))}
           </div>
-          <p className="mt-4 text-center text-xs text-slate-400">Commissions are subject to MajorGBN&apos;s standard referral agreement. No minimum threshold. No cap.</p>
+          {/* Bonus tier breakdown */}
+          <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            <div className="border-b border-slate-100 bg-slate-50 px-5 py-3">
+              <p className="text-sm font-bold text-slate-900">Bonus by referred company size</p>
+              <p className="text-xs text-slate-500">Paid once their forensic audit completes — win or lose.</p>
+            </div>
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-slate-100">
+                {BONUS_TIERS.map((t) => (
+                  <tr key={t.band}>
+                    <td className="px-5 py-3 text-slate-700">{t.band}</td>
+                    <td className="px-5 py-3 text-right font-bold text-emerald-700">{t.bonus}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-4 text-center text-xs text-slate-400">Plus 5% of the recovered amount on every successful recovery. Commissions are subject to MajorGBN&apos;s standard referral agreement. No minimum threshold. No cap.</p>
         </section>
 
         {/* How it works */}
@@ -245,7 +272,7 @@ export default function ReferPage() {
         <section className="rounded-xl border border-slate-200 bg-slate-50 p-6">
           <h2 className="mb-3 text-sm font-black uppercase tracking-wider text-slate-500">Programme Terms</h2>
           <ul className="space-y-1.5 text-xs leading-relaxed text-slate-600">
-            <li>• <span className="font-semibold text-slate-700">What you earn:</span> ₦100,000 for every referral that completes a forensic audit (regardless of outcome), plus 5% of the recovered amount on successful recoveries.</li>
+            <li>• <span className="font-semibold text-slate-700">What you earn:</span> a tiered bonus of ₦50,000–₦200,000 for every referral that completes a forensic audit (regardless of outcome), scaled to the referred company&apos;s annual turnover, plus 5% of the recovered amount on successful recoveries.</li>
             <li>• <span className="font-semibold text-slate-700">Attribution:</span> a referral is credited when a company lodges a complaint via your link. Credit lasts 90 days from the click; you can&apos;t refer your own company.</li>
             <li>• <span className="font-semibold text-slate-700">Payment:</span> rewards are paid after the referred recovery completes and funds are received. You must confirm your email and provide payout details before payment is released.</li>
             <li>• <span className="font-semibold text-slate-700">Confidentiality:</span> all referrals are handled under NDA and the Nigeria Data Protection Act 2023. Referred companies are under no obligation.</li>

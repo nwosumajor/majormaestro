@@ -24,7 +24,7 @@ export default async function PublicReferralDashboardPage({
     where: { code },
     include: {
       complaints: {
-        select: { referenceId: true, companyName: true, status: true, createdAt: true, recoveryAmountKobo: true },
+        select: { referenceId: true, companyName: true, status: true, createdAt: true, recoveryAmountKobo: true, turnoverBand: true },
         orderBy: { createdAt: "desc" },
       },
     },
@@ -142,7 +142,7 @@ export default async function PublicReferralDashboardPage({
         <div className="rounded-2xl border border-blue-100 bg-blue-50 px-5 py-4 text-sm text-blue-900">
           <p className="font-semibold flex items-center gap-2"><TrendingUp size={14} />Commission summary</p>
           <p className="mt-1 text-xs text-blue-800">
-            5% of the first recovery + 3% of subsequent recoveries from the same client, plus a ₦100,000 bonus per completed audit. Statements are issued by email at the point of each recovery confirmation.
+            A tiered bonus of ₦50,000–₦200,000 per completed audit (scaled to the referred company&apos;s annual turnover), plus 5% of the recovered amount on every successful recovery. Statements are issued by email at the point of each recovery confirmation.
           </p>
         </div>
 

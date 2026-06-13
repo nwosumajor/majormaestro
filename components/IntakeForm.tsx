@@ -44,6 +44,7 @@ interface UploadedFile {
 type UploadStatus = "idle" | "uploading" | "done" | "error";
 
 const TURNOVER_OPTIONS = [
+  "₦5M – ₦49M",
   "₦50M – ₦200M",
   "₦200M – ₦1B",
   "₦1B – ₦5B",
