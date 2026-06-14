@@ -12,7 +12,7 @@ const ALLOWED = new Set<string>(FUNNEL_EVENTS);
 export async function POST(req: NextRequest) {
   if (!db) return new NextResponse(null, { status: 204 });
 
-  const rl = rateLimit(`track:${getClientIp(req)}`, 300, 60 * 60);
+  const rl = await rateLimit(`track:${getClientIp(req)}`, 300, 60 * 60);
   if (!rl.ok) return new NextResponse(null, { status: 429 });
 
   let body: { event?: unknown; props?: unknown };

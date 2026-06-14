@@ -13,7 +13,7 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  const rl = rateLimit(`upload:${ip}`, UPLOADS_PER_HOUR, 60 * 60);
+  const rl = await rateLimit(`upload:${ip}`, UPLOADS_PER_HOUR, 60 * 60);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "Too many uploads. Please try again later." },

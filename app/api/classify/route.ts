@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getClientUserFromRequest } from "@/lib/auth";
+import { rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
 import { runClassification } from "@/lib/classify";
 import { SEED_POSITIONS, parseCertificates } from "@/lib/classificationSchema";
 
@@ -34,6 +35,14 @@ export async function POST(req: NextRequest) {
   const user = await getClientUserFromRequest(req);
   if (!user) {
     return NextResponse.json({ error: "Please sign in to run a classification." }, { status: 401 });
+  }
+
+  const rl = await rateLimit(`classify:${user.id}`, 20, 60 * 60);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many classifications. Please try again later." },
+      { status: 429, headers: rateLimitHeaders(rl) }
+    );
   }
 
   try {

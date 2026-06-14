@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "A school partner account is required for bulk registration." }, { status: 403 });
   }
 
-  const rl = rateLimit(`gicn-bulk:${user.id}`, 3, 60 * 60);
+  const rl = await rateLimit(`gicn-bulk:${user.id}`, 3, 60 * 60);
   if (!rl.ok) return NextResponse.json({ error: "Bulk upload limit reached (3/hour)." }, { status: 429, headers: rateLimitHeaders(rl) });
 
   const form = await req.formData().catch(() => null);

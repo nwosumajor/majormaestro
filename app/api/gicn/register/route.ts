@@ -4,6 +4,7 @@ import { getClientUserFromRequest } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
 import { sendGicnRegistrationConfirmation } from "@/lib/email";
 import { generateCheckInCode } from "@/lib/gicn";
+import { rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
 
 // Register a participant into an OPEN program. Capacity-aware: auto-waitlists
 // when the confirmed count has reached capacity.
@@ -11,6 +12,14 @@ export async function POST(req: NextRequest) {
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
   const user = await getClientUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
+  const rl = await rateLimit(`gicn-register:${user.id}`, 30, 60 * 60);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many registration attempts. Please try again later." },
+      { status: 429, headers: rateLimitHeaders(rl) }
+    );
+  }
 
   const body = (await req.json().catch(() => ({}))) as { participantId?: string; programId?: string };
   if (!body.participantId || !body.programId) {

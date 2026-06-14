@@ -15,7 +15,7 @@ function makeCode(name: string): string {
 }
 
 export async function POST(req: NextRequest) {
-  const rl = rateLimit(`refer:${getClientIp(req)}`, 10, 60 * 60);
+  const rl = await rateLimit(`refer:${getClientIp(req)}`, 10, 60 * 60);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "Too many referral requests. Please try again later." },

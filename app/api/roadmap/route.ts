@@ -2,6 +2,7 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { generateObject } from "ai";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { getClientIp, rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
 
 const RoadmapSchema = z.object({
   roadmap: z.array(
@@ -26,6 +27,14 @@ const RoadmapSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const rl = await rateLimit(`roadmap:${getClientIp(req)}`, 15, 60 * 60);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers: rateLimitHeaders(rl) }
+    );
+  }
+
   try {
     const body = await req.json();
     const { currentRole, currentIndustry, currentExperience, futureRole, timeHorizon } =

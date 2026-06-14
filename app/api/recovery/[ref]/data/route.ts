@@ -8,7 +8,7 @@ export async function GET(
   ctx: { params: Promise<{ ref: string }> }
 ) {
   const ip = getClientIp(req);
-  const rl = rateLimit(`ndpa-export:${ip}`, 5, 60 * 60);
+  const rl = await rateLimit(`ndpa-export:${ip}`, 5, 60 * 60);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "Too many requests. Please try again later." },

@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   const user = await getClientUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
-  const rl = rateLimit(`gicn-participant:${user.id}`, 40, 60 * 60);
+  const rl = await rateLimit(`gicn-participant:${user.id}`, 40, 60 * 60);
   if (!rl.ok) return NextResponse.json({ error: "Too many additions. Try again later." }, { status: 429, headers: rateLimitHeaders(rl) });
 
   const body = (await req.json().catch(() => ({}))) as {

@@ -12,7 +12,7 @@ const DOC_TYPES = new Set(["admission_letter", "results", "id_card", "birth_cert
 // Guardian uploads a supporting document to their own scholarship. Authenticated
 // + ownership-enforced (not the public upload endpoint); extension-validated.
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
-  const rl = rateLimit(`gicn-scholar-doc:${getClientIp(req)}`, 30, 60 * 60);
+  const rl = await rateLimit(`gicn-scholar-doc:${getClientIp(req)}`, 30, 60 * 60);
   if (!rl.ok) return NextResponse.json({ error: "Too many uploads. Please try again later." }, { status: 429, headers: rateLimitHeaders(rl) });
 
   const user = await getClientUserFromRequest(req);

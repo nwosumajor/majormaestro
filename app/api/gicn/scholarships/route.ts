@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
 
 // Guardian applies for a scholarship on behalf of their own child.
 export async function POST(req: NextRequest) {
-  const rl = rateLimit(`gicn-scholar-apply:${getClientIp(req)}`, 10, 60 * 60);
+  const rl = await rateLimit(`gicn-scholar-apply:${getClientIp(req)}`, 10, 60 * 60);
   if (!rl.ok) return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429, headers: rateLimitHeaders(rl) });
 
   const user = await getClientUserFromRequest(req);

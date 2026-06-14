@@ -5,7 +5,7 @@ import { recordAudit } from "@/lib/audit";
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  const rl = rateLimit(`admin-login:${ip}`, 5, 15 * 60);
+  const rl = await rateLimit(`admin-login:${ip}`, 5, 15 * 60);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "Too many login attempts. Please wait and try again." },

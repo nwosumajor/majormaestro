@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   if (!db) return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
 
   const ip = getClientIp(req);
-  const ipRl = rateLimit(`magic-ip:${ip}`, 5, 60 * 60);
+  const ipRl = await rateLimit(`magic-ip:${ip}`, 5, 60 * 60);
   if (!ipRl.ok) {
     return NextResponse.json(
       { error: "Too many requests. Please try again later." },
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   const normEmail = email.trim().toLowerCase();
 
   // Per-email rate limit (separately from per-IP)
-  const emailRl = rateLimit(`magic-email:${normEmail}`, 3, 60 * 60);
+  const emailRl = await rateLimit(`magic-email:${normEmail}`, 3, 60 * 60);
   if (!emailRl.ok) {
     return NextResponse.json(
       { error: "Too many sign-in attempts for this email. Try again later." },

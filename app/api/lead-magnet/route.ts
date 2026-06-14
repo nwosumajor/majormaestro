@@ -6,7 +6,7 @@ import { isValidEmail } from "@/lib/validation";
 
 
 export async function POST(req: NextRequest) {
-  const rl = rateLimit(`lead-magnet:${getClientIp(req)}`, 10, 60 * 60);
+  const rl = await rateLimit(`lead-magnet:${getClientIp(req)}`, 10, 60 * 60);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "Too many requests. Please try again later." },

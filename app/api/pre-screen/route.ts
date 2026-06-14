@@ -3,6 +3,7 @@ import { generateObject } from "ai";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { cbnReferenceForAI } from "@/lib/cbnCharges";
+import { getClientIp, rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
 
 const PreScreenSchema = z.object({
   riskLevel: z.enum(["High", "Medium", "Low", "Insufficient"]),
@@ -21,6 +22,14 @@ const CBN_CONTEXT = `${cbnReferenceForAI()}
 Banks that charge above these limits (or above a customer's contractually agreed rate) are in breach, and the excess is recoverable up to 6 years retrospectively under BOFIA Act 2020.`;
 
 export async function POST(req: NextRequest) {
+  const rl = await rateLimit(`pre-screen:${getClientIp(req)}`, 15, 60 * 60);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers: rateLimitHeaders(rl) }
+    );
+  }
+
   try {
     const { description, turnoverBand, bankName } = await req.json() as {
       description: string;

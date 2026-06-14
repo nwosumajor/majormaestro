@@ -9,7 +9,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Single recipient (the person who opted in) — never a blast — so it can't harm
 // sender reputation. Mirrors /api/lead-magnet (rate-limited, upsert, after()).
 export async function POST(req: NextRequest) {
-  const rl = rateLimit(`lc-interest-guide:${getClientIp(req)}`, 10, 60 * 60);
+  const rl = await rateLimit(`lc-interest-guide:${getClientIp(req)}`, 10, 60 * 60);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "Too many requests. Please try again later." },

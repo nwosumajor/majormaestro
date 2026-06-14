@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
   // Conservative: bulk jobs are expensive (AI per row).
-  const rl = rateLimit(`bulk-classify:${user.id}`, 3, 60 * 60);
+  const rl = await rateLimit(`bulk-classify:${user.id}`, 3, 60 * 60);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "Bulk upload limit reached (3/hour). Please try again later." },

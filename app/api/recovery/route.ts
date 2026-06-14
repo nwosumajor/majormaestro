@@ -86,7 +86,7 @@ function generateReference(): string {
 }
 
 export async function POST(req: NextRequest) {
-  const rl = rateLimit(`recovery:${getClientIp(req)}`, 5, 60 * 60);
+  const rl = await rateLimit(`recovery:${getClientIp(req)}`, 5, 60 * 60);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "Too many submissions from this network. Please try again later." },

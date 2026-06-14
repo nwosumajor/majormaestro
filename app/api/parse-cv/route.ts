@@ -2,6 +2,7 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { generateObject } from "ai";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { getClientIp, rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
 
 const CVSchema = z.object({
   psychological: z.string(),
@@ -12,6 +13,14 @@ const CVSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const rl = await rateLimit(`parse-cv:${getClientIp(req)}`, 10, 60 * 60);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers: rateLimitHeaders(rl) }
+    );
+  }
+
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;

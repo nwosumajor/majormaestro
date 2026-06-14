@@ -1,8 +1,17 @@
 import { anthropic } from "@ai-sdk/anthropic";
 import { streamText } from "ai";
 import { NextRequest } from "next/server";
+import { getClientIp, rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
+  const rl = await rateLimit(`chat:${getClientIp(req)}`, 20, 60 * 60);
+  if (!rl.ok) {
+    return new Response(
+      JSON.stringify({ error: "Too many requests. Please try again later." }),
+      { status: 429, headers: { "Content-Type": "application/json", ...rateLimitHeaders(rl) } }
+    );
+  }
+
   const { messages, context } = await req.json() as {
     messages: { role: "user" | "assistant"; content: string }[];
     context: { type: string; results: unknown; input?: unknown };
