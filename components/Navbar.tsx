@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Menu, X, LayoutDashboard, LogOut, User as UserIcon, Scale } from "lucide-react";
+import { Menu, X, LayoutDashboard, LogOut, User as UserIcon, Scale, History } from "lucide-react";
 import { useEffect, useState } from "react";
 import { track } from "@/lib/analytics";
 
@@ -103,6 +103,13 @@ function UserMenu({ pathname }: { pathname: string }) {
             className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
           >
             <LayoutDashboard size={13} /> My dashboard
+          </Link>
+          <Link
+            href="/history"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            <History size={13} /> Saved results
           </Link>
           <button
             onClick={handleLogout}

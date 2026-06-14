@@ -44,13 +44,13 @@ const CASES = [
 ];
 
 const COLORS = [
-  "border-blue-200 bg-blue-50",
+  "border-accent/20 bg-accent-soft",
   "border-emerald-200 bg-emerald-50",
   "border-amber-200 bg-amber-50",
-  "border-blue-200 bg-blue-50",
+  "border-accent/20 bg-accent-soft",
 ];
 
-const ICON_COLORS = ["text-blue-700 bg-blue-100", "text-emerald-700 bg-emerald-100", "text-amber-700 bg-amber-100", "text-blue-700 bg-blue-100"];
+const ICON_COLORS = ["text-accent bg-accent-soft", "text-emerald-700 bg-emerald-100", "text-amber-700 bg-amber-100", "text-accent bg-accent-soft"];
 
 export default function CaseStudies() {
   return (

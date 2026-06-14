@@ -59,7 +59,7 @@ export default function FAQAccordion() {
         <div key={i}>
           <button
             onClick={() => setOpen(open === i ? null : i)}
-            className="flex w-full items-start justify-between gap-4 py-5 text-left hover:text-blue-900 transition-colors"
+            className="flex w-full items-start justify-between gap-4 py-5 text-left hover:text-accent transition-colors"
           >
             <span className="text-sm font-semibold text-slate-900 leading-snug">{q}</span>
             <span className="mt-0.5 shrink-0 text-slate-400">

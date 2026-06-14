@@ -53,7 +53,7 @@ export default function SmeSection() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {SME_BENEFITS.map(({ icon: Icon, title, desc }) => (
             <div key={title} className="rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-950 text-emerald-400">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-ink text-accent-bright">
                 <Icon size={22} />
               </div>
               <h3 className="mb-2 text-base font-bold text-slate-900">{title}</h3>

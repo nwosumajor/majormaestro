@@ -24,7 +24,7 @@ export default function BankingPage() {
           <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-white">
             <Building2 size={28} />
           </div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-blue-400">Sector Focus: Banking & Financial Services</p>
+          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-accent-bright">Sector Focus: Banking & Financial Services</p>
           <h1 className="font-display text-3xl font-semibold text-white lg:text-4xl">
             Financial Institutions Are Also Overcharged by Their Own Correspondent Banks
           </h1>
@@ -57,7 +57,7 @@ export default function BankingPage() {
         <div className="mx-auto max-w-4xl grid grid-cols-1 divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0 divide-slate-200">
           {STATS.map((s) => (
             <div key={s.val} className="px-8 py-7 text-center">
-              <p className="text-2xl font-black text-blue-900">{s.val}</p>
+              <p className="text-2xl font-black text-ink">{s.val}</p>
               <p className="mt-1 text-sm text-slate-500">{s.label}</p>
             </div>
           ))}
@@ -86,8 +86,8 @@ export default function BankingPage() {
         </section>
 
         {/* Case example */}
-        <section className="rounded-2xl border border-blue-200 bg-blue-50 p-8">
-          <p className="mb-4 text-xs font-bold uppercase tracking-wide text-blue-600">Anonymised Case Study</p>
+        <section className="rounded-2xl border border-accent/20 bg-accent-soft p-8">
+          <p className="mb-4 text-xs font-bold uppercase tracking-wide text-accent">Anonymised Case Study</p>
           <div className="mb-4 flex items-center gap-4">
             <div className="flex items-center gap-2">
               <Banknote size={18} className="text-emerald-600" />
@@ -118,7 +118,7 @@ export default function BankingPage() {
               "Mortgage and real estate finance companies",
             ].map((item, i) => (
               <div key={i} className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm">
-                <ArrowRight size={13} className="shrink-0 text-blue-700" />
+                <ArrowRight size={13} className="shrink-0 text-accent" />
                 <p className="text-sm text-slate-700">{item}</p>
               </div>
             ))}

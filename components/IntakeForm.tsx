@@ -246,16 +246,16 @@ export default function IntakeForm({
     return (
       <div className="mt-2 space-y-2">
         {!sent ? (
-          <button type="button" disabled={!valid || busy} onClick={() => requestOtp(channel)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-blue-400 hover:text-blue-700 disabled:opacity-50 transition-colors">
+          <button type="button" disabled={!valid || busy} onClick={() => requestOtp(channel)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-accent/50 hover:text-accent disabled:opacity-50 transition-colors">
             {busy ? <Loader2 size={12} className="animate-spin" /> : <ShieldCheck size={12} />} Verify {label}{otpRequired ? "" : " (optional)"}
           </button>
         ) : (
           <div className="flex flex-wrap items-center gap-2">
-            <input value={otpCode[channel]} onChange={(e) => setOtpCode((c) => ({ ...c, [channel]: e.target.value }))} inputMode="numeric" maxLength={6} placeholder="6-digit code" className="w-32 rounded-lg border border-slate-300 bg-slate-50 px-3 py-1.5 text-sm tracking-widest focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
-            <button type="button" disabled={busy || otpCode[channel].trim().length < 4} onClick={() => confirmOtp(channel)} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-800 disabled:opacity-50 transition-colors">
+            <input value={otpCode[channel]} onChange={(e) => setOtpCode((c) => ({ ...c, [channel]: e.target.value }))} inputMode="numeric" maxLength={6} placeholder="6-digit code" className="w-32 rounded-lg border border-slate-300 bg-slate-50 px-3 py-1.5 text-sm tracking-widest focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition" />
+            <button type="button" disabled={busy || otpCode[channel].trim().length < 4} onClick={() => confirmOtp(channel)} className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:bg-accent-bright disabled:opacity-50 transition-colors">
               {busy ? <Loader2 size={12} className="animate-spin" /> : null} Confirm
             </button>
-            <button type="button" disabled={busy} onClick={() => requestOtp(channel)} className="text-xs font-medium text-slate-500 hover:text-blue-700">Resend</button>
+            <button type="button" disabled={busy} onClick={() => requestOtp(channel)} className="text-xs font-medium text-slate-500 hover:text-accent">Resend</button>
           </div>
         )}
         {otpMsg[channel] && <p className="text-xs text-slate-500">{otpMsg[channel]}</p>}
@@ -530,9 +530,9 @@ export default function IntakeForm({
         </div>
         <h3 className="mb-2 text-xl font-bold text-slate-900">Complaint Securely Received</h3>
         <p className="mb-5 text-sm text-slate-600">{success.message}</p>
-        <div className="mx-auto mb-6 w-fit rounded-xl border border-blue-200 bg-blue-50 px-6 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">Your Reference ID</p>
-          <p className="mt-1 text-xl font-bold font-mono text-blue-900">{success.referenceId}</p>
+        <div className="mx-auto mb-6 w-fit rounded-xl border border-accent/20 bg-accent-soft px-6 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-accent">Your Reference ID</p>
+          <p className="mt-1 text-xl font-bold font-mono text-ink">{success.referenceId}</p>
           <p className="mt-1 text-xs text-slate-500">Save this to track your case at /recovery/track</p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
@@ -546,13 +546,13 @@ export default function IntakeForm({
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-lg overflow-hidden">
       {/* Header */}
-      <div className="bg-blue-950 px-6 py-5">
+      <div className="bg-ink px-6 py-5">
         <div className="flex items-center gap-2 mb-1">
           <Lock size={14} className="text-emerald-400" />
           <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Secure Intake Portal</span>
         </div>
         <h3 className="text-base font-bold text-white">Lodge a Forensic Audit Complaint</h3>
-        <p className="text-xs text-blue-300 mt-0.5">End-to-end encrypted · NDPA 2023 compliant · NDA protected</p>
+        <p className="text-xs text-slate-400 mt-0.5">End-to-end encrypted · NDPA 2023 compliant · NDA protected</p>
       </div>
 
       {referralCode && (
@@ -567,8 +567,8 @@ export default function IntakeForm({
         <div className="flex items-center justify-between">
           {STEPS.map(({ label, icon: Icon }, i) => (
             <div key={i} className="flex flex-1 items-center">
-              <div className={`flex items-center gap-2 ${i <= step ? "text-blue-900" : "text-slate-400"}`}>
-                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors ${i < step ? "border-emerald-500 bg-emerald-500 text-white" : i === step ? "border-blue-800 bg-blue-800 text-white" : "border-slate-300 bg-white text-slate-400"}`}>
+              <div className={`flex items-center gap-2 ${i <= step ? "text-ink" : "text-slate-400"}`}>
+                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors ${i < step ? "border-emerald-500 bg-emerald-500 text-white" : i === step ? "border-accent bg-accent text-white" : "border-slate-300 bg-white text-slate-400"}`}>
                   {i < step ? <CheckCircle2 size={14} /> : <Icon size={14} />}
                 </div>
                 <span className="hidden text-xs font-semibold sm:block">{label}</span>
@@ -595,7 +595,7 @@ export default function IntakeForm({
                 value={form.companyName}
                 onChange={(e) => update("companyName", e.target.value)}
                 placeholder="e.g. Acme Manufacturing Ltd"
-                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition"
               />
             </div>
             <div>
@@ -608,7 +608,7 @@ export default function IntakeForm({
                 value={form.rcNumber}
                 onChange={(e) => update("rcNumber", e.target.value)}
                 placeholder="e.g. RC 123456"
-                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition"
               />
             </div>
             <div>
@@ -619,7 +619,7 @@ export default function IntakeForm({
                 id="f-turnoverBand"
                 value={form.turnoverBand}
                 onChange={(e) => update("turnoverBand", e.target.value)}
-                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition"
               >
                 <option value="">— Select turnover band —</option>
                 {TURNOVER_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -638,7 +638,7 @@ export default function IntakeForm({
                       value={bank}
                       onChange={(e) => updateBank(i, e.target.value)}
                       placeholder="e.g. First Bank of Nigeria, GTBank…"
-                      className="flex-1 rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+                      className="flex-1 rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition"
                     />
                     {form.banks.length > 1 && (
                       <button type="button" onClick={() => removeBank(i)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:border-red-300 hover:text-red-500 transition-colors">
@@ -648,7 +648,7 @@ export default function IntakeForm({
                   </div>
                 ))}
               </div>
-              <button type="button" onClick={addBank} className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-blue-700 hover:text-blue-900 transition-colors">
+              <button type="button" onClick={addBank} className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent-bright transition-colors">
                 <Plus size={13} />Add another bank
               </button>
             </div>
@@ -661,24 +661,24 @@ export default function IntakeForm({
               <p className="mb-2 text-xs text-slate-500">As shown on your CAC registration.</p>
               <div className="space-y-2">
                 <div>
-                  <input type="text" value={form.regAddressLine1} onChange={(e) => update("regAddressLine1", e.target.value)} aria-invalid={!!fieldErrors.regAddressLine1} placeholder="Address line 1" className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.regAddressLine1 ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-blue-700 focus:ring-blue-200"}`} />
+                  <input type="text" value={form.regAddressLine1} onChange={(e) => update("regAddressLine1", e.target.value)} aria-invalid={!!fieldErrors.regAddressLine1} placeholder="Address line 1" className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.regAddressLine1 ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-accent focus:ring-accent/30"}`} />
                   {fieldErrors.regAddressLine1 && <p className="mt-1 text-xs text-red-600">{fieldErrors.regAddressLine1}</p>}
                 </div>
-                <input type="text" value={form.regAddressLine2} onChange={(e) => update("regAddressLine2", e.target.value)} placeholder="Address line 2 (optional)" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+                <input type="text" value={form.regAddressLine2} onChange={(e) => update("regAddressLine2", e.target.value)} placeholder="Address line 2 (optional)" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition" />
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <div>
-                    <input type="text" value={form.regAddressCity} onChange={(e) => update("regAddressCity", e.target.value)} aria-invalid={!!fieldErrors.regAddressCity} placeholder="City" className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.regAddressCity ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-blue-700 focus:ring-blue-200"}`} />
+                    <input type="text" value={form.regAddressCity} onChange={(e) => update("regAddressCity", e.target.value)} aria-invalid={!!fieldErrors.regAddressCity} placeholder="City" className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.regAddressCity ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-accent focus:ring-accent/30"}`} />
                     {fieldErrors.regAddressCity && <p className="mt-1 text-xs text-red-600">{fieldErrors.regAddressCity}</p>}
                   </div>
                   <div>
-                    <input type="text" value={form.regAddressState} onChange={(e) => update("regAddressState", e.target.value)} aria-invalid={!!fieldErrors.regAddressState} placeholder="State" className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.regAddressState ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-blue-700 focus:ring-blue-200"}`} />
+                    <input type="text" value={form.regAddressState} onChange={(e) => update("regAddressState", e.target.value)} aria-invalid={!!fieldErrors.regAddressState} placeholder="State" className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.regAddressState ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-accent focus:ring-accent/30"}`} />
                     {fieldErrors.regAddressState && <p className="mt-1 text-xs text-red-600">{fieldErrors.regAddressState}</p>}
                   </div>
                   <div>
-                    <input type="text" value={form.regAddressCountry} onChange={(e) => update("regAddressCountry", e.target.value)} aria-invalid={!!fieldErrors.regAddressCountry} placeholder="Country" className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.regAddressCountry ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-blue-700 focus:ring-blue-200"}`} />
+                    <input type="text" value={form.regAddressCountry} onChange={(e) => update("regAddressCountry", e.target.value)} aria-invalid={!!fieldErrors.regAddressCountry} placeholder="Country" className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.regAddressCountry ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-accent focus:ring-accent/30"}`} />
                     {fieldErrors.regAddressCountry && <p className="mt-1 text-xs text-red-600">{fieldErrors.regAddressCountry}</p>}
                   </div>
-                  <input type="text" value={form.regAddressPostalCode} onChange={(e) => update("regAddressPostalCode", e.target.value)} placeholder="Postal code (optional)" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+                  <input type="text" value={form.regAddressPostalCode} onChange={(e) => update("regAddressPostalCode", e.target.value)} placeholder="Postal code (optional)" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition" />
                 </div>
               </div>
             </div>
@@ -693,20 +693,20 @@ export default function IntakeForm({
                 <label htmlFor="f-contactName" className="mb-1.5 block text-sm font-semibold text-slate-800">
                   Full Name <span className="text-red-500">*</span>
                 </label>
-                <input id="f-contactName" type="text" value={form.contactName} onChange={(e) => update("contactName", e.target.value)} placeholder="e.g. Amaka Okonkwo" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+                <input id="f-contactName" type="text" value={form.contactName} onChange={(e) => update("contactName", e.target.value)} placeholder="e.g. Amaka Okonkwo" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition" />
               </div>
               <div>
                 <label htmlFor="f-contactTitle" className="mb-1.5 block text-sm font-semibold text-slate-800">
                   Job Title / Role <span className="text-red-500">*</span>
                 </label>
-                <input id="f-contactTitle" type="text" value={form.contactTitle} onChange={(e) => update("contactTitle", e.target.value)} placeholder="e.g. Chief Financial Officer" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+                <input id="f-contactTitle" type="text" value={form.contactTitle} onChange={(e) => update("contactTitle", e.target.value)} placeholder="e.g. Chief Financial Officer" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition" />
               </div>
             </div>
             <div>
               <label htmlFor="f-contactEmail" className="mb-1.5 block text-sm font-semibold text-slate-800">
                 Official Email Address <span className="text-red-500">*</span>
               </label>
-              <input id="f-contactEmail" type="email" value={form.contactEmail} onChange={(e) => update("contactEmail", e.target.value)} onBlur={() => validateContactField("contactEmail")} aria-invalid={!!fieldErrors.contactEmail} placeholder="e.g. a.okonkwo@company.com" className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.contactEmail ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-blue-700 focus:ring-blue-200"}`} />
+              <input id="f-contactEmail" type="email" value={form.contactEmail} onChange={(e) => update("contactEmail", e.target.value)} onBlur={() => validateContactField("contactEmail")} aria-invalid={!!fieldErrors.contactEmail} placeholder="e.g. a.okonkwo@company.com" className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.contactEmail ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-accent focus:ring-accent/30"}`} />
               {fieldErrors.contactEmail && <p className="mt-1.5 text-xs text-red-600">{fieldErrors.contactEmail}</p>}
               {otpControls("email")}
             </div>
@@ -714,12 +714,12 @@ export default function IntakeForm({
               <label htmlFor="f-contactPhone" className="mb-1.5 block text-sm font-semibold text-slate-800">
                 Direct Phone Number <span className="text-red-500">*</span>
               </label>
-              <input id="f-contactPhone" type="tel" value={form.contactPhone} onChange={(e) => update("contactPhone", e.target.value)} onBlur={() => validateContactField("contactPhone")} aria-invalid={!!fieldErrors.contactPhone} placeholder="e.g. +234 801 234 5678" className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.contactPhone ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-blue-700 focus:ring-blue-200"}`} />
+              <input id="f-contactPhone" type="tel" value={form.contactPhone} onChange={(e) => update("contactPhone", e.target.value)} onBlur={() => validateContactField("contactPhone")} aria-invalid={!!fieldErrors.contactPhone} placeholder="e.g. +234 801 234 5678" className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.contactPhone ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-accent focus:ring-accent/30"}`} />
               {fieldErrors.contactPhone && <p className="mt-1.5 text-xs text-red-600">{fieldErrors.contactPhone}</p>}
               {smsEnabled && otpControls("sms")}
             </div>
-            <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-700">
-              <Lock size={12} className="mr-1.5 inline text-blue-500" />
+            <div className="rounded-xl border border-accent/20 bg-accent-soft px-4 py-3 text-xs text-accent">
+              <Lock size={12} className="mr-1.5 inline text-accent" />
               Your contact details are encrypted and only used to schedule your forensic engagement call.
             </div>
           </div>
@@ -740,7 +740,7 @@ export default function IntakeForm({
                       key={lbl}
                       type="button"
                       onClick={() => update("hasActiveOrPendingFacility", val)}
-                      className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${form.hasActiveOrPendingFacility === val ? "border-blue-700 bg-blue-50 text-blue-900" : "border-slate-300 bg-white text-slate-600 hover:border-blue-300"}`}
+                      className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${form.hasActiveOrPendingFacility === val ? "border-accent bg-accent-soft text-ink" : "border-slate-300 bg-white text-slate-600 hover:border-accent/40"}`}
                     >
                       {lbl}
                     </button>
@@ -758,7 +758,7 @@ export default function IntakeForm({
                       key={lbl}
                       type="button"
                       onClick={() => update("hasPriorBankDispute", val)}
-                      className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${form.hasPriorBankDispute === val ? "border-blue-700 bg-blue-50 text-blue-900" : "border-slate-300 bg-white text-slate-600 hover:border-blue-300"}`}
+                      className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${form.hasPriorBankDispute === val ? "border-accent bg-accent-soft text-ink" : "border-slate-300 bg-white text-slate-600 hover:border-accent/40"}`}
                     >
                       {lbl}
                     </button>
@@ -770,7 +770,7 @@ export default function IntakeForm({
                   <label htmlFor="f-engagementContext" className="mb-1.5 block text-sm font-semibold text-slate-800">
                     Any context that may affect engagement strategy? <span className="font-normal text-slate-400">(optional)</span>
                   </label>
-                  <textarea id="f-engagementContext" value={form.engagementContext} onChange={(e) => update("engagementContext", e.target.value)} rows={3} placeholder="e.g. facility approval expected next month with the same bank…" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+                  <textarea id="f-engagementContext" value={form.engagementContext} onChange={(e) => update("engagementContext", e.target.value)} rows={3} placeholder="e.g. facility approval expected next month with the same bank…" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition" />
                 </div>
               )}
             </div>
@@ -785,7 +785,7 @@ export default function IntakeForm({
                 value={form.representativeIdType}
                 onChange={(e) => update("representativeIdType", e.target.value)}
                 aria-invalid={!!fieldErrors.representativeIdType}
-                className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.representativeIdType ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-blue-700 focus:ring-blue-200"}`}
+                className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.representativeIdType ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-accent focus:ring-accent/30"}`}
               >
                 <option value="">— Select ID type —</option>
                 {REPRESENTATIVE_ID_TYPES.map((t) => <option key={t} value={t}>{REPRESENTATIVE_ID_LABELS[t]}</option>)}
@@ -813,7 +813,7 @@ export default function IntakeForm({
                         update("companyHasSoleDirector", val);
                         if (!stillValid) update("authorizationMethod", "");
                       }}
-                      className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${form.companyHasSoleDirector === val ? "border-blue-700 bg-blue-50 text-blue-900" : "border-slate-300 bg-white text-slate-600 hover:border-blue-300"}`}
+                      className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${form.companyHasSoleDirector === val ? "border-accent bg-accent-soft text-ink" : "border-slate-300 bg-white text-slate-600 hover:border-accent/40"}`}
                     >
                       {lbl}
                     </button>
@@ -833,9 +833,9 @@ export default function IntakeForm({
                         key={m}
                         type="button"
                         onClick={() => update("authorizationMethod", m)}
-                        className={`flex w-full items-center gap-2 rounded-xl border px-4 py-2.5 text-left text-sm font-medium transition-colors ${form.authorizationMethod === m ? "border-blue-700 bg-blue-50 text-blue-900" : "border-slate-300 bg-white text-slate-600 hover:border-blue-300"}`}
+                        className={`flex w-full items-center gap-2 rounded-xl border px-4 py-2.5 text-left text-sm font-medium transition-colors ${form.authorizationMethod === m ? "border-accent bg-accent-soft text-ink" : "border-slate-300 bg-white text-slate-600 hover:border-accent/40"}`}
                       >
-                        {form.authorizationMethod === m ? <CheckCircle2 size={15} className="shrink-0 text-blue-700" /> : <span className="h-[15px] w-[15px] shrink-0 rounded-full border border-slate-300" />}
+                        {form.authorizationMethod === m ? <CheckCircle2 size={15} className="shrink-0 text-accent" /> : <span className="h-[15px] w-[15px] shrink-0 rounded-full border border-slate-300" />}
                         {AUTHORIZATION_METHOD_LABELS[m]}
                       </button>
                     ))}
@@ -853,8 +853,8 @@ export default function IntakeForm({
                   <div className="space-y-2">
                     {form.loaSignatories.map((sig, i) => (
                       <div key={i} className="flex items-center gap-2">
-                        <input type="text" value={sig.name} onChange={(e) => updateSignatory(i, "name", e.target.value)} placeholder="Director name" className="flex-1 rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
-                        <input type="text" value={sig.title} onChange={(e) => updateSignatory(i, "title", e.target.value)} placeholder="Title (e.g. Director)" className="flex-1 rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+                        <input type="text" value={sig.name} onChange={(e) => updateSignatory(i, "name", e.target.value)} placeholder="Director name" className="flex-1 rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition" />
+                        <input type="text" value={sig.title} onChange={(e) => updateSignatory(i, "title", e.target.value)} placeholder="Title (e.g. Director)" className="flex-1 rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition" />
                         {form.loaSignatories.length > 1 && (
                           <button type="button" onClick={() => removeSignatory(i)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:border-red-300 hover:text-red-500 transition-colors">
                             <X size={15} />
@@ -864,7 +864,7 @@ export default function IntakeForm({
                     ))}
                   </div>
                   {form.authorizationMethod === "two_directors" && (
-                    <button type="button" onClick={addSignatory} className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-blue-700 hover:text-blue-900 transition-colors">
+                    <button type="button" onClick={addSignatory} className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent-bright transition-colors">
                       <Plus size={13} />Add another signatory
                     </button>
                   )}
@@ -919,11 +919,11 @@ export default function IntakeForm({
                           type="button"
                           onClick={() => fileRefs[slot.key].current?.click()}
                           disabled={status === "uploading"}
-                          className={`w-full flex items-start justify-between rounded-xl border-2 border-dashed p-4 transition-colors text-left ${status === "error" ? "border-red-300 bg-red-50" : "border-slate-300 bg-slate-50 hover:border-blue-400 hover:bg-blue-50"}`}
+                          className={`w-full flex items-start justify-between rounded-xl border-2 border-dashed p-4 transition-colors text-left ${status === "error" ? "border-red-300 bg-red-50" : "border-slate-300 bg-slate-50 hover:border-accent/50 hover:bg-accent-soft"}`}
                         >
                           <div className="flex items-start gap-3">
-                            <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${status === "uploading" ? "border-blue-200 bg-blue-50" : "border-slate-200 bg-white"}`}>
-                              {status === "uploading" ? <Loader2 size={15} className="animate-spin text-blue-600" /> : <FileText size={15} className="text-slate-400" />}
+                            <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${status === "uploading" ? "border-accent/20 bg-accent-soft" : "border-slate-200 bg-white"}`}>
+                              {status === "uploading" ? <Loader2 size={15} className="animate-spin text-accent" /> : <FileText size={15} className="text-slate-400" />}
                             </div>
                             <div>
                               <p className="text-sm font-semibold text-slate-700">{slot.label}</p>
@@ -931,7 +931,7 @@ export default function IntakeForm({
                               {errMsg && <p className="mt-1 text-xs text-red-600">{errMsg}</p>}
                             </div>
                           </div>
-                          <div className={`flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${status === "uploading" ? "border-blue-200 text-blue-600" : "border-slate-300 bg-white text-slate-600"}`}>
+                          <div className={`flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${status === "uploading" ? "border-accent/20 text-accent" : "border-slate-300 bg-white text-slate-600"}`}>
                             {status === "uploading" ? <><Loader2 size={11} className="animate-spin" />Uploading…</> : <><Paperclip size={11} /><Upload size={11} />Choose File</>}
                           </div>
                         </button>
@@ -947,7 +947,7 @@ export default function IntakeForm({
               <h4 className="mb-1 text-sm font-semibold text-slate-800">Compliance Acknowledgments</h4>
               <p className="mb-4 text-xs text-slate-500">Both acknowledgments are mandatory to proceed.</p>
               <div className="space-y-3">
-                <label className={`flex cursor-pointer items-start gap-3 rounded-xl border-2 p-4 transition-colors ${form.confirmedSignatory ? "border-emerald-400 bg-emerald-50" : "border-slate-200 bg-slate-50 hover:border-blue-300"}`}>
+                <label className={`flex cursor-pointer items-start gap-3 rounded-xl border-2 p-4 transition-colors ${form.confirmedSignatory ? "border-emerald-400 bg-emerald-50" : "border-slate-200 bg-slate-50 hover:border-accent/40"}`}>
                   <input
                     type="checkbox"
                     checked={form.confirmedSignatory}
@@ -960,7 +960,7 @@ export default function IntakeForm({
                   </span>
                 </label>
 
-                <label className={`flex cursor-pointer items-start gap-3 rounded-xl border-2 p-4 transition-colors ${form.agreedNDPA ? "border-emerald-400 bg-emerald-50" : "border-slate-200 bg-slate-50 hover:border-blue-300"}`}>
+                <label className={`flex cursor-pointer items-start gap-3 rounded-xl border-2 p-4 transition-colors ${form.agreedNDPA ? "border-emerald-400 bg-emerald-50" : "border-slate-200 bg-slate-50 hover:border-accent/40"}`}>
                   <input
                     type="checkbox"
                     checked={form.agreedNDPA}
@@ -970,7 +970,7 @@ export default function IntakeForm({
                   <span className="text-sm text-slate-700">
                     <span className="font-semibold text-slate-900">NDPA 2023 & NDA: </span>
                     I agree to handling of all financial data under the{" "}
-                    <span className="font-semibold text-blue-800">Nigeria Data Protection Act (NDPA) 2023</span>, and acknowledge that a mutual Non-Disclosure Agreement (NDA) governs all information exchanged during this engagement.
+                    <span className="font-semibold text-ink">Nigeria Data Protection Act (NDPA) 2023</span>, and acknowledge that a mutual Non-Disclosure Agreement (NDA) governs all information exchanged during this engagement.
                   </span>
                 </label>
               </div>
@@ -1002,16 +1002,16 @@ export default function IntakeForm({
                 <label htmlFor="f-termsSignerName" className="mb-1.5 block text-sm font-semibold text-slate-800">
                   Type your full name as signature <span className="text-red-500">*</span>
                 </label>
-                <input id="f-termsSignerName" type="text" value={form.termsSignerName} onChange={(e) => update("termsSignerName", e.target.value)} placeholder="e.g. Amaka Okonkwo" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+                <input id="f-termsSignerName" type="text" value={form.termsSignerName} onChange={(e) => update("termsSignerName", e.target.value)} placeholder="e.g. Amaka Okonkwo" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition" />
               </div>
               <div>
                 <label htmlFor="f-termsSignerTitle" className="mb-1.5 block text-sm font-semibold text-slate-800">
                   Title / Role <span className="font-normal text-slate-400">(optional)</span>
                 </label>
-                <input id="f-termsSignerTitle" type="text" value={form.termsSignerTitle} onChange={(e) => update("termsSignerTitle", e.target.value)} placeholder="e.g. Chief Financial Officer" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+                <input id="f-termsSignerTitle" type="text" value={form.termsSignerTitle} onChange={(e) => update("termsSignerTitle", e.target.value)} placeholder="e.g. Chief Financial Officer" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition" />
               </div>
             </div>
-            <label className={`flex cursor-pointer items-start gap-3 rounded-xl border-2 p-4 transition-colors ${form.termsAccepted ? "border-emerald-400 bg-emerald-50" : "border-slate-200 bg-slate-50 hover:border-blue-300"}`}>
+            <label className={`flex cursor-pointer items-start gap-3 rounded-xl border-2 p-4 transition-colors ${form.termsAccepted ? "border-emerald-400 bg-emerald-50" : "border-slate-200 bg-slate-50 hover:border-accent/40"}`}>
               <input
                 type="checkbox"
                 checked={form.termsAccepted}
@@ -1051,7 +1051,7 @@ export default function IntakeForm({
                 setStep((s) => s + 1);
               }}
               disabled={!stepValid(step)}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-bright disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
             >
               Continue<ChevronRight size={16} />
             </button>

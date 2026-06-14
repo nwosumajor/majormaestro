@@ -66,10 +66,10 @@ export default async function PublicReferralDashboardPage({
 
         {/* Stats */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat icon={Users} label="Total Leads" value={referral.complaints.length.toString()} accent="bg-blue-100 text-blue-700" />
+          <Stat icon={Users} label="Total Leads" value={referral.complaints.length.toString()} accent="bg-accent-soft text-accent" />
           <Stat icon={Clock} label="In Progress" value={active.toString()} accent="bg-amber-100 text-amber-700" />
           <Stat icon={CheckCircle2} label="Recovered" value={recovered.toString()} accent="bg-emerald-100 text-emerald-700" />
-          <Stat icon={Banknote} label="Earned" value={nairaFromKobo(earned.earnedKobo)} accent="bg-blue-100 text-blue-700" />
+          <Stat icon={Banknote} label="Earned" value={nairaFromKobo(earned.earnedKobo)} accent="bg-accent-soft text-accent" />
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm">
@@ -127,7 +127,7 @@ export default async function PublicReferralDashboardPage({
                       <p className="font-mono text-xs text-slate-400">{c.referenceId}</p>
                     </td>
                     <td className="px-6 py-3">
-                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${c.status === "recovered" ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>
+                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${c.status === "recovered" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
                         {STEP_DEFS[c.status as StepKey]?.label ?? c.status}
                       </span>
                     </td>
@@ -139,9 +139,9 @@ export default async function PublicReferralDashboardPage({
           )}
         </div>
 
-        <div className="rounded-2xl border border-blue-100 bg-blue-50 px-5 py-4 text-sm text-blue-900">
+        <div className="rounded-2xl border border-accent/15 bg-accent-soft px-5 py-4 text-sm text-ink">
           <p className="font-semibold flex items-center gap-2"><TrendingUp size={14} />Commission summary</p>
-          <p className="mt-1 text-xs text-blue-800">
+          <p className="mt-1 text-xs text-ink-600">
             A tiered bonus of ₦50,000–₦200,000 per completed audit (scaled to the referred company&apos;s annual turnover), plus 5% of the recovered amount on every successful recovery. Statements are issued by email at the point of each recovery confirmation.
           </p>
         </div>

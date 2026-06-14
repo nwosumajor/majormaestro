@@ -94,14 +94,14 @@ export default function AIPreScreener() {
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-lg overflow-hidden">
-      <div className="bg-blue-950 px-6 py-5">
+      <div className="bg-ink px-6 py-5">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 text-white">
             <Brain size={20} />
           </div>
           <div>
             <h3 className="text-base font-bold text-white">AI Pre-Screening Analysis</h3>
-            <p className="text-xs text-blue-300">Describe your banking situation — our AI identifies potential overcharges instantly</p>
+            <p className="text-xs text-slate-400">Describe your banking situation — our AI identifies potential overcharges instantly</p>
           </div>
         </div>
       </div>
@@ -118,7 +118,7 @@ export default function AIPreScreener() {
               rows={5}
               placeholder="e.g. We have maintained accounts with two commercial banks for the past 6 years. We use overdraft facilities and regularly process Letters of Credit for imports. We noticed our COT charges seem unusually high and our overdraft interest has been around 38% per annum. We also get charged per SWIFT transfer well above what we expected…"
               required
-              className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition resize-none"
+              className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition resize-none"
             />
             <p className="mt-1 text-xs text-slate-400">The more detail you provide, the more accurate the analysis. Include charge types, rates, and how long you&apos;ve banked there.</p>
           </div>
@@ -133,7 +133,7 @@ export default function AIPreScreener() {
                 value={bankName}
                 onChange={(e) => setBankName(e.target.value)}
                 placeholder="e.g. First Bank, GTBank…"
-                className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+                className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition"
               />
             </div>
             <div>
@@ -144,7 +144,7 @@ export default function AIPreScreener() {
                 <select
                   value={turnoverBand}
                   onChange={(e) => setTurnoverBand(e.target.value)}
-                  className="w-full appearance-none rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-2.5 pr-9 text-sm text-slate-800 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition cursor-pointer"
+                  className="w-full appearance-none rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-2.5 pr-9 text-sm text-slate-800 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition cursor-pointer"
                 >
                   <option value="">— Select band —</option>
                   {TURNOVER_BANDS.map((b) => <option key={b} value={b}>{b}</option>)}
@@ -163,7 +163,7 @@ export default function AIPreScreener() {
           <button
             type="submit"
             disabled={loading || !description.trim()}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-900 py-3 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-50 transition-colors"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3 text-sm font-bold text-white hover:bg-accent-bright disabled:opacity-50 transition-colors"
           >
             {loading ? (
               <><Loader2 size={16} className="animate-spin" /> Analysing…</>
@@ -251,7 +251,7 @@ export default function AIPreScreener() {
             <div className="mt-5 flex flex-wrap gap-3">
               <a
                 href="#intake"
-                className="inline-flex items-center gap-2 rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-800 transition-colors shadow-sm"
+                className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-bold text-white hover:bg-accent-bright transition-colors shadow-sm"
               >
                 Lodge a Complaint <ArrowRight size={14} />
               </a>

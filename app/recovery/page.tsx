@@ -191,12 +191,12 @@ export default async function RecoveryPage({
           </div>
         </div>
 
-        <div className="border-t border-white/10 bg-blue-950/60 backdrop-blur-sm">
+        <div className="border-t border-white/10 bg-ink-700/60 backdrop-blur-sm">
           <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-            <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-xs font-medium text-blue-300">
+            <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-xs font-medium text-slate-400">
               {["CBN Guide to Bank Charges 2017 (as amended)", "BOFIA Act 2020", "NDPA 2023 Compliant", "CAC Registered", "AES-256 Encrypted"].map((item) => (
                 <span key={item} className="flex items-center gap-1.5">
-                  <CircleCheck size={12} className="text-emerald-500" />{item}
+                  <CircleCheck size={12} className="text-accent-bright" />{item}
                 </span>
               ))}
             </div>
@@ -257,7 +257,7 @@ export default async function RecoveryPage({
             <div className="mt-12 space-y-4 lg:mt-0">
               {TRUST_SIGNALS.map(({ icon: Icon, label, desc }) => (
                 <div key={label} className="flex gap-4 rounded-xl border border-slate-200 bg-slate-50 p-5">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-900 text-emerald-400">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-ink-600 text-accent-bright">
                     <Icon size={22} />
                   </div>
                   <div>
@@ -280,16 +280,16 @@ export default async function RecoveryPage({
               <Link
                 key={s.href}
                 href={s.href}
-                className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-blue-300 hover:shadow-md transition-all group"
+                className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-accent/40 hover:shadow-md transition-all group"
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-900 text-emerald-400 group-hover:bg-blue-800 transition-colors">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ink-600 text-accent-bright group-hover:bg-ink transition-colors">
                   <s.icon size={20} />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-bold text-slate-900">{s.label}</p>
                   <p className="text-xs text-slate-500">{s.desc}</p>
                 </div>
-                <ArrowRight size={14} className="text-slate-300 group-hover:text-blue-700 transition-colors" />
+                <ArrowRight size={14} className="text-slate-300 group-hover:text-accent transition-colors" />
               </Link>
             ))}
           </div>
@@ -333,12 +333,12 @@ export default async function RecoveryPage({
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {PROCESS_STEPS.map(({ icon: Icon, step, title, desc }) => (
-              <div key={step} className="group relative rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:border-blue-300 hover:shadow-md transition-all">
+              <div key={step} className="group relative rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:border-accent/40 hover:shadow-md transition-all">
                 <div className="mb-4 flex items-center justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-950 text-emerald-400 group-hover:bg-blue-900 transition-colors">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-ink text-accent-bright group-hover:bg-ink-600 transition-colors">
                     <Icon size={22} />
                   </div>
-                  <span className="text-3xl font-black text-slate-100 group-hover:text-blue-100 transition-colors select-none">
+                  <span className="font-figure text-3xl font-black text-slate-100 group-hover:text-accent/30 transition-colors select-none">
                     {step}
                   </span>
                 </div>
@@ -348,8 +348,8 @@ export default async function RecoveryPage({
             ))}
           </div>
 
-          <div className="mt-10 rounded-2xl border border-blue-100 bg-blue-50 px-6 py-4 text-center">
-            <p className="text-sm text-blue-800">
+          <div className="mt-10 rounded-2xl border border-accent/15 bg-accent-soft px-6 py-4 text-center">
+            <p className="text-sm text-ink-600">
               <span className="font-bold">Average end-to-end timeline: 4 – 16 weeks</span>, depending on turnover band, number of banks, and statement availability. We keep you informed at every step.
             </p>
           </div>

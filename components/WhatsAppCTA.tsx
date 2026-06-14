@@ -35,14 +35,14 @@ export default function WhatsAppCTA() {
               href="tel:+2349039586647"
               className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
             >
-              <Phone size={18} className="text-blue-700" />
+              <Phone size={18} className="text-accent" />
               Call Us Directly
             </a>
             <a
               href="mailto:forensics@majormaestro.com"
               className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
             >
-              <Mail size={18} className="text-blue-700" />
+              <Mail size={18} className="text-accent" />
               Send Email
             </a>
           </div>

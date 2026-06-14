@@ -68,7 +68,7 @@ function NdpaExport({ referenceId }: { referenceId: string }) {
           {!open ? (
             <button
               onClick={() => setOpen(true)}
-              className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900"
+              className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:text-accent-bright"
             >
               <Download size={11} /> Request data export
             </button>
@@ -80,12 +80,12 @@ function NdpaExport({ referenceId }: { referenceId: string }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Confirm contact email on file"
-                className="flex-1 min-w-[200px] rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs focus:border-blue-600 focus:outline-none"
+                className="flex-1 min-w-[200px] rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs focus:border-accent focus:outline-none"
               />
               <button
                 type="submit"
                 disabled={loading || !email}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-800 disabled:opacity-60 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-bold text-white hover:bg-accent-bright disabled:opacity-60 transition-colors"
               >
                 {loading ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />}
                 {loading ? "Preparing…" : "Download JSON"}
@@ -155,13 +155,13 @@ export default function TrackPage() {
                 value={refInput}
                 onChange={(e) => setRefInput(e.target.value)}
                 placeholder="e.g. GBN-ABC12345-XY"
-                className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm font-mono text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+                className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm font-mono text-slate-900 placeholder:text-slate-400 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition"
               />
             </div>
             <button
               type="submit"
               disabled={loading || !refInput.trim().toUpperCase().startsWith("GBN-")}
-              className="flex items-center gap-2 rounded-xl bg-blue-900 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-bold text-white hover:bg-accent-bright disabled:opacity-50 transition-colors"
             >
               {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
               Track
@@ -204,7 +204,7 @@ export default function TrackPage() {
                     <div key={step.key} className="flex gap-4">
                       {/* Line + dot */}
                       <div className="flex flex-col items-center">
-                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${done ? "border-emerald-500 bg-emerald-500 text-white" : active ? "border-blue-700 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-slate-300"}`}>
+                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${done ? "border-emerald-500 bg-emerald-500 text-white" : active ? "border-accent bg-accent-soft text-accent" : "border-slate-200 bg-white text-slate-300"}`}>
                           {done ? <CheckCircle2 size={16} /> : active ? <Clock size={15} /> : <div className="h-2 w-2 rounded-full bg-current" />}
                         </div>
                         {i < status.steps.length - 1 && (
@@ -215,11 +215,11 @@ export default function TrackPage() {
                       {/* Content */}
                       <div className={`pb-6 ${i === status.steps.length - 1 ? "pb-0" : ""}`}>
                         <div className="flex items-center gap-2">
-                          <p className={`text-sm font-bold ${done ? "text-emerald-700" : active ? "text-blue-900" : "text-slate-400"}`}>
+                          <p className={`text-sm font-bold ${done ? "text-emerald-700" : active ? "text-ink" : "text-slate-400"}`}>
                             {step.label}
                           </p>
                           {active && (
-                            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-bold text-blue-700">In Progress</span>
+                            <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-bold text-accent">In Progress</span>
                           )}
                           {done && step.reachedAt && (
                             <span className="text-xs text-slate-400">{formatDate(step.reachedAt)}</span>
@@ -238,9 +238,9 @@ export default function TrackPage() {
               </div>
             </div>
 
-            <div className="mt-6 flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
-              <AlertCircle size={15} className="mt-0.5 shrink-0 text-blue-600" />
-              <p className="text-xs text-blue-700">
+            <div className="mt-6 flex items-start gap-3 rounded-xl border border-accent/15 bg-accent-soft px-4 py-3">
+              <AlertCircle size={15} className="mt-0.5 shrink-0 text-accent" />
+              <p className="text-xs text-accent">
                 For case-specific enquiries, contact your assigned team directly at{" "}
                 <a href="mailto:forensics@majormaestro.com" className="font-semibold underline">forensics@majormaestro.com</a> quoting your reference ID.
               </p>
@@ -264,7 +264,7 @@ export default function TrackPage() {
           <p className="text-sm font-semibold text-slate-700">Don&apos;t have a reference ID yet?</p>
           <p className="mt-1 text-xs text-slate-500">Submit your complaint through our secure intake form to get started.</p>
           <div className="mt-4 flex flex-wrap justify-center gap-3">
-            <Link href="/recovery#intake" className="inline-flex items-center gap-2 rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-800 transition-colors">
+            <Link href="/recovery#intake" className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-bold text-white hover:bg-accent-bright transition-colors">
               Lodge a Complaint <ArrowRight size={14} />
             </Link>
             <a href="tel:+2348000000000" className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors">

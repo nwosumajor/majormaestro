@@ -75,12 +75,12 @@ export default function TeamSection() {
                   className="mb-4 h-14 w-14 rounded-full object-cover ring-2 ring-emerald-400/40"
                 />
               ) : (
-                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-950 text-lg font-black text-emerald-400">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-ink text-lg font-black text-accent-bright">
                   {m.name.replace(/[[\]]/g, "").trim().charAt(0) || "?"}
                 </div>
               )}
               <h3 className="text-base font-bold text-slate-900">{m.name}</h3>
-              <p className="text-sm font-semibold text-blue-800">{m.title}</p>
+              <p className="text-sm font-semibold text-accent">{m.title}</p>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {m.credentials.map((c) => (
                   <span key={c} className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
@@ -90,7 +90,7 @@ export default function TeamSection() {
               </div>
               <p className="mt-3 flex-1 text-sm leading-relaxed text-slate-600">{m.bio}</p>
               {m.linkedin && (
-                <a href={m.linkedin} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900">
+                <a href={m.linkedin} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:text-accent-bright">
                   <ExternalLink size={13} /> LinkedIn
                 </a>
               )}
@@ -99,28 +99,28 @@ export default function TeamSection() {
         </div>
 
         {/* Contact card */}
-        <div className="mt-8 rounded-2xl border border-blue-100 bg-white p-6 sm:p-8 shadow-sm">
+        <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
             <a href={`mailto:${CONTACT.email.replace(/[[\]]/g, "")}`} className="flex items-start gap-3 group">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
                 <Mail size={18} />
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Email</p>
-                <p className="text-sm font-semibold text-slate-800 group-hover:text-blue-700 break-all">{CONTACT.email}</p>
+                <p className="text-sm font-semibold text-slate-800 group-hover:text-accent break-all">{CONTACT.email}</p>
               </div>
             </a>
             <a href={`tel:${CONTACT.phone.replace(/[^+\d]/g, "")}`} className="flex items-start gap-3 group">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
                 <Phone size={18} />
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Phone</p>
-                <p className="text-sm font-semibold text-slate-800 group-hover:text-blue-700">{CONTACT.phone}</p>
+                <p className="text-sm font-semibold text-slate-800 group-hover:text-accent">{CONTACT.phone}</p>
               </div>
             </a>
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
                 <MapPin size={18} />
               </div>
               <div>

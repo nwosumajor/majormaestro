@@ -121,7 +121,7 @@ export default function ReferPage() {
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             {HOW.map((h) => (
               <div key={h.step} className="flex gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-900 text-sm font-black text-white">{h.step}</span>
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ink text-sm font-black text-white">{h.step}</span>
                 <div>
                   <p className="font-bold text-slate-900">{h.title}</p>
                   <p className="mt-1 text-sm text-slate-600 leading-relaxed">{h.desc}</p>
@@ -135,7 +135,7 @@ export default function ReferPage() {
         <section>
           <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
             <div className="flex items-center gap-3 mb-6">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-900 text-white">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-ink text-white">
                 <Users size={20} />
               </div>
               <div>
@@ -155,7 +155,7 @@ export default function ReferPage() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Aisha Bello"
-                      className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+                      className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition"
                     />
                   </div>
                   <div>
@@ -166,7 +166,7 @@ export default function ReferPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@company.com"
-                      className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+                      className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition"
                     />
                   </div>
                 </div>
@@ -218,9 +218,9 @@ export default function ReferPage() {
                   </a>
                 </div>
 
-                <div className="mt-5 flex items-start gap-2 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
-                  <TrendingUp size={14} className="mt-0.5 shrink-0 text-blue-600" />
-                  <p className="text-xs text-blue-700">
+                <div className="mt-5 flex items-start gap-2 rounded-xl border border-accent/15 bg-accent-soft px-4 py-3">
+                  <TrendingUp size={14} className="mt-0.5 shrink-0 text-accent" />
+                  <p className="text-xs text-ink-600">
                     We track all referrals using your link. You&apos;ll receive a commission statement by email once a case is successfully resolved. For enquiries, email <a href="mailto:referrals@majormaestro.com" className="font-semibold underline">referrals@majormaestro.com</a>.
                   </p>
                 </div>
@@ -259,7 +259,7 @@ export default function ReferPage() {
             { icon: ArrowRight, title: "Immediate Activation", desc: "Your referral link is live as soon as it is generated. No approval process required." },
           ].map((t, i) => (
             <div key={i} className="flex gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <t.icon size={18} className="mt-0.5 shrink-0 text-blue-700" />
+              <t.icon size={18} className="mt-0.5 shrink-0 text-accent" />
               <div>
                 <p className="text-sm font-bold text-slate-800">{t.title}</p>
                 <p className="mt-0.5 text-xs text-slate-500 leading-relaxed">{t.desc}</p>

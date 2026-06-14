@@ -105,7 +105,7 @@ function getResult(score: number, max: number) {
     icon: CheckCircle2,
     iconColor: "text-emerald-600",
     message: "Based on these answers, your immediate recovery opportunity appears more limited — typically due to shorter banking history or lower transaction volumes. Only a full forensic audit can confirm this with certainty.",
-    btnClass: "bg-blue-800 hover:bg-blue-900",
+    btnClass: "bg-accent hover:bg-accent-bright",
     cta: "Speak to a Specialist",
     href: "#intake",
   };
@@ -198,11 +198,11 @@ export default function PreQualQuiz() {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-lg overflow-hidden">
       <div className="h-1.5 bg-slate-100">
-        <div className="h-full bg-blue-700 transition-all duration-500" style={{ width: `${(step / QUESTIONS.length) * 100}%` }} />
+        <div className="h-full bg-accent transition-all duration-500" style={{ width: `${(step / QUESTIONS.length) * 100}%` }} />
       </div>
       <div className="p-6">
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-xs font-semibold text-blue-700">Question {step + 1} of {QUESTIONS.length}</span>
+          <span className="text-xs font-semibold text-accent">Question {step + 1} of {QUESTIONS.length}</span>
           {q.multi && <span className="text-xs text-slate-400">Select all that apply</span>}
         </div>
 
@@ -216,11 +216,11 @@ export default function PreQualQuiz() {
                 key={idx}
                 type="button"
                 onClick={() => toggle(q.id, idx, !!q.multi)}
-                className={`w-full rounded-xl border-2 px-4 py-3 text-left transition-all ${sel ? "border-blue-700 bg-blue-50" : "border-slate-200 hover:border-blue-300 hover:bg-slate-50"}`}
+                className={`w-full rounded-xl border-2 px-4 py-3 text-left transition-all ${sel ? "border-accent bg-accent-soft" : "border-slate-200 hover:border-accent/40 hover:bg-slate-50"}`}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span className={`text-sm font-medium ${sel ? "text-blue-900" : "text-slate-700"}`}>{opt.label}</span>
-                  {sel && <CheckCircle2 size={16} className="shrink-0 text-blue-700" />}
+                  <span className={`text-sm font-medium ${sel ? "text-ink" : "text-slate-700"}`}>{opt.label}</span>
+                  {sel && <CheckCircle2 size={16} className="shrink-0 text-accent" />}
                 </div>
                 {opt.detail && <p className="mt-0.5 text-xs text-slate-500">{opt.detail}</p>}
               </button>
@@ -234,7 +234,7 @@ export default function PreQualQuiz() {
               <ChevronLeft size={16} />Back
             </button>
           ) : <div />}
-          <button type="button" onClick={next} disabled={!canProceed} className="inline-flex items-center gap-2 rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-50 transition-colors">
+          <button type="button" onClick={next} disabled={!canProceed} className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-bold text-white hover:bg-accent-bright disabled:opacity-50 transition-colors">
             {step === QUESTIONS.length - 1 ? "See My Result" : "Next"}
             <ChevronRight size={16} />
           </button>

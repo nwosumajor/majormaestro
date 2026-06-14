@@ -102,26 +102,26 @@ function ChatPanel({ results, input }: { results: Classification[]; input: Asses
   }
 
   return (
-    <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 overflow-hidden">
-      <button onClick={() => setOpen((v) => !v)} className="flex w-full items-center justify-between px-5 py-4 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition-colors">
+    <div className="mt-6 rounded-xl border border-accent/20 bg-accent-soft overflow-hidden">
+      <button onClick={() => setOpen((v) => !v)} className="flex w-full items-center justify-between px-5 py-4 text-sm font-semibold text-accent hover:bg-accent-soft transition-colors">
         <span className="flex items-center gap-2"><MessageSquare size={16} /> Ask AI a follow-up question about your results</span>
         {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
       </button>
       {open && (
-        <div className="border-t border-blue-200 bg-white">
+        <div className="border-t border-accent/20 bg-white">
           <div className="h-64 overflow-y-auto p-4 space-y-3">
             {messages.length === 0 && <p className="text-xs text-slate-400 text-center pt-8">Ask anything about your classification results…</p>}
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[85%] rounded-xl px-4 py-2.5 text-sm whitespace-pre-wrap ${m.role === "user" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-800"}`}>{m.content}</div>
+                <div className={`max-w-[85%] rounded-xl px-4 py-2.5 text-sm whitespace-pre-wrap ${m.role === "user" ? "bg-accent text-white" : "bg-slate-100 text-slate-800"}`}>{m.content}</div>
               </div>
             ))}
             {isLoading && messages[messages.length - 1]?.role !== "assistant" && <div className="flex justify-start"><div className="rounded-xl bg-slate-100 px-4 py-2.5"><Loader2 size={14} className="animate-spin text-slate-400" /></div></div>}
             <div ref={bottomRef} />
           </div>
           <form onSubmit={sendMessage} className="flex items-center gap-2 border-t border-slate-200 p-3">
-            <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="e.g. Why did I score low on Risk Management?" className="flex-1 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
-            <button type="submit" aria-label="Send message" disabled={isLoading || !chatInput.trim()} className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"><Send size={15} aria-hidden="true" /></button>
+            <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="e.g. Why did I score low on Risk Management?" className="flex-1 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition" />
+            <button type="submit" aria-label="Send message" disabled={isLoading || !chatInput.trim()} className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-white hover:bg-accent-bright disabled:opacity-50 transition-colors"><Send size={15} aria-hidden="true" /></button>
           </form>
         </div>
       )}
@@ -141,10 +141,10 @@ function QuestionCard({ q, selected, onSelect }: { q: Question; selected: number
               key={i}
               type="button"
               onClick={() => onSelect(i)}
-              className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-2.5 text-left text-sm transition-colors ${on ? "border-blue-600 bg-blue-50 text-blue-900" : "border-slate-200 text-slate-700 hover:border-blue-300 hover:bg-slate-50"}`}
+              className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-2.5 text-left text-sm transition-colors ${on ? "border-accent bg-accent-soft text-ink" : "border-slate-200 text-slate-700 hover:border-accent/40 hover:bg-slate-50"}`}
             >
               <span>{opt.label}</span>
-              {on && <CheckCircle2 size={15} className="shrink-0 text-blue-600" />}
+              {on && <CheckCircle2 size={15} className="shrink-0 text-accent" />}
             </button>
           );
         })}
@@ -279,7 +279,7 @@ export default function AssessmentPage() {
     <div className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="mb-10">
-        <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white">
+        <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-accent text-white">
           <Users size={24} />
         </div>
         <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">Individual Classification</h1>
@@ -297,7 +297,7 @@ export default function AssessmentPage() {
             value={assessmentName}
             onChange={(e) => setAssessmentName(e.target.value)}
             placeholder="e.g. John Doe – Q2 Placement Review"
-            className="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+            className="w-full rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition"
           />
         </div>
 
@@ -308,7 +308,7 @@ export default function AssessmentPage() {
           return (
             <div key={domain} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="mb-4 flex items-center gap-2">
-                <Icon size={16} className="text-blue-600" />
+                <Icon size={16} className="text-accent" />
                 <h3 className="text-sm font-bold text-slate-900">{DOMAIN_LABELS[domain]}</h3>
               </div>
               <div className="space-y-5">
@@ -323,7 +323,7 @@ export default function AssessmentPage() {
         {/* Optional refiners */}
         <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <button type="button" onClick={() => setShowOptional((v) => !v)} className="flex w-full items-center justify-between px-5 py-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
-            <span className="flex items-center gap-2"><ListChecks size={16} className="text-blue-600" /> Refine your profile — {OPTIONAL_QUESTIONS.length} optional questions</span>
+            <span className="flex items-center gap-2"><ListChecks size={16} className="text-accent" /> Refine your profile — {OPTIONAL_QUESTIONS.length} optional questions</span>
             {showOptional ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
           {showOptional && (
@@ -349,17 +349,17 @@ export default function AssessmentPage() {
         {/* CV Upload — extracts certifications */}
         <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <button type="button" onClick={() => setShowCVUpload((v) => !v)} className="flex w-full items-center justify-between px-5 py-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
-            <span className="flex items-center gap-2"><Upload size={16} className="text-blue-600" /> Extract certifications from CV / Resume (PDF)</span>
+            <span className="flex items-center gap-2"><Upload size={16} className="text-accent" /> Extract certifications from CV / Resume (PDF)</span>
             {showCVUpload ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
           {showCVUpload && (
             <div className="border-t border-slate-100 px-5 pb-5 pt-4">
               <p className="mb-3 text-sm text-slate-500">Upload a PDF CV and the AI will extract certifications into the list below. Review and edit before submitting.</p>
-              <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-blue-300 bg-blue-50 px-6 py-8 text-center hover:bg-blue-100 transition-colors">
+              <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-accent/40 bg-accent-soft px-6 py-8 text-center hover:bg-accent-soft transition-colors">
                 {cvLoading ? (
-                  <><Loader2 size={24} className="animate-spin text-blue-500" /><span className="text-sm text-blue-600">Analysing CV…</span></>
+                  <><Loader2 size={24} className="animate-spin text-accent" /><span className="text-sm text-accent">Analysing CV…</span></>
                 ) : (
-                  <><FileText size={24} className="text-blue-400" /><span className="text-sm font-medium text-blue-700">Click to select PDF</span><span className="text-xs text-slate-500">Supports standard CV/resume PDFs up to 10MB</span></>
+                  <><FileText size={24} className="text-accent" /><span className="text-sm font-medium text-accent">Click to select PDF</span><span className="text-xs text-slate-500">Supports standard CV/resume PDFs up to 10MB</span></>
                 )}
                 <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={handleCVUpload} disabled={cvLoading} />
               </label>
@@ -378,13 +378,13 @@ export default function AssessmentPage() {
         {/* Certificates */}
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <label className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-900">
-            <Award size={16} className="text-blue-600" />Certificates Acquired
+            <Award size={16} className="text-accent" />Certificates Acquired
           </label>
           <p className="mb-4 text-xs text-slate-500">List each certification separately. Leave blank if none.</p>
           <div className="space-y-2">
             {certificates.map((cert, i) => (
               <div key={i} className="flex items-center gap-2">
-                <input type="text" value={cert} onChange={(e) => updateCertificate(i, e.target.value)} placeholder="e.g. AWS Solutions Architect, CFA, PMP…" className="flex-1 rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+                <input type="text" value={cert} onChange={(e) => updateCertificate(i, e.target.value)} placeholder="e.g. AWS Solutions Architect, CFA, PMP…" className="flex-1 rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition" />
                 {certificates.length > 1 && (
                   <button type="button" onClick={() => removeCertificate(i)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:border-red-300 hover:text-red-500 transition-colors">
                     <X size={15} />
@@ -393,7 +393,7 @@ export default function AssessmentPage() {
               </div>
             ))}
           </div>
-          <button type="button" onClick={addCertificate} className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors">
+          <button type="button" onClick={addCertificate} className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent-bright transition-colors">
             <Plus size={14} />Add another certificate
           </button>
         </div>
@@ -405,9 +405,9 @@ export default function AssessmentPage() {
             <span className="font-figure font-bold text-slate-800">{answeredCount} / {CORE_TOTAL}</span>
           </div>
           <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-blue-600 transition-all duration-300" style={{ width: `${(answeredCount / CORE_TOTAL) * 100}%` }} />
+            <div className="h-full rounded-full bg-accent transition-all duration-300" style={{ width: `${(answeredCount / CORE_TOTAL) * 100}%` }} />
           </div>
-          <button type="submit" disabled={loading || !isFormValid} className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
+          <button type="submit" disabled={loading || !isFormValid} className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-bright disabled:cursor-not-allowed disabled:opacity-60">
             {loading ? <><Loader2 size={16} className="animate-spin" />Analysing profile…</> : isFormValid ? <><Trophy size={16} />Run Classification<ChevronRight size={16} /></> : <>Answer all {CORE_TOTAL} core questions to continue</>}
           </button>
         </div>
@@ -427,13 +427,13 @@ export default function AssessmentPage() {
             <h2 className="text-xl font-bold text-slate-900">Classification Results</h2>
             {/* Action bar */}
             <div className="flex flex-wrap gap-2">
-              <button onClick={handleSave} disabled={saved} className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${saved ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-slate-300 bg-white text-slate-600 hover:border-blue-400 hover:text-blue-700"}`}>
+              <button onClick={handleSave} disabled={saved} className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${saved ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-slate-300 bg-white text-slate-600 hover:border-accent/50 hover:text-accent"}`}>
                 {saved ? <><CheckCircle2 size={13} />Saved</> : <><Save size={13} />Save</>}
               </button>
-              <button onClick={handleCopy} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-blue-400 hover:text-blue-700 transition-colors">
+              <button onClick={handleCopy} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-accent/50 hover:text-accent transition-colors">
                 {copied ? <><CheckCircle2 size={13} />Copied!</> : <><Copy size={13} />Copy Summary</>}
               </button>
-              <button onClick={handleExport} disabled={exportLoading} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-blue-400 hover:text-blue-700 transition-colors disabled:opacity-60">
+              <button onClick={handleExport} disabled={exportLoading} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-accent/50 hover:text-accent transition-colors disabled:opacity-60">
                 {exportLoading ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}Export PDF
               </button>
             </div>
@@ -489,12 +489,12 @@ export default function AssessmentPage() {
           </div>
 
           {/* Bridge to Roadmap */}
-          <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-5">
-            <p className="mb-1 text-sm font-semibold text-blue-900">Ready to plan your path to {results[0].departmentName}?</p>
+          <div className="mt-6 rounded-xl border border-accent/20 bg-accent-soft p-5">
+            <p className="mb-1 text-sm font-semibold text-ink">Ready to plan your path to {results[0].departmentName}?</p>
             <p className="mb-4 text-xs text-slate-600">Build a milestone-driven career roadmap based on your top classification result.</p>
             <Link
               href={`/roadmap?currentRole=${encodeURIComponent(assessmentName || "Current Role")}&targetRole=${encodeURIComponent(results[0].departmentName)}&fromBridge=true`}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-bright transition-colors"
             >
               <TrendingUp size={15} />Build Roadmap for {results[0].departmentName}<ChevronRight size={14} />
             </Link>
@@ -503,7 +503,7 @@ export default function AssessmentPage() {
           {/* AI Chat */}
           <ChatPanel results={results} input={currentInput} />
 
-          <button onClick={() => { setResults(null); setError(null); setSaved(false); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors">
+          <button onClick={() => { setResults(null); setError(null); setSaved(false); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-accent hover:text-accent-bright transition-colors">
             <Plus size={14} className="rotate-45" />Start a new assessment
           </button>
         </div>

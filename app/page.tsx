@@ -65,7 +65,7 @@ export default function LandingPage() {
             backgroundSize: "44px 44px",
           }}
         />
-        <div className="absolute -top-32 left-1/2 h-96 w-[36rem] -translate-x-1/2 rounded-full bg-emerald-600/20 blur-[120px]" />
+        <div className="absolute -top-32 left-1/2 h-96 w-[36rem] -translate-x-1/2 rounded-full bg-accent/20 blur-[120px]" />
 
         <Container className="relative py-24 sm:py-32 lg:py-40">
           <div className="mx-auto max-w-3xl text-center">
@@ -349,7 +349,7 @@ export default function LandingPage() {
 
       {/* ── FINAL CTA ────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-ink">
-        <div className="absolute -bottom-32 left-1/2 h-80 w-[34rem] -translate-x-1/2 rounded-full bg-emerald-600/15 blur-[120px]" />
+        <div className="absolute -bottom-32 left-1/2 h-80 w-[34rem] -translate-x-1/2 rounded-full bg-accent/15 blur-[120px]" />
         <Container className="relative py-20 sm:py-28">
           <div className="mx-auto max-w-2xl text-center">
             <BrainCircuit size={28} className="mx-auto mb-5 text-accent-bright" />

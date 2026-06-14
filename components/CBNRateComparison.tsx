@@ -33,14 +33,14 @@ export default function CBNRateComparison() {
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-lg overflow-hidden">
-      <div className="bg-blue-950 px-6 py-5">
+      <div className="bg-ink px-6 py-5">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 text-white">
             <Scale size={20} />
           </div>
           <div>
             <h3 className="text-base font-bold text-white">CBN Rate Compliance Checker</h3>
-            <p className="text-xs text-blue-300">
+            <p className="text-xs text-slate-400">
               Benchmarked against the {CBN_GUIDE_LABEL}
             </p>
           </div>
@@ -59,7 +59,7 @@ export default function CBNRateComparison() {
                 setCharged("");
                 setAgreed("");
               }}
-              className="w-full appearance-none rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-sm text-slate-800 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition cursor-pointer"
+              className="w-full appearance-none rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-sm text-slate-800 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition cursor-pointer"
             >
               <option value="">— Select a charge type —</option>
               {CBN_CHARGES.map((c) => (
@@ -74,20 +74,20 @@ export default function CBNRateComparison() {
 
         {/* CBN rule display */}
         {charge && (
-          <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+          <div className="rounded-xl border border-accent/15 bg-accent-soft px-4 py-3">
             <div className="flex items-start gap-2.5">
-              <Info size={15} className="mt-0.5 shrink-0 text-blue-600" />
+              <Info size={15} className="mt-0.5 shrink-0 text-accent" />
               <div>
-                <p className="text-xs font-semibold text-blue-800">
-                  CBN rule <span className="font-normal text-blue-600">· {charge.section}</span>
+                <p className="text-xs font-semibold text-ink">
+                  CBN rule <span className="font-normal text-accent">· {charge.section}</span>
                 </p>
-                <p className="text-sm font-bold text-blue-900 mt-0.5">{charge.ceiling}</p>
-                <p className="text-xs text-blue-700 mt-1.5 leading-relaxed">{charge.basis}</p>
-                {charge.notes && <p className="text-xs text-blue-700/80 mt-1.5 italic leading-relaxed">{charge.notes}</p>}
+                <p className="text-sm font-bold text-ink mt-0.5">{charge.ceiling}</p>
+                <p className="text-xs text-ink-600 mt-1.5 leading-relaxed">{charge.basis}</p>
+                {charge.notes && <p className="text-xs text-ink-600/80 mt-1.5 italic leading-relaxed">{charge.notes}</p>}
               </div>
             </div>
             {charge.draft2026 && (
-              <p className="mt-2 border-t border-blue-100 pt-2 text-[11px] text-slate-500">
+              <p className="mt-2 border-t border-accent/15 pt-2 text-[11px] text-slate-500">
                 <span className="font-semibold">Heads-up (2026 Draft — not yet in force):</span> {charge.draft2026}
               </p>
             )}
@@ -125,7 +125,7 @@ export default function CBNRateComparison() {
                   value={agreed}
                   onChange={(e) => setAgreed(e.target.value)}
                   placeholder="e.g. 26"
-                  className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm text-slate-900 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+                  className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm text-slate-900 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition"
                 />
                 <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">% p.a.</span>
               </div>
@@ -140,7 +140,7 @@ export default function CBNRateComparison() {
                   value={charged}
                   onChange={(e) => setCharged(e.target.value)}
                   placeholder="e.g. 32"
-                  className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm text-slate-900 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+                  className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm text-slate-900 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition"
                 />
                 <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">% p.a.</span>
               </div>
@@ -162,7 +162,7 @@ export default function CBNRateComparison() {
                 value={charged}
                 onChange={(e) => setCharged(e.target.value)}
                 placeholder={charge.inputPlaceholder}
-                className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-3 pr-16 text-sm text-slate-900 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+                className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-3 pr-16 text-sm text-slate-900 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition"
               />
               <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">{charge.inputSuffix}</span>
             </div>

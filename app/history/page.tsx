@@ -39,12 +39,12 @@ function ClassificationCard({ item, onDelete }: { item: SavedClassification; onD
           <p className="mt-0.5 text-xs text-slate-500">{formatDate(item.savedAt)}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {item.results.slice(0, 3).map((r) => (
-              <span key={r.rank} className="rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-xs font-medium text-blue-700">#{r.rank} {r.departmentName}</span>
+              <span key={r.rank} className="rounded-full bg-accent-soft border border-accent/20 px-2 py-0.5 text-xs font-medium text-accent">#{r.rank} {r.departmentName}</span>
             ))}
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <button onClick={() => setOpen((v) => !v)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:border-blue-300 hover:text-blue-600 transition-colors">
+          <button onClick={() => setOpen((v) => !v)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:border-accent/40 hover:text-accent transition-colors">
             {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
           </button>
           <button onClick={onDelete} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:border-red-300 hover:text-red-500 transition-colors">
@@ -59,7 +59,7 @@ function ClassificationCard({ item, onDelete }: { item: SavedClassification; onD
             <div key={r.rank} className="rounded-lg border border-slate-100 bg-slate-50 p-4">
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-sm font-bold text-slate-900">#{r.rank} {r.departmentName}</p>
-                <span className="text-xs font-semibold text-blue-600">{r.confidenceScore}%</span>
+                <span className="text-xs font-semibold text-accent">{r.confidenceScore}%</span>
               </div>
               <p className="text-xs text-slate-500 mb-2">{r.industryCategory}</p>
               <p className="text-xs leading-relaxed text-slate-600 mb-3">{r.reasoning}</p>
@@ -73,7 +73,7 @@ function ClassificationCard({ item, onDelete }: { item: SavedClassification; onD
               )}
             </div>
           ))}
-          <Link href={`/roadmap?currentRole=${encodeURIComponent(item.label)}&targetRole=${encodeURIComponent(item.results[0].departmentName)}&fromBridge=true`} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 transition-colors">
+          <Link href={`/roadmap?currentRole=${encodeURIComponent(item.label)}&targetRole=${encodeURIComponent(item.results[0].departmentName)}&fromBridge=true`} className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:bg-accent-bright transition-colors">
             <TrendingUp size={12} />Build Roadmap for {item.results[0].departmentName}
           </Link>
         </div>
@@ -94,13 +94,13 @@ function RoadmapCard({ item, onDelete }: { item: SavedRoadmap; onDelete: () => v
           <p className="mt-0.5 text-xs text-slate-500">{formatDate(item.savedAt)}</p>
           <div className="mt-3 flex items-center gap-3">
             <div className="flex-1 h-1.5 rounded-full bg-slate-100">
-              <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${progress}%` }} />
+              <div className="h-full rounded-full bg-accent-soft0 transition-all" style={{ width: `${progress}%` }} />
             </div>
-            <span className="text-xs font-semibold text-blue-600">{item.completedMilestones.length}/{item.results.length} milestones</span>
+            <span className="text-xs font-semibold text-accent">{item.completedMilestones.length}/{item.results.length} milestones</span>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <button onClick={() => setOpen((v) => !v)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:border-blue-300 hover:text-blue-600 transition-colors">
+          <button onClick={() => setOpen((v) => !v)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:border-accent/40 hover:text-accent transition-colors">
             {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
           </button>
           <button onClick={onDelete} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:border-red-300 hover:text-red-500 transition-colors">
@@ -119,12 +119,12 @@ function RoadmapCard({ item, onDelete }: { item: SavedRoadmap; onDelete: () => v
                   <p className={`text-sm font-bold ${done ? "line-through text-slate-400" : "text-slate-900"}`}>{step.milestoneName}</p>
                   {done && <CheckCircle2 size={14} className="shrink-0 text-emerald-500 mt-0.5" />}
                 </div>
-                <p className="text-xs font-medium text-blue-600 flex items-center gap-1 mb-2"><Clock size={10} />{step.timeframe}</p>
-                <p className="text-xs text-slate-600 mb-2 flex items-center gap-1"><DollarSign size={10} className="text-blue-500" />{step.salaryRange.range} · {step.salaryRange.basis}</p>
+                <p className="text-xs font-medium text-accent flex items-center gap-1 mb-2"><Clock size={10} />{step.timeframe}</p>
+                <p className="text-xs text-slate-600 mb-2 flex items-center gap-1"><DollarSign size={10} className="text-accent" />{step.salaryRange.range} · {step.salaryRange.basis}</p>
                 {step.recommendedCertifications.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {step.recommendedCertifications.map((c) => (
-                      <span key={c.name} className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs text-blue-700 flex items-center gap-1">
+                      <span key={c.name} className="rounded-full border border-accent/20 bg-accent-soft px-2 py-0.5 text-xs text-accent flex items-center gap-1">
                         <Award size={9} />{c.name}
                       </span>
                     ))}
@@ -193,7 +193,7 @@ export default function HistoryPage() {
             <div className="rounded-xl border border-dashed border-slate-300 bg-white py-16 text-center">
               <Users size={32} className="mx-auto mb-3 text-slate-300" />
               <p className="text-sm font-medium text-slate-500">No saved classifications yet.</p>
-              <Link href="/assessment" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-800">Run your first assessment →</Link>
+              <Link href="/assessment" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:text-accent-bright">Run your first assessment →</Link>
             </div>
           ) : (
             classifications.map((item) => <ClassificationCard key={item.id} item={item} onDelete={() => removeClassification(item.id)} />)
@@ -207,7 +207,7 @@ export default function HistoryPage() {
             <div className="rounded-xl border border-dashed border-slate-300 bg-white py-16 text-center">
               <TrendingUp size={32} className="mx-auto mb-3 text-slate-300" />
               <p className="text-sm font-medium text-slate-500">No saved roadmaps yet.</p>
-              <Link href="/roadmap" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-800">Build your first roadmap →</Link>
+              <Link href="/roadmap" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:text-accent-bright">Build your first roadmap →</Link>
             </div>
           ) : (
             roadmaps.map((item) => <RoadmapCard key={item.id} item={item} onDelete={() => removeRoadmap(item.id)} />)
