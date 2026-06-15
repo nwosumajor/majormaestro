@@ -14,6 +14,8 @@ interface TeamMember {
   title: string;
   credentials: string[];
   bio: string;
+  email?: string;
+  phone?: string;
   linkedin?: string;
   headshot?: string;
 }
@@ -31,6 +33,89 @@ const TEAM: TeamMember[] = [
     ],
     bio: "Former tier-1 bank Forensic Auditor with ₦400M+ recovered across 60+ organisations. Specialist in LC & trade-finance charges (SWIFT/UCP600), AML/CFT and bank disputes — grounded in CBN/BOFIA. Every case is confidential and success-fee only.",
   },
+  {
+    name: "Obe Adeolu Azeez",
+    title: "Principal Partner, Sales & Marketing Division",
+    credentials: [
+      "Sales & Marketing",
+      "Lead Generation",
+      "Customer Acquisition",
+      "Market Research",
+      "Mass Communication",
+    ],
+    bio: "Results-driven sales and marketing professional pairing a Mass Communication background with hands-on expertise in lead generation, customer acquisition and market research — driving client outreach and growth across the firm's recovery services.",
+    email: "obeydexy@gmail.com",
+    phone: "+234 705 752 2708",
+  },
+  {
+    name: "Owoicho Christopher Emmanuel",
+    title: "Principal Consultant, Logistics & General Supplies Division",
+    credentials: [
+      "Logistics",
+      "Supply Chain",
+      "Procurement",
+      "Vendor Management",
+      "General Supplies",
+    ],
+    bio: "Logistics and supply-chain consultant overseeing procurement, vendor management and general supplies — ensuring the firm's engagements are resourced and delivered efficiently, reliably and cost-effectively.",
+    email: "logistics@majormaestro.com",
+    phone: "+234 798 143 0152",
+  },
+  {
+    name: "Ejim Joseph",
+    title: "Principal Consultant, Legal Division",
+    credentials: [
+      "Legal Counsel",
+      "Regulatory (CBN/BOFIA)",
+      "Dispute Resolution",
+      "Contracts & NDA",
+      "Compliance",
+    ],
+    bio: "Legal consultant providing regulatory and dispute-resolution counsel across the firm's engagements — anchoring recovery claims in CBN and BOFIA, advising on NDA/NDPA 2023 compliance, and enforcing contractual and bank-engagement positions.",
+    email: "legal@majormaestro.com",
+    phone: "+234 703 917 9448",
+  },
+  {
+    name: "Egbe Marvelous",
+    title: "Principal Consultant, Technology Division",
+    credentials: [
+      "Software Engineering",
+      "Cloud & DevOps",
+      "Security & InfoSec",
+      "Data Protection",
+      "AI Integration",
+    ],
+    bio: "Technology consultant leading the platform's engineering and security — the secure client portal, AES-encrypted document handling and NDPA-compliant data protection, plus the AI integrations behind staff classification and case analysis.",
+    email: "tech@majormaestro.com",
+    phone: "+234 808 334 0791",
+  },
+  {
+    name: "Akinnusi Ayobami",
+    title: "Principal Manager, Administrative Division",
+    credentials: [
+      "Administration",
+      "Operations",
+      "HR & Admin",
+      "Office Management",
+      "Client Onboarding",
+    ],
+    bio: "Administrative lead coordinating the firm's operations, client onboarding and internal processes — keeping every engagement organised, responsive and well-documented from first contact through to recovery.",
+    email: "admin@majormaestro.com",
+    phone: "+234 902 664 6437",
+  },
+  {
+    name: "Osinulu Damilare",
+    title: "Principal Consultant, Accounting & Finance Division",
+    credentials: [
+      "Forensic Auditing",
+      "Accounting & Finance",
+      "Financial Analysis",
+      "Statement Reconciliation",
+      "CBN/BOFIA",
+    ],
+    bio: "Accounting and finance consultant specialising in forensic auditing — reconstructing bank statements, quantifying excess interest, COT and LC charges, and building the evidence base that underpins each recovery claim under CBN and BOFIA.",
+    email: "finance@majormaestro.com",
+  },
   // Add further team members here (see docs/TEAM-DETAILS-TEMPLATE.md).
 ];
 
@@ -45,13 +130,13 @@ export default function TeamSection() {
     <section id="team" className="bg-slate-50 py-16 sm:py-24 border-b border-slate-200">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="mb-10 text-center">
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-accent">Forensic Leadership</p>
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-accent">Our Leadership Team</p>
           <h2 className="font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-            The team recovering your money
+            The team behind your recovery
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-base text-slate-600">
-            Chartered accountants, trade-finance specialists and regulatory counsel — the credentials
-            that let us hold banks to the CBN and BOFIA standard on your behalf.
+            Forensic, advisory, growth and operations leadership — the people and credentials that let us
+            hold banks to the CBN and BOFIA standard and deliver every engagement end-to-end.
           </p>
         </div>
 
@@ -65,7 +150,7 @@ export default function TeamSection() {
           }`}
         >
           {TEAM.map((m) => (
-            <div key={m.title} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div key={m.name} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               {m.headshot ? (
                 <Image
                   src={m.headshot}
@@ -89,6 +174,20 @@ export default function TeamSection() {
                 ))}
               </div>
               <p className="mt-3 flex-1 text-sm leading-relaxed text-slate-600">{m.bio}</p>
+              {(m.email || m.phone) && (
+                <div className="mt-3 space-y-1 border-t border-slate-100 pt-3">
+                  {m.email && (
+                    <a href={`mailto:${m.email}`} className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-accent break-all">
+                      <Mail size={12} className="shrink-0" />{m.email}
+                    </a>
+                  )}
+                  {m.phone && (
+                    <a href={`tel:${m.phone.replace(/[^+\d]/g, "")}`} className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-accent">
+                      <Phone size={12} className="shrink-0" />{m.phone}
+                    </a>
+                  )}
+                </div>
+              )}
               {m.linkedin && (
                 <a href={m.linkedin} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:text-accent-bright">
                   <ExternalLink size={13} /> LinkedIn
