@@ -18,6 +18,8 @@ import { recordAudit } from "@/lib/audit";
 import { getClientUserFromRequest } from "@/lib/auth";
 import { RECOVERY_TERMS } from "@/lib/policies/recoveryTerms";
 import { computeAcknowledgementHash } from "@/lib/recoveryTermsHash";
+import { normalizeOtpTarget, OTP_VERIFIED_WINDOW_MS } from "@/lib/otp";
+import { smsConfigured } from "@/lib/sms";
 
 interface DocumentInfo {
   documentType: string;
@@ -195,6 +197,50 @@ export async function POST(req: NextRequest) {
     // Store the phone in normalized E.164 form.
     const normalizedPhone = phone.e164 ?? body.contactPhone.trim();
 
+    // Feature 2b — contact verification (OTP). Set verified timestamps from any
+    // recently-consumed challenge for this email/phone; enforce when required.
+    let contactEmailVerifiedAt: Date | null = null;
+    let contactPhoneVerifiedAt: Date | null = null;
+    if (db) {
+      try {
+        const since = new Date(Date.now() - OTP_VERIFIED_WINDOW_MS);
+        const emailTarget = normalizeOtpTarget("email", body.contactEmail);
+        const phoneTarget = normalizeOtpTarget("sms", normalizedPhone);
+        const [ev, pv] = await Promise.all([
+          db.otpChallenge.findFirst({
+            where: { channel: "email", target: emailTarget, consumedAt: { gte: since } },
+            orderBy: { consumedAt: "desc" },
+            select: { consumedAt: true },
+          }),
+          db.otpChallenge.findFirst({
+            where: { channel: "sms", target: phoneTarget, consumedAt: { gte: since } },
+            orderBy: { consumedAt: "desc" },
+            select: { consumedAt: true },
+          }),
+        ]);
+        contactEmailVerifiedAt = ev?.consumedAt ?? null;
+        contactPhoneVerifiedAt = pv?.consumedAt ?? null;
+      } catch (otpErr) {
+        // Never let a verification-lookup failure break intake; treat as unverified.
+        console.error("[recovery] OTP lookup error (non-fatal):", otpErr);
+      }
+    }
+    if (process.env.RECOVERY_OTP_REQUIRED === "true") {
+      if (!contactEmailVerifiedAt) {
+        return NextResponse.json(
+          { error: "Please verify your email address with the code we sent.", fields: { otp: "Email verification is required." } },
+          { status: 422 }
+        );
+      }
+      // Phone verification is only enforced when an SMS provider is configured.
+      if (smsConfigured() && !contactPhoneVerifiedAt) {
+        return NextResponse.json(
+          { error: "Please verify your phone number with the code we sent.", fields: { otp: "Phone verification is required." } },
+          { status: 422 }
+        );
+      }
+    }
+
     const referenceId = generateReference();
     const assignedTeam = pickTeam(referenceId);
 
@@ -250,6 +296,8 @@ export async function POST(req: NextRequest) {
               contactTitle: body.contactTitle,
               contactEmail: body.contactEmail,
               contactPhone: normalizedPhone,
+              contactEmailVerifiedAt,
+              contactPhoneVerifiedAt,
               confirmedSignatory: body.confirmedSignatory,
               agreedNDPA: body.agreedNDPA,
               // Feature 4 — loan / facility status

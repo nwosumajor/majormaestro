@@ -12,11 +12,11 @@ function checkCronAuth(req: NextRequest): boolean {
 }
 
 async function runCleanup() {
-  if (!db) return { magicLinkTokens: 0, emailChangeTokens: 0, sessions: 0 };
+  if (!db) return { magicLinkTokens: 0, emailChangeTokens: 0, sessions: 0, otpChallenges: 0 };
   const now = new Date();
   const grace = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 1 day past expiry
 
-  const [magicLinkTokens, emailChangeTokens, sessions] = await Promise.all([
+  const [magicLinkTokens, emailChangeTokens, sessions, otpChallenges] = await Promise.all([
     db.magicLinkToken.deleteMany({ where: { expiresAt: { lt: grace } } }),
     db.emailChangeToken.deleteMany({ where: { expiresAt: { lt: grace } } }),
     // Drop revoked OR expired sessions older than the grace window.
@@ -28,12 +28,15 @@ async function runCleanup() {
         ],
       },
     }),
+    // OTP challenges past expiry (consumed or not) are no longer useful.
+    db.otpChallenge.deleteMany({ where: { expiresAt: { lt: grace } } }),
   ]);
 
   return {
     magicLinkTokens: magicLinkTokens.count,
     emailChangeTokens: emailChangeTokens.count,
     sessions: sessions.count,
+    otpChallenges: otpChallenges.count,
   };
 }
 

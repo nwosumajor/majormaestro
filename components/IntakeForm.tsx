@@ -155,7 +155,17 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function IntakeForm({ referralCode, referrerName }: { referralCode?: string; referrerName?: string }) {
+export default function IntakeForm({
+  referralCode,
+  referrerName,
+  otpRequired = false,
+  smsEnabled = false,
+}: {
+  referralCode?: string;
+  referrerName?: string;
+  otpRequired?: boolean;
+  smsEnabled?: boolean;
+}) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(INITIAL_STATE);
   const [loading, setLoading] = useState(false);
@@ -164,6 +174,94 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
   // Field-level errors (keyed by FormState field) — set on blur (client) and
   // from a server 422 response. Cleared as the user edits the offending field.
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({});
+
+  // Feature 2b — contact-verification OTP (per channel). Verification is tied to
+  // the value that was verified, so editing the field resets its verified state.
+  type Channel = "email" | "sms";
+  const [otpSent, setOtpSent] = useState<{ email: boolean; sms: boolean }>({ email: false, sms: false });
+  const [otpCode, setOtpCode] = useState<{ email: string; sms: string }>({ email: "", sms: "" });
+  const [otpVerified, setOtpVerified] = useState<{ email: string | null; sms: string | null }>({ email: null, sms: null });
+  const [otpBusy, setOtpBusy] = useState<Channel | null>(null);
+  const [otpMsg, setOtpMsg] = useState<{ email?: string; sms?: string }>({});
+
+  const emailVerified = otpVerified.email !== null && otpVerified.email === form.contactEmail.trim().toLowerCase();
+  const phoneVerified = otpVerified.sms !== null && otpVerified.sms === form.contactPhone.trim();
+
+  async function requestOtp(channel: Channel) {
+    const target = channel === "email" ? form.contactEmail.trim() : form.contactPhone.trim();
+    setOtpBusy(channel);
+    setOtpMsg((m) => ({ ...m, [channel]: undefined }));
+    try {
+      const res = await fetch("/api/recovery/otp/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channel, target }),
+      });
+      const data = await res.json();
+      if (data.channelUnavailable) {
+        setOtpMsg((m) => ({ ...m, [channel]: data.message ?? "Unavailable." }));
+        return;
+      }
+      if (!res.ok) throw new Error(data.error ?? "Could not send code.");
+      setOtpSent((s) => ({ ...s, [channel]: true }));
+      setOtpMsg((m) => ({ ...m, [channel]: "Code sent — check your messages." }));
+    } catch (err) {
+      setOtpMsg((m) => ({ ...m, [channel]: err instanceof Error ? err.message : "Could not send code." }));
+    } finally {
+      setOtpBusy(null);
+    }
+  }
+
+  async function confirmOtp(channel: Channel) {
+    const target = channel === "email" ? form.contactEmail.trim() : form.contactPhone.trim();
+    setOtpBusy(channel);
+    setOtpMsg((m) => ({ ...m, [channel]: undefined }));
+    try {
+      const res = await fetch("/api/recovery/otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channel, target, code: otpCode[channel] }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error ?? "Verification failed.");
+      const verifiedValue = channel === "email" ? target.toLowerCase() : target;
+      setOtpVerified((v) => ({ ...v, [channel]: verifiedValue }));
+      setOtpMsg((m) => ({ ...m, [channel]: undefined }));
+    } catch (err) {
+      setOtpMsg((m) => ({ ...m, [channel]: err instanceof Error ? err.message : "Verification failed." }));
+    } finally {
+      setOtpBusy(null);
+    }
+  }
+
+  function otpControls(channel: Channel) {
+    const verified = channel === "email" ? emailVerified : phoneVerified;
+    const valid = channel === "email" ? isValidEmail(form.contactEmail) : validatePhone(form.contactPhone).ok;
+    const sent = otpSent[channel];
+    const busy = otpBusy === channel;
+    const label = channel === "email" ? "email" : "phone";
+    if (verified) {
+      return <p className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-emerald-700"><CheckCircle2 size={13} /> Verified</p>;
+    }
+    return (
+      <div className="mt-2 space-y-2">
+        {!sent ? (
+          <button type="button" disabled={!valid || busy} onClick={() => requestOtp(channel)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-blue-400 hover:text-blue-700 disabled:opacity-50 transition-colors">
+            {busy ? <Loader2 size={12} className="animate-spin" /> : <ShieldCheck size={12} />} Verify {label}{otpRequired ? "" : " (optional)"}
+          </button>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <input value={otpCode[channel]} onChange={(e) => setOtpCode((c) => ({ ...c, [channel]: e.target.value }))} inputMode="numeric" maxLength={6} placeholder="6-digit code" className="w-32 rounded-lg border border-slate-300 bg-slate-50 px-3 py-1.5 text-sm tracking-widest focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+            <button type="button" disabled={busy || otpCode[channel].trim().length < 4} onClick={() => confirmOtp(channel)} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-800 disabled:opacity-50 transition-colors">
+              {busy ? <Loader2 size={12} className="animate-spin" /> : null} Confirm
+            </button>
+            <button type="button" disabled={busy} onClick={() => requestOtp(channel)} className="text-xs font-medium text-slate-500 hover:text-blue-700">Resend</button>
+          </div>
+        )}
+        {otpMsg[channel] && <p className="text-xs text-slate-500">{otpMsg[channel]}</p>}
+      </div>
+    );
+  }
 
   // On mount: fire the funnel event, restore any saved draft (org-level fields
   // only — no contact PII or compliance acknowledgments are ever persisted),
@@ -257,12 +355,18 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
   }
 
   function step2Valid() {
-    return Boolean(
+    const base = Boolean(
       form.contactName.trim() &&
         form.contactTitle.trim() &&
         isValidEmail(form.contactEmail) &&
         validatePhone(form.contactPhone).ok
     );
+    if (!base) return false;
+    if (otpRequired) {
+      if (!emailVerified) return false;
+      if (smsEnabled && !phoneVerified) return false;
+    }
+    return true;
   }
 
   // Validate email/phone format on blur and surface a field-level message.
@@ -604,6 +708,7 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
               </label>
               <input id="f-contactEmail" type="email" value={form.contactEmail} onChange={(e) => update("contactEmail", e.target.value)} onBlur={() => validateContactField("contactEmail")} aria-invalid={!!fieldErrors.contactEmail} placeholder="e.g. a.okonkwo@company.com" className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.contactEmail ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-blue-700 focus:ring-blue-200"}`} />
               {fieldErrors.contactEmail && <p className="mt-1.5 text-xs text-red-600">{fieldErrors.contactEmail}</p>}
+              {otpControls("email")}
             </div>
             <div>
               <label htmlFor="f-contactPhone" className="mb-1.5 block text-sm font-semibold text-slate-800">
@@ -611,6 +716,7 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
               </label>
               <input id="f-contactPhone" type="tel" value={form.contactPhone} onChange={(e) => update("contactPhone", e.target.value)} onBlur={() => validateContactField("contactPhone")} aria-invalid={!!fieldErrors.contactPhone} placeholder="e.g. +234 801 234 5678" className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.contactPhone ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-blue-700 focus:ring-blue-200"}`} />
               {fieldErrors.contactPhone && <p className="mt-1.5 text-xs text-red-600">{fieldErrors.contactPhone}</p>}
+              {smsEnabled && otpControls("sms")}
             </div>
             <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-700">
               <Lock size={12} className="mr-1.5 inline text-blue-500" />

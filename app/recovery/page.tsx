@@ -22,6 +22,7 @@ import {
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
+import { smsConfigured } from "@/lib/sms";
 import IntakeForm from "@/components/IntakeForm";
 import RefLandingTracker from "@/components/RefLandingTracker";
 import RecoveryTools from "@/components/RecoveryTools";
@@ -403,7 +404,12 @@ export default async function RecoveryPage({
             </div>
           </div>
 
-          <IntakeForm referralCode={referralCode} referrerName={referrerName} />
+          <IntakeForm
+            referralCode={referralCode}
+            referrerName={referrerName}
+            otpRequired={process.env.RECOVERY_OTP_REQUIRED === "true"}
+            smsEnabled={smsConfigured()}
+          />
 
           <p className="mt-6 text-center text-xs text-slate-600">
             Prefer to speak first?{" "}

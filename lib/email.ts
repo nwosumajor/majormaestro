@@ -158,6 +158,32 @@ export async function sendMagicLink(toEmail: string, signInUrl: string) {
   return { skipped: false } as const;
 }
 
+// ─── Recovery intake: contact-verification OTP ─────────────────────────────
+export async function sendOtpCode(toEmail: string, code: string) {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping OTP email");
+    return { skipped: true } as const;
+  }
+  const html = `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+    ${brandHeader("Verify your email")}
+    <div style="padding:32px">
+      <p style="margin:0 0 20px;font-size:15px;color:#475569;line-height:1.6">
+        Use this code to verify your email for your forensic recovery enquiry. It is valid for <strong>10 minutes</strong>.
+      </p>
+      <div style="text-align:center;margin:28px 0">
+        <span style="display:inline-block;background:#f8fafc;border:1px solid #e2e8f0;color:#0b1220;font-weight:700;font-size:28px;letter-spacing:8px;padding:16px 28px;border-radius:10px;font-family:monospace">${code}</span>
+      </div>
+      <p style="margin:0;font-size:12px;color:#94a3b8">
+        Didn't request this? You can safely ignore this email.
+      </p>
+    </div>
+    ${brandFooter()}
+  </div>`;
+  await sendOrThrow({ from: FROM, to: toEmail, subject: `${code} is your MajorGBN verification code`, html });
+  return { skipped: false } as const;
+}
+
 // ─── Lead Magnet: Guide Email ──────────────────────────────────────────────
 
 export async function sendLeadMagnetGuide(email: string, companyName?: string) {
