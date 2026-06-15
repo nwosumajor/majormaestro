@@ -17,7 +17,7 @@ import {
 // (per IP and per target) like the magic-link start route.
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  const ipRl = rateLimit(`otp-ip:${ip}`, 5, 60 * 60);
+  const ipRl = await rateLimit(`otp-ip:${ip}`, 5, 60 * 60);
   if (!ipRl.ok) {
     return NextResponse.json(
       { error: "Too many verification requests. Please try again later." },
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const targetRl = rateLimit(`otp-target:${channel}:${target}`, 3, 60 * 60);
+  const targetRl = await rateLimit(`otp-target:${channel}:${target}`, 3, 60 * 60);
   if (!targetRl.ok) {
     return NextResponse.json(
       { error: "Too many codes requested for this contact. Please try again later." },

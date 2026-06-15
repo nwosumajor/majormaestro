@@ -15,7 +15,7 @@ import {
 // plus a per-IP rate limit guard against brute force.
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  const rl = rateLimit(`otp-verify:${ip}`, 20, 60 * 60);
+  const rl = await rateLimit(`otp-verify:${ip}`, 20, 60 * 60);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "Too many attempts. Please try again later." },
