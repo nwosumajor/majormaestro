@@ -6,6 +6,10 @@ import { pickTeam } from "@/lib/recoverySteps";
 import { getClientIp, rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
 import { isValidEmail, validatePhone } from "@/lib/validation";
 import { isRepresentativeIdType } from "@/lib/recoveryKyc";
+import { recordAudit } from "@/lib/audit";
+import { getClientUserFromRequest } from "@/lib/auth";
+import { RECOVERY_TERMS } from "@/lib/policies/recoveryTerms";
+import { computeAcknowledgementHash } from "@/lib/recoveryTermsHash";
 
 interface DocumentInfo {
   documentType: string;
@@ -39,6 +43,14 @@ interface RecoveryPayload {
   regAddressCountry?: string;
   regAddressPostalCode?: string;
   representativeIdType?: string;
+  // Feature 1 — Terms & Data-Protection acceptance
+  terms?: {
+    accepted?: boolean;
+    policyVersion?: string;
+    acceptedByName?: string;
+    acceptedByTitle?: string;
+    signatureType?: "typed_signature" | "checkbox_attestation";
+  };
   documents?: DocumentInfo[];
   referralCode?: string;
 }
@@ -123,6 +135,17 @@ export async function POST(req: NextRequest) {
     if (!isRepresentativeIdType(body.representativeIdType)) {
       fieldErrors.representativeIdType = "Select the authorized representative's ID type.";
     }
+    // Feature 1 — Terms acceptance is mandatory: explicit accept, current policy
+    // version, and a non-empty typed signer name. Authoritative server-side gate.
+    const terms = body.terms;
+    if (
+      !terms ||
+      terms.accepted !== true ||
+      terms.policyVersion !== RECOVERY_TERMS.version ||
+      !terms.acceptedByName?.trim()
+    ) {
+      fieldErrors.terms = "You must read and accept the engagement terms, and type your full name as signature.";
+    }
     if (Object.keys(fieldErrors).length > 0) {
       return NextResponse.json(
         { error: "Please correct the highlighted fields.", fields: fieldErrors },
@@ -155,50 +178,92 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Terms acceptance metadata (validated above). The complaint + its acceptance
+    // are written in one transaction so a complaint can never exist without it.
+    const clientUser = await getClientUserFromRequest(req).catch(() => null);
+    const acceptedAt = new Date();
+    const acceptedByName = body.terms?.acceptedByName?.trim() ?? "";
+    const acceptedByTitle = body.terms?.acceptedByTitle?.trim() || null;
+    const signatureType =
+      body.terms?.signatureType === "checkbox_attestation" ? "checkbox_attestation" : "typed_signature";
+    const acknowledgementHash = computeAcknowledgementHash({
+      policyVersion: RECOVERY_TERMS.version,
+      referenceId,
+      companyName: body.companyName,
+      rcNumber: body.rcNumber,
+      acceptedByName,
+      acceptedAt: acceptedAt.toISOString(),
+    });
+
     // Persist to database
     if (db) {
       try {
-        await db.recoveryComplaint.create({
-          data: {
-            referenceId,
-            companyName: body.companyName,
-            rcNumber: body.rcNumber,
-            turnoverBand: body.turnoverBand,
-            banks: body.banks,
-            contactName: body.contactName,
-            contactTitle: body.contactTitle,
-            contactEmail: body.contactEmail,
-            contactPhone: normalizedPhone,
-            confirmedSignatory: body.confirmedSignatory,
-            agreedNDPA: body.agreedNDPA,
-            // Feature 4 — loan / facility status
-            hasActiveOrPendingFacility: body.hasActiveOrPendingFacility,
-            hasPriorBankDispute: typeof body.hasPriorBankDispute === "boolean" ? body.hasPriorBankDispute : null,
-            engagementContext: body.engagementContext?.trim() || null,
-            // Feature 5 — KYC: registered address + representative ID type
-            regAddressLine1: body.regAddressLine1?.trim() || null,
-            regAddressLine2: body.regAddressLine2?.trim() || null,
-            regAddressCity: body.regAddressCity?.trim() || null,
-            regAddressState: body.regAddressState?.trim() || null,
-            regAddressCountry: body.regAddressCountry?.trim() || null,
-            regAddressPostalCode: body.regAddressPostalCode?.trim() || null,
-            representativeIdType: body.representativeIdType,
-            assignedTeam,
-            referralCode,
-            statusEvents: { create: [{ step: "received" }] },
-            documents: body.documents?.length
-              ? {
-                  create: body.documents.map((d) => ({
-                    documentType: d.documentType,
-                    fileName: d.fileName,
-                    storedAs: d.storedAs,
-                    fileSize: d.size,
-                    mimeType: d.mimeType,
-                    storageBackend: d.storageBackend ?? "local",
-                  })),
-                }
-              : undefined,
-          },
+        await db.$transaction(async (tx) => {
+          const created = await tx.recoveryComplaint.create({
+            data: {
+              referenceId,
+              companyName: body.companyName,
+              rcNumber: body.rcNumber,
+              turnoverBand: body.turnoverBand,
+              banks: body.banks,
+              contactName: body.contactName,
+              contactTitle: body.contactTitle,
+              contactEmail: body.contactEmail,
+              contactPhone: normalizedPhone,
+              confirmedSignatory: body.confirmedSignatory,
+              agreedNDPA: body.agreedNDPA,
+              // Feature 4 — loan / facility status
+              hasActiveOrPendingFacility: body.hasActiveOrPendingFacility,
+              hasPriorBankDispute: typeof body.hasPriorBankDispute === "boolean" ? body.hasPriorBankDispute : null,
+              engagementContext: body.engagementContext?.trim() || null,
+              // Feature 5 — KYC: registered address + representative ID type
+              regAddressLine1: body.regAddressLine1?.trim() || null,
+              regAddressLine2: body.regAddressLine2?.trim() || null,
+              regAddressCity: body.regAddressCity?.trim() || null,
+              regAddressState: body.regAddressState?.trim() || null,
+              regAddressCountry: body.regAddressCountry?.trim() || null,
+              regAddressPostalCode: body.regAddressPostalCode?.trim() || null,
+              representativeIdType: body.representativeIdType,
+              assignedTeam,
+              referralCode,
+              statusEvents: { create: [{ step: "received" }] },
+              documents: body.documents?.length
+                ? {
+                    create: body.documents.map((d) => ({
+                      documentType: d.documentType,
+                      fileName: d.fileName,
+                      storedAs: d.storedAs,
+                      fileSize: d.size,
+                      mimeType: d.mimeType,
+                      storageBackend: d.storageBackend ?? "local",
+                    })),
+                  }
+                : undefined,
+              // Feature 1 — Terms & Data-Protection acceptance (atomic with the complaint)
+              termsAcceptance: {
+                create: {
+                  userId: clientUser?.id ?? null,
+                  policyVersion: RECOVERY_TERMS.version,
+                  acceptedByName,
+                  acceptedByTitle,
+                  signatureType,
+                  ipAddress: getClientIp(req),
+                  userAgent: req.headers.get("user-agent")?.slice(0, 1024) ?? null,
+                  acknowledgementHash,
+                  acceptedAt,
+                },
+              },
+            },
+          });
+          return created;
+        });
+
+        await recordAudit({
+          action: "recovery_terms_accepted",
+          actorLabel: acceptedByName,
+          targetType: "RecoveryComplaint",
+          targetId: referenceId,
+          metadata: { referenceId, policyVersion: RECOVERY_TERMS.version, signatureType, acknowledgementHash },
         });
       } catch (dbErr) {
         console.error("[recovery] DB error (non-fatal):", dbErr);

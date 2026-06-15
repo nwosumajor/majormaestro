@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { track } from "@/lib/analytics";
 import { isValidEmail, validatePhone } from "@/lib/validation";
 import { REPRESENTATIVE_ID_TYPES, REPRESENTATIVE_ID_LABELS } from "@/lib/recoveryKyc";
+import { RECOVERY_TERMS } from "@/lib/policies/recoveryTerms";
 import {
   Building2,
   User,
@@ -19,6 +20,7 @@ import {
   AlertCircle,
   Lock,
   Paperclip,
+  FileSignature,
 } from "lucide-react";
 
 interface FormState {
@@ -45,6 +47,10 @@ interface FormState {
   hasActiveOrPendingFacility: boolean | null;
   hasPriorBankDispute: boolean | null;
   engagementContext: string;
+  // Feature 1 — Terms acceptance
+  termsAccepted: boolean;
+  termsSignerName: string;
+  termsSignerTitle: string;
 }
 
 interface UploadedFile {
@@ -89,12 +95,16 @@ const INITIAL_STATE: FormState = {
   hasActiveOrPendingFacility: null,
   hasPriorBankDispute: null,
   engagementContext: "",
+  termsAccepted: false,
+  termsSignerName: "",
+  termsSignerTitle: "",
 };
 
 const STEPS = [
   { label: "Organisation", icon: Building2 },
   { label: "Contact", icon: User },
   { label: "Compliance", icon: ShieldCheck },
+  { label: "Agreement", icon: FileSignature },
 ];
 
 const UPLOAD_SLOTS = [
@@ -207,8 +217,10 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
-    // Clear a field-level error as soon as the user edits that field.
-    setFieldErrors((prev) => (prev[key] ? { ...prev, [key]: undefined } : prev));
+    // Clear a field-level error as soon as the user edits that field. The terms
+    // fields map to a single "terms" server error key.
+    const errKey = typeof key === "string" && key.startsWith("terms") ? "terms" : (key as string);
+    setFieldErrors((prev) => (prev[errKey] ? { ...prev, [errKey]: undefined } : prev));
   }
 
   function addBank() { update("banks", [...form.banks, ""]); }
@@ -265,6 +277,30 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
     );
   }
 
+  function step4Valid() {
+    return Boolean(form.termsAccepted && form.termsSignerName.trim());
+  }
+
+  const LAST_STEP = STEPS.length - 1;
+  function stepValid(s: number) {
+    return s === 0 ? step1Valid() : s === 1 ? step2Valid() : s === 2 ? step3Valid() : step4Valid();
+  }
+
+  // Map a server 422 field key back to the step that owns it, so we can return
+  // the user to the earliest step with an error.
+  const STEP_FIELDS: Record<number, string[]> = {
+    0: ["companyName", "rcNumber", "turnoverBand", "banks", "regAddressLine1", "regAddressCity", "regAddressState", "regAddressCountry"],
+    1: ["contactName", "contactTitle", "contactEmail", "contactPhone"],
+    2: ["hasActiveOrPendingFacility", "representativeIdType"],
+    3: ["terms"],
+  };
+  function earliestErrorStep(keys: string[]): number {
+    for (let s = 0; s <= LAST_STEP; s++) {
+      if (keys.some((k) => STEP_FIELDS[s].includes(k))) return s;
+    }
+    return step;
+  }
+
   async function handleFileChange(key: SlotKey, file: File | null) {
     if (!file) return;
     setUploadStatus((s) => ({ ...s, [key]: "uploading" }));
@@ -306,7 +342,7 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!step3Valid()) return;
+    if (!step4Valid()) return;
     setError(null);
     setLoading(true);
     try {
@@ -314,6 +350,13 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
         ...form,
         banks: form.banks.filter((b) => b.trim()),
         documents: Object.values(uploadedFiles).filter(Boolean),
+        terms: {
+          accepted: form.termsAccepted,
+          policyVersion: RECOVERY_TERMS.version,
+          acceptedByName: form.termsSignerName.trim(),
+          acceptedByTitle: form.termsSignerTitle.trim() || undefined,
+          signatureType: "typed_signature" as const,
+        },
         ...(referralCode ? { referralCode } : {}),
       };
       const res = await fetch("/api/recovery", {
@@ -323,11 +366,11 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
       });
       const data = await res.json();
       if (!res.ok) {
-        // Server-side field validation (422) — highlight the fields and return
-        // the user to the contact step so they can fix them.
+        // Server-side field validation (422) — highlight fields + jump to the
+        // earliest step that contains an error.
         if (res.status === 422 && data.fields) {
           setFieldErrors(data.fields);
-          setStep(1);
+          setStep(earliestErrorStep(Object.keys(data.fields)));
         }
         throw new Error(data.error ?? "Submission failed.");
       }
@@ -724,6 +767,55 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
           </div>
         )}
 
+        {/* Step 4: Terms & Data-Protection agreement */}
+        {step === 3 && (
+          <div className="space-y-5">
+            <div>
+              <h4 className="text-sm font-semibold text-slate-800">{RECOVERY_TERMS.title}</h4>
+              <p className="text-xs text-slate-500">
+                Version {RECOVERY_TERMS.version} · Effective {RECOVERY_TERMS.effectiveDate}
+              </p>
+            </div>
+            <div className="max-h-72 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="space-y-3">
+                {RECOVERY_TERMS.sections.map((s) => (
+                  <div key={s.heading}>
+                    <p className="text-xs font-bold text-slate-800">{s.heading}</p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-slate-600">{s.body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="f-termsSignerName" className="mb-1.5 block text-sm font-semibold text-slate-800">
+                  Type your full name as signature <span className="text-red-500">*</span>
+                </label>
+                <input id="f-termsSignerName" type="text" value={form.termsSignerName} onChange={(e) => update("termsSignerName", e.target.value)} placeholder="e.g. Amaka Okonkwo" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+              </div>
+              <div>
+                <label htmlFor="f-termsSignerTitle" className="mb-1.5 block text-sm font-semibold text-slate-800">
+                  Title / Role <span className="font-normal text-slate-400">(optional)</span>
+                </label>
+                <input id="f-termsSignerTitle" type="text" value={form.termsSignerTitle} onChange={(e) => update("termsSignerTitle", e.target.value)} placeholder="e.g. Chief Financial Officer" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+              </div>
+            </div>
+            <label className={`flex cursor-pointer items-start gap-3 rounded-xl border-2 p-4 transition-colors ${form.termsAccepted ? "border-emerald-400 bg-emerald-50" : "border-slate-200 bg-slate-50 hover:border-blue-300"}`}>
+              <input
+                type="checkbox"
+                checked={form.termsAccepted}
+                onChange={(e) => update("termsAccepted", e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-emerald-600"
+              />
+              <span className="text-sm text-slate-700">
+                <span className="font-semibold text-slate-900">I accept the engagement terms &amp; data protection policy. </span>
+                I have read and understood the terms above and accept them on behalf of the company; my typed name constitutes my electronic signature.
+              </span>
+            </label>
+            {fieldErrors.terms && <p className="text-xs text-red-600">{fieldErrors.terms}</p>}
+          </div>
+        )}
+
         {/* Error banner */}
         {error && (
           <div role="alert" className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
@@ -740,14 +832,14 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
             </button>
           ) : <div />}
 
-          {step < 2 ? (
+          {step < LAST_STEP ? (
             <button
               type="button"
               onClick={() => {
                 track("intake_step", { from: step + 1, to: step + 2 });
                 setStep((s) => s + 1);
               }}
-              disabled={step === 0 ? !step1Valid() : !step2Valid()}
+              disabled={!stepValid(step)}
               className="inline-flex items-center gap-2 rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
             >
               Continue<ChevronRight size={16} />
@@ -755,7 +847,7 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
           ) : (
             <button
               type="submit"
-              disabled={loading || !step3Valid()}
+              disabled={loading || !step4Valid()}
               className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
             >
               {loading ? (

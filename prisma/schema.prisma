@@ -48,6 +48,7 @@ model RecoveryComplaint {
   documents           UploadedDocument[]
   statusEvents        CaseStatusEvent[]
   notes               CaseNote[]
+  termsAcceptance     TermsAcceptance?
   findingsSummary     String?
   recoveryAmountKobo  BigInt?
   closedAt            DateTime?
@@ -119,6 +120,7 @@ model User {
   gicnProfile     GicnProfile?
   participants    Participant[]
   sponsorships    Sponsorship[]
+  termsAcceptances TermsAcceptance[]
 
   @@index([email])
 }
@@ -179,6 +181,26 @@ model OtpChallenge {
 
   @@index([target, createdAt])
   @@index([expiresAt])
+}
+
+// Feature 1 — tamper-evident acceptance of the versioned recovery Terms /
+// Data-Protection policy. Created in the same transaction as its complaint.
+model TermsAcceptance {
+  id                  String            @id @default(cuid())
+  recoveryComplaintId String            @unique
+  complaint           RecoveryComplaint @relation(fields: [recoveryComplaintId], references: [id], onDelete: Cascade)
+  userId              String?
+  user                User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  policyVersion       String
+  acceptedByName      String
+  acceptedByTitle     String?
+  signatureType       String            @default("typed_signature")
+  ipAddress           String?
+  userAgent           String?
+  acknowledgementHash String
+  acceptedAt          DateTime          @default(now()) @db.Timestamptz(3)
+
+  @@index([userId])
 }
 
 model SavedClassification {

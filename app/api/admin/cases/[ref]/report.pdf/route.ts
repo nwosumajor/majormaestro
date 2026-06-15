@@ -22,6 +22,7 @@ export async function GET(
       statusEvents: { orderBy: { reachedAt: "asc" } },
       notes: { orderBy: { createdAt: "asc" } },
       documents: { orderBy: { uploadedAt: "asc" } },
+      termsAcceptance: true,
     },
   });
   if (!complaint) return NextResponse.json({ error: "Case not found." }, { status: 404 });
@@ -46,6 +47,7 @@ export async function GET(
       statusEvents: complaint.statusEvents,
       notes: complaint.notes,
       documents: complaint.documents,
+      termsAcceptance: complaint.termsAcceptance,
     },
     { includeInternalNotes: true }
   );

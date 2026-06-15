@@ -43,6 +43,7 @@ export default async function AdminCaseDetailPage({
       documents: { orderBy: { uploadedAt: "asc" } },
       notes: { orderBy: { createdAt: "desc" } },
       referral: true,
+      termsAcceptance: true,
     },
   });
 
@@ -131,6 +132,36 @@ export default async function AdminCaseDetailPage({
                 </Info>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Terms & Data-Protection acceptance (Feature 1) */}
+      {complaint.termsAcceptance && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-slate-500">
+            <FileText size={14} /> Terms Acceptance
+          </h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Info icon={User} label="Accepted by">
+              {complaint.termsAcceptance.acceptedByName}
+              {complaint.termsAcceptance.acceptedByTitle ? ` · ${complaint.termsAcceptance.acceptedByTitle}` : ""}
+            </Info>
+            <Info icon={Clock} label="Accepted at">
+              {fmtDate(complaint.termsAcceptance.acceptedAt)}
+            </Info>
+            <Info icon={BadgeCheck} label="Policy version">
+              {complaint.termsAcceptance.policyVersion} · {complaint.termsAcceptance.signatureType}
+            </Info>
+            <Info icon={MapPin} label="IP / device">
+              {complaint.termsAcceptance.ipAddress ?? "—"}
+              {complaint.termsAcceptance.userAgent ? <span className="block truncate text-xs text-slate-400" title={complaint.termsAcceptance.userAgent}>{complaint.termsAcceptance.userAgent}</span> : null}
+            </Info>
+            <div className="sm:col-span-2">
+              <Info icon={FileText} label="Acknowledgement hash (SHA-256)">
+                <span className="break-all font-mono text-xs text-slate-600">{complaint.termsAcceptance.acknowledgementHash}</span>
+              </Info>
+            </div>
           </div>
         </div>
       )}

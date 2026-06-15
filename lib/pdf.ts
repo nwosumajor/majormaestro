@@ -19,6 +19,15 @@ interface CaseForPdf {
   statusEvents: { step: string; reachedAt: Date; note: string | null }[];
   notes: { authorEmail: string; body: string; createdAt: Date }[];
   documents: { fileName: string; documentType: string; fileSize: number; uploadedAt: Date }[];
+  termsAcceptance?: {
+    policyVersion: string;
+    acceptedByName: string;
+    acceptedByTitle: string | null;
+    signatureType: string;
+    ipAddress: string | null;
+    acknowledgementHash: string;
+    acceptedAt: Date;
+  } | null;
 }
 
 function fmtDate(d: Date): string {
@@ -156,6 +165,20 @@ export async function renderCaseReport(
   row("Phone", data.contactPhone);
   y += 6;
   rule();
+
+  // ─── Terms Acceptance ────────────────────────────────────────────────
+  if (data.termsAcceptance) {
+    const ta = data.termsAcceptance;
+    heading("Terms & Data-Protection Acceptance");
+    row("Accepted by", ta.acceptedByTitle ? `${ta.acceptedByName} (${ta.acceptedByTitle})` : ta.acceptedByName);
+    row("Accepted at", fmtDate(ta.acceptedAt));
+    row("Policy version", ta.policyVersion);
+    row("Signature type", ta.signatureType);
+    row("IP address", ta.ipAddress ?? "—");
+    row("Acknowledgement hash", ta.acknowledgementHash);
+    y += 6;
+    rule();
+  }
 
   // ─── Timeline ────────────────────────────────────────────────────────
   heading("Case Timeline");
