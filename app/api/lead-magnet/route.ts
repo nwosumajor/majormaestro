@@ -2,8 +2,8 @@ import { NextRequest, NextResponse, after } from "next/server";
 import { db } from "@/lib/db";
 import { sendLeadMagnetGuide } from "@/lib/email";
 import { getClientIp, rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
+import { isValidEmail } from "@/lib/validation";
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req: NextRequest) {
   const rl = rateLimit(`lead-magnet:${getClientIp(req)}`, 10, 60 * 60);
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       companyName?: string;
     };
 
-    if (!email || !EMAIL_RE.test(email)) {
+    if (!email || !isValidEmail(email)) {
       return NextResponse.json({ error: "A valid email address is required." }, { status: 400 });
     }
 

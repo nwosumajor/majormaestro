@@ -3,8 +3,8 @@ import { randomBytes, createHash } from "crypto";
 import { db } from "@/lib/db";
 import { sendReferralVerification } from "@/lib/email";
 import { getClientIp, rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
+import { isValidEmail } from "@/lib/validation";
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function makeCode(name: string): string {
   const slug = (name.split(" ")[0] ?? "ref").toLowerCase().replace(/[^a-z]/g, "").slice(0, 8) || "ref";
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     if (!name?.trim()) {
       return NextResponse.json({ error: "Your name is required." }, { status: 400 });
     }
-    if (!email || !EMAIL_RE.test(email)) {
+    if (!email || !isValidEmail(email)) {
       return NextResponse.json({ error: "A valid email address is required." }, { status: 400 });
     }
 

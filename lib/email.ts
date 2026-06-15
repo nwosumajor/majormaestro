@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { CURRENT_MPR, lcCollateralMinRate, lcCollateralInterestOwed } from "@/lib/cbnCharges";
+import { isValidEmail } from "@/lib/validation";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -7,7 +8,6 @@ const FROM = process.env.RESEND_FROM_EMAIL ?? "MajorGBN <noreply@majormaestro.co
 const INTERNAL_TEAM = process.env.INTERNAL_NOTIFY_EMAIL ?? "nwosumajor@gmail.com";
 const SUPPORT_EMAIL = "forensics@majormaestro.com";
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const FROM_RE = /^(?:.+ <([^>]+)>|([^<>]+))$/;
 
 export interface EmailConfigStatus {
@@ -23,10 +23,10 @@ export function getEmailConfigStatus(): EmailConfigStatus {
 
   const fromMatch = FROM.match(FROM_RE);
   const fromAddress = fromMatch ? (fromMatch[1] ?? fromMatch[2]) : "";
-  const fromValid = !!fromAddress && EMAIL_RE.test(fromAddress);
+  const fromValid = !!fromAddress && isValidEmail(fromAddress);
   if (!fromValid) problems.push(`RESEND_FROM_EMAIL "${FROM}" is malformed.`);
 
-  const internalNotifyValid = EMAIL_RE.test(INTERNAL_TEAM);
+  const internalNotifyValid = isValidEmail(INTERNAL_TEAM);
   if (!internalNotifyValid) problems.push(`INTERNAL_NOTIFY_EMAIL "${INTERNAL_TEAM}" is malformed.`);
 
   return {

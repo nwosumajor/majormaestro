@@ -3,8 +3,8 @@ import { db } from "@/lib/db";
 import { getAdminFromRequest, hashPassword } from "@/lib/auth";
 import { requireAdmin, ASSIGNABLE_ROLES, type AdminRole } from "@/lib/rbac";
 import { recordAudit } from "@/lib/audit";
+import { isValidEmail } from "@/lib/validation";
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function GET(req: NextRequest) {
   const gate = await requireAdmin(req, "users.manage");
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       role?: string;
     };
 
-    if (!email || !EMAIL_RE.test(email)) {
+    if (!email || !isValidEmail(email)) {
       return NextResponse.json({ error: "A valid email address is required." }, { status: 400 });
     }
     if (!password || password.length < 12) {

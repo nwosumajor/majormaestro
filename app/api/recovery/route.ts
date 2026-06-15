@@ -4,6 +4,7 @@ import { sendComplaintConfirmation, sendInternalComplaintNotification, sendRefer
 import { dispatch as dispatchWebhook } from "@/lib/webhooks";
 import { pickTeam } from "@/lib/recoverySteps";
 import { getClientIp, rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
+import { isValidEmail, validatePhone } from "@/lib/validation";
 
 interface DocumentInfo {
   documentType: string;
@@ -87,6 +88,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Contact-data validation (authoritative — the form mirrors this for UX).
+    // Returns field-level errors so the client can highlight the offending input.
+    const fieldErrors: Record<string, string> = {};
+    if (!isValidEmail(body.contactEmail)) {
+      fieldErrors.contactEmail = "Enter a valid email address.";
+    }
+    const phone = validatePhone(body.contactPhone);
+    if (!phone.ok) {
+      fieldErrors.contactPhone = "Enter a valid phone number (e.g. 0803 123 4567 or +234…).";
+    }
+    if (Object.keys(fieldErrors).length > 0) {
+      return NextResponse.json(
+        { error: "Please correct the highlighted fields.", fields: fieldErrors },
+        { status: 422 }
+      );
+    }
+    // Store the phone in normalized E.164 form.
+    const normalizedPhone = phone.e164 ?? body.contactPhone.trim();
+
     const referenceId = generateReference();
     const assignedTeam = pickTeam(referenceId);
 
@@ -123,7 +143,7 @@ export async function POST(req: NextRequest) {
             contactName: body.contactName,
             contactTitle: body.contactTitle,
             contactEmail: body.contactEmail,
-            contactPhone: body.contactPhone,
+            contactPhone: normalizedPhone,
             confirmedSignatory: body.confirmedSignatory,
             agreedNDPA: body.agreedNDPA,
             assignedTeam,
@@ -164,7 +184,7 @@ export async function POST(req: NextRequest) {
       contactName: body.contactName,
       contactTitle: body.contactTitle,
       contactEmail: body.contactEmail,
-      contactPhone: body.contactPhone,
+      contactPhone: normalizedPhone,
       banks: body.banks,
       turnoverBand: body.turnoverBand,
     };

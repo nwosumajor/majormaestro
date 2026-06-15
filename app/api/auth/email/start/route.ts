@@ -4,8 +4,8 @@ import { db } from "@/lib/db";
 import { getClientIp, rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
 import { sendMagicLink } from "@/lib/email";
 import { recordAudit } from "@/lib/audit";
+import { isValidEmail } from "@/lib/validation";
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TOKEN_TTL_MINUTES = 15;
 
 function generateToken(): string {
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     email?: string;
     next?: string;
   };
-  if (!email || !EMAIL_RE.test(email)) {
+  if (!email || !isValidEmail(email)) {
     return NextResponse.json({ error: "A valid email address is required." }, { status: 400 });
   }
 

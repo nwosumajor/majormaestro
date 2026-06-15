@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { track } from "@/lib/analytics";
+import { isValidEmail, validatePhone } from "@/lib/validation";
 import {
   Building2,
   User,
@@ -106,6 +107,9 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<SuccessState | null>(null);
+  // Field-level contact errors (email/phone) — set on blur (client) and from a
+  // server 422 response. Cleared as the user edits the offending field.
+  const [fieldErrors, setFieldErrors] = useState<{ contactEmail?: string; contactPhone?: string }>({});
 
   // On mount: fire the funnel event, restore any saved draft (org-level fields
   // only — no contact PII or compliance acknowledgments are ever persisted),
@@ -171,6 +175,10 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
+    // Clear a field-level error as soon as the user edits that field.
+    if (key === "contactEmail" || key === "contactPhone") {
+      setFieldErrors((prev) => ({ ...prev, [key]: undefined }));
+    }
   }
 
   function addBank() { update("banks", [...form.banks, ""]); }
@@ -182,7 +190,31 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
   }
 
   function step2Valid() {
-    return form.contactName.trim() && form.contactTitle.trim() && form.contactEmail.trim() && form.contactPhone.trim();
+    return Boolean(
+      form.contactName.trim() &&
+        form.contactTitle.trim() &&
+        isValidEmail(form.contactEmail) &&
+        validatePhone(form.contactPhone).ok
+    );
+  }
+
+  // Validate email/phone format on blur and surface a field-level message.
+  function validateContactField(key: "contactEmail" | "contactPhone") {
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      if (key === "contactEmail") {
+        next.contactEmail =
+          form.contactEmail.trim() && !isValidEmail(form.contactEmail)
+            ? "Enter a valid email address."
+            : undefined;
+      } else {
+        next.contactPhone =
+          form.contactPhone.trim() && !validatePhone(form.contactPhone).ok
+            ? "Enter a valid phone number (e.g. 0803 123 4567 or +234…)."
+            : undefined;
+      }
+      return next;
+    });
   }
 
   function step3Valid() {
@@ -246,7 +278,15 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Submission failed.");
+      if (!res.ok) {
+        // Server-side field validation (422) — highlight the fields and return
+        // the user to the contact step so they can fix them.
+        if (res.status === 422 && data.fields) {
+          setFieldErrors(data.fields);
+          setStep(1);
+        }
+        throw new Error(data.error ?? "Submission failed.");
+      }
       track("intake_submit", {
         turnoverBand: form.turnoverBand,
         banks: payload.banks.length,
@@ -421,13 +461,15 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
               <label htmlFor="f-contactEmail" className="mb-1.5 block text-sm font-semibold text-slate-800">
                 Official Email Address <span className="text-red-500">*</span>
               </label>
-              <input id="f-contactEmail" type="email" value={form.contactEmail} onChange={(e) => update("contactEmail", e.target.value)} placeholder="e.g. a.okonkwo@company.com" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+              <input id="f-contactEmail" type="email" value={form.contactEmail} onChange={(e) => update("contactEmail", e.target.value)} onBlur={() => validateContactField("contactEmail")} aria-invalid={!!fieldErrors.contactEmail} placeholder="e.g. a.okonkwo@company.com" className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.contactEmail ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-blue-700 focus:ring-blue-200"}`} />
+              {fieldErrors.contactEmail && <p className="mt-1.5 text-xs text-red-600">{fieldErrors.contactEmail}</p>}
             </div>
             <div>
               <label htmlFor="f-contactPhone" className="mb-1.5 block text-sm font-semibold text-slate-800">
                 Direct Phone Number <span className="text-red-500">*</span>
               </label>
-              <input id="f-contactPhone" type="tel" value={form.contactPhone} onChange={(e) => update("contactPhone", e.target.value)} placeholder="e.g. +234 801 234 5678" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+              <input id="f-contactPhone" type="tel" value={form.contactPhone} onChange={(e) => update("contactPhone", e.target.value)} onBlur={() => validateContactField("contactPhone")} aria-invalid={!!fieldErrors.contactPhone} placeholder="e.g. +234 801 234 5678" className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.contactPhone ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-blue-700 focus:ring-blue-200"}`} />
+              {fieldErrors.contactPhone && <p className="mt-1.5 text-xs text-red-600">{fieldErrors.contactPhone}</p>}
             </div>
             <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-700">
               <Lock size={12} className="mr-1.5 inline text-blue-500" />
