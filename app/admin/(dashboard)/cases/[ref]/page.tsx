@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, FileText, Download, Building2, User, Phone, Mail, Users, CheckCircle2, Clock, MessageSquare, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, FileText, Download, Building2, User, Phone, Mail, Users, CheckCircle2, Clock, MessageSquare, FileSpreadsheet, MapPin, BadgeCheck, AlertTriangle, Landmark } from "lucide-react";
 import { db } from "@/lib/db";
 import { getAdminFromCookies } from "@/lib/auth";
 import { normalizeRole, can } from "@/lib/rbac";
 import { STEP_KEYS, STEP_DEFS, type StepKey } from "@/lib/recoverySteps";
+import { representativeIdLabel } from "@/lib/recoveryKyc";
 import AdvanceForm from "./AdvanceForm";
 import NotesPanel from "./NotesPanel";
 import FindingsEditor from "./FindingsEditor";
@@ -72,6 +73,11 @@ export default async function AdminCaseDetailPage({
             <span className="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-800">
               {STEP_DEFS[complaint.status as StepKey]?.label ?? complaint.status}
             </span>
+            {complaint.hasActiveOrPendingFacility && (
+              <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
+                <AlertTriangle size={12} /> Sensitive — active/pending facility
+              </span>
+            )}
             <p className="mt-2 text-xs text-slate-500">Received {fmtDate(complaint.createdAt)}</p>
             <p className="text-xs text-slate-500">Team: {complaint.assignedTeam ?? "—"}</p>
           </div>
@@ -97,6 +103,37 @@ export default async function AdminCaseDetailPage({
           )}
         </div>
       </div>
+
+      {/* KYC & engagement context (Features 4 & 5) */}
+      {(complaint.regAddressLine1 || complaint.representativeIdType || complaint.hasActiveOrPendingFacility != null) && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-500">KYC & Engagement</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Info icon={MapPin} label="Registered address">
+              {[complaint.regAddressLine1, complaint.regAddressLine2, complaint.regAddressCity, complaint.regAddressState, complaint.regAddressCountry, complaint.regAddressPostalCode].filter(Boolean).join(", ") || "—"}
+            </Info>
+            <Info icon={BadgeCheck} label="Representative ID">
+              {representativeIdLabel(complaint.representativeIdType)}
+              {complaint.documents.some((d) => d.documentType === "representative-id")
+                ? <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">document on file</span>
+                : <span className="ml-2 text-xs text-slate-400">(no document)</span>}
+            </Info>
+            <Info icon={Landmark} label="Active/pending facility">
+              {complaint.hasActiveOrPendingFacility == null ? "—" : complaint.hasActiveOrPendingFacility ? "Yes" : "No"}
+            </Info>
+            <Info icon={AlertTriangle} label="Prior bank dispute">
+              {complaint.hasPriorBankDispute == null ? "—" : complaint.hasPriorBankDispute ? "Yes" : "No"}
+            </Info>
+            {complaint.engagementContext && (
+              <div className="sm:col-span-2">
+                <Info icon={MessageSquare} label="Engagement notes">
+                  {complaint.engagementContext}
+                </Info>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Timeline */}

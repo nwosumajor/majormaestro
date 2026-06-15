@@ -21,6 +21,24 @@ model RecoveryComplaint {
   contactPhone        String
   confirmedSignatory  Boolean
   agreedNDPA          Boolean
+  // Feature 4 — loan / facility status (nullable: existing rows predate these)
+  hasActiveOrPendingFacility Boolean?
+  hasPriorBankDispute        Boolean?
+  engagementContext          String?
+  // Feature 5 — KYC: registered business address (structured)
+  regAddressLine1      String?
+  regAddressLine2      String?
+  regAddressCity       String?
+  regAddressState      String?
+  regAddressCountry    String?
+  regAddressPostalCode String?
+  // Feature 5 — authorized representative identification
+  representativeIdType      String? // nin | passport | drivers_license | voters_card
+  representativeIdNumberEnc String? // reserved: AES-256-GCM (encryptSecret); never returned by list endpoints
+  representativeIdLast4     String?
+  // Feature 2 — contact-channel verification (OTP)
+  contactEmailVerifiedAt DateTime? @db.Timestamptz(3)
+  contactPhoneVerifiedAt DateTime? @db.Timestamptz(3)
   status              String             @default("received")
   assignedTeam        String?
   referralCode        String?
@@ -144,6 +162,22 @@ model MagicLinkToken {
   createdAt DateTime  @default(now()) @db.Timestamptz(3)
 
   @@index([email, createdAt])
+  @@index([expiresAt])
+}
+
+// One-time-passcode challenges for recovery-intake contact verification (Feature 2).
+// Codes are stored hashed (sha256); TTL + attempt cap are enforced in app code.
+model OtpChallenge {
+  id         String    @id @default(cuid())
+  channel    String // "email" | "sms"
+  target     String // email or E.164 phone
+  codeHash   String
+  expiresAt  DateTime  @db.Timestamptz(3)
+  consumedAt DateTime? @db.Timestamptz(3)
+  attempts   Int       @default(0)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([target, createdAt])
   @@index([expiresAt])
 }
 

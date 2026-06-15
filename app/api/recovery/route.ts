@@ -5,6 +5,7 @@ import { dispatch as dispatchWebhook } from "@/lib/webhooks";
 import { pickTeam } from "@/lib/recoverySteps";
 import { getClientIp, rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
 import { isValidEmail, validatePhone } from "@/lib/validation";
+import { isRepresentativeIdType } from "@/lib/recoveryKyc";
 
 interface DocumentInfo {
   documentType: string;
@@ -26,6 +27,18 @@ interface RecoveryPayload {
   contactPhone: string;
   confirmedSignatory: boolean;
   agreedNDPA: boolean;
+  // Feature 4 — loan / facility status
+  hasActiveOrPendingFacility?: boolean;
+  hasPriorBankDispute?: boolean;
+  engagementContext?: string;
+  // Feature 5 — KYC: registered address + representative ID
+  regAddressLine1?: string;
+  regAddressLine2?: string;
+  regAddressCity?: string;
+  regAddressState?: string;
+  regAddressCountry?: string;
+  regAddressPostalCode?: string;
+  representativeIdType?: string;
   documents?: DocumentInfo[];
   referralCode?: string;
 }
@@ -98,6 +111,18 @@ export async function POST(req: NextRequest) {
     if (!phone.ok) {
       fieldErrors.contactPhone = "Enter a valid phone number (e.g. 0803 123 4567 or +234…).";
     }
+    // Feature 4 — facility status is required (true/false).
+    if (typeof body.hasActiveOrPendingFacility !== "boolean") {
+      fieldErrors.hasActiveOrPendingFacility = "Please indicate whether a loan/facility is active or pending.";
+    }
+    // Feature 5 — registered address (line1/city/state/country) + representative ID type required.
+    if (!body.regAddressLine1?.trim()) fieldErrors.regAddressLine1 = "Registered business address is required.";
+    if (!body.regAddressCity?.trim()) fieldErrors.regAddressCity = "City is required.";
+    if (!body.regAddressState?.trim()) fieldErrors.regAddressState = "State is required.";
+    if (!body.regAddressCountry?.trim()) fieldErrors.regAddressCountry = "Country is required.";
+    if (!isRepresentativeIdType(body.representativeIdType)) {
+      fieldErrors.representativeIdType = "Select the authorized representative's ID type.";
+    }
     if (Object.keys(fieldErrors).length > 0) {
       return NextResponse.json(
         { error: "Please correct the highlighted fields.", fields: fieldErrors },
@@ -146,6 +171,18 @@ export async function POST(req: NextRequest) {
             contactPhone: normalizedPhone,
             confirmedSignatory: body.confirmedSignatory,
             agreedNDPA: body.agreedNDPA,
+            // Feature 4 — loan / facility status
+            hasActiveOrPendingFacility: body.hasActiveOrPendingFacility,
+            hasPriorBankDispute: typeof body.hasPriorBankDispute === "boolean" ? body.hasPriorBankDispute : null,
+            engagementContext: body.engagementContext?.trim() || null,
+            // Feature 5 — KYC: registered address + representative ID type
+            regAddressLine1: body.regAddressLine1?.trim() || null,
+            regAddressLine2: body.regAddressLine2?.trim() || null,
+            regAddressCity: body.regAddressCity?.trim() || null,
+            regAddressState: body.regAddressState?.trim() || null,
+            regAddressCountry: body.regAddressCountry?.trim() || null,
+            regAddressPostalCode: body.regAddressPostalCode?.trim() || null,
+            representativeIdType: body.representativeIdType,
             assignedTeam,
             referralCode,
             statusEvents: { create: [{ step: "received" }] },

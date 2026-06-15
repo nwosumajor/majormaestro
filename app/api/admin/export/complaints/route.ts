@@ -23,6 +23,10 @@ const HEADERS = [
   "contactTitle",
   "contactEmail",
   "contactPhone",
+  "registeredAddress",
+  "representativeIdType",
+  "hasActiveOrPendingFacility",
+  "hasPriorBankDispute",
   "assignedTeam",
   "referralCode",
 ];
@@ -65,6 +69,12 @@ export async function GET(req: NextRequest) {
         r.contactTitle,
         r.contactEmail,
         r.contactPhone,
+        [r.regAddressLine1, r.regAddressLine2, r.regAddressCity, r.regAddressState, r.regAddressCountry, r.regAddressPostalCode]
+          .filter(Boolean)
+          .join(", "),
+        r.representativeIdType ?? "",
+        r.hasActiveOrPendingFacility == null ? "" : r.hasActiveOrPendingFacility ? "yes" : "no",
+        r.hasPriorBankDispute == null ? "" : r.hasPriorBankDispute ? "yes" : "no",
         r.assignedTeam ?? "",
         r.referralCode ?? "",
       ].map(csvEscape).join(",")

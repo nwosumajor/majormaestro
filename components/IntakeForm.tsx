@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { track } from "@/lib/analytics";
 import { isValidEmail, validatePhone } from "@/lib/validation";
+import { REPRESENTATIVE_ID_TYPES, REPRESENTATIVE_ID_LABELS } from "@/lib/recoveryKyc";
 import {
   Building2,
   User,
@@ -31,6 +32,19 @@ interface FormState {
   contactPhone: string;
   confirmedSignatory: boolean;
   agreedNDPA: boolean;
+  // Feature 5 — registered business address
+  regAddressLine1: string;
+  regAddressLine2: string;
+  regAddressCity: string;
+  regAddressState: string;
+  regAddressCountry: string;
+  regAddressPostalCode: string;
+  // Feature 5 — authorized representative ID type
+  representativeIdType: string;
+  // Feature 4 — loan / facility status
+  hasActiveOrPendingFacility: boolean | null;
+  hasPriorBankDispute: boolean | null;
+  engagementContext: string;
 }
 
 interface UploadedFile {
@@ -65,6 +79,16 @@ const INITIAL_STATE: FormState = {
   contactPhone: "",
   confirmedSignatory: false,
   agreedNDPA: false,
+  regAddressLine1: "",
+  regAddressLine2: "",
+  regAddressCity: "",
+  regAddressState: "",
+  regAddressCountry: "Nigeria",
+  regAddressPostalCode: "",
+  representativeIdType: "",
+  hasActiveOrPendingFacility: null,
+  hasPriorBankDispute: null,
+  engagementContext: "",
 };
 
 const STEPS = [
@@ -84,6 +108,12 @@ const UPLOAD_SLOTS = [
     key: "letter-of-authority",
     label: "Letter of Authority",
     hint: "Signed by authorised signatory · PDF only",
+    accept: ".pdf",
+  },
+  {
+    key: "representative-id",
+    label: "Authorised Representative ID",
+    hint: "Government-issued ID of the signatory · PDF only",
     accept: ".pdf",
   },
 ] as const;
@@ -107,9 +137,9 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<SuccessState | null>(null);
-  // Field-level contact errors (email/phone) — set on blur (client) and from a
-  // server 422 response. Cleared as the user edits the offending field.
-  const [fieldErrors, setFieldErrors] = useState<{ contactEmail?: string; contactPhone?: string }>({});
+  // Field-level errors (keyed by FormState field) — set on blur (client) and
+  // from a server 422 response. Cleared as the user edits the offending field.
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({});
 
   // On mount: fire the funnel event, restore any saved draft (org-level fields
   // only — no contact PII or compliance acknowledgments are ever persisted),
@@ -165,20 +195,20 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
   const [uploadStatus, setUploadStatus] = useState<Record<SlotKey, UploadStatus>>({
     "bank-statements": "idle",
     "letter-of-authority": "idle",
+    "representative-id": "idle",
   });
   const [uploadError, setUploadError] = useState<Partial<Record<SlotKey, string>>>({});
 
   const fileRefs = {
     "bank-statements": useRef<HTMLInputElement>(null),
     "letter-of-authority": useRef<HTMLInputElement>(null),
+    "representative-id": useRef<HTMLInputElement>(null),
   };
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
     // Clear a field-level error as soon as the user edits that field.
-    if (key === "contactEmail" || key === "contactPhone") {
-      setFieldErrors((prev) => ({ ...prev, [key]: undefined }));
-    }
+    setFieldErrors((prev) => (prev[key] ? { ...prev, [key]: undefined } : prev));
   }
 
   function addBank() { update("banks", [...form.banks, ""]); }
@@ -186,7 +216,16 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
   function removeBank(i: number) { update("banks", form.banks.filter((_, j) => j !== i)); }
 
   function step1Valid() {
-    return form.companyName.trim() && form.rcNumber.trim() && form.turnoverBand && form.banks.some((b) => b.trim());
+    return Boolean(
+      form.companyName.trim() &&
+        form.rcNumber.trim() &&
+        form.turnoverBand &&
+        form.banks.some((b) => b.trim()) &&
+        form.regAddressLine1.trim() &&
+        form.regAddressCity.trim() &&
+        form.regAddressState.trim() &&
+        form.regAddressCountry.trim()
+    );
   }
 
   function step2Valid() {
@@ -218,7 +257,12 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
   }
 
   function step3Valid() {
-    return form.confirmedSignatory && form.agreedNDPA;
+    return Boolean(
+      form.confirmedSignatory &&
+        form.agreedNDPA &&
+        form.hasActiveOrPendingFacility !== null &&
+        form.representativeIdType
+    );
   }
 
   async function handleFileChange(key: SlotKey, file: File | null) {
@@ -437,6 +481,36 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
                 <Plus size={13} />Add another bank
               </button>
             </div>
+
+            {/* Registered business address (KYC) */}
+            <div className="border-t border-slate-100 pt-4">
+              <label className="mb-1.5 block text-sm font-semibold text-slate-800">
+                Registered Business Address <span className="text-red-500">*</span>
+              </label>
+              <p className="mb-2 text-xs text-slate-500">As shown on your CAC registration.</p>
+              <div className="space-y-2">
+                <div>
+                  <input type="text" value={form.regAddressLine1} onChange={(e) => update("regAddressLine1", e.target.value)} aria-invalid={!!fieldErrors.regAddressLine1} placeholder="Address line 1" className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.regAddressLine1 ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-blue-700 focus:ring-blue-200"}`} />
+                  {fieldErrors.regAddressLine1 && <p className="mt-1 text-xs text-red-600">{fieldErrors.regAddressLine1}</p>}
+                </div>
+                <input type="text" value={form.regAddressLine2} onChange={(e) => update("regAddressLine2", e.target.value)} placeholder="Address line 2 (optional)" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div>
+                    <input type="text" value={form.regAddressCity} onChange={(e) => update("regAddressCity", e.target.value)} aria-invalid={!!fieldErrors.regAddressCity} placeholder="City" className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.regAddressCity ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-blue-700 focus:ring-blue-200"}`} />
+                    {fieldErrors.regAddressCity && <p className="mt-1 text-xs text-red-600">{fieldErrors.regAddressCity}</p>}
+                  </div>
+                  <div>
+                    <input type="text" value={form.regAddressState} onChange={(e) => update("regAddressState", e.target.value)} aria-invalid={!!fieldErrors.regAddressState} placeholder="State" className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.regAddressState ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-blue-700 focus:ring-blue-200"}`} />
+                    {fieldErrors.regAddressState && <p className="mt-1 text-xs text-red-600">{fieldErrors.regAddressState}</p>}
+                  </div>
+                  <div>
+                    <input type="text" value={form.regAddressCountry} onChange={(e) => update("regAddressCountry", e.target.value)} aria-invalid={!!fieldErrors.regAddressCountry} placeholder="Country" className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.regAddressCountry ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-blue-700 focus:ring-blue-200"}`} />
+                    {fieldErrors.regAddressCountry && <p className="mt-1 text-xs text-red-600">{fieldErrors.regAddressCountry}</p>}
+                  </div>
+                  <input type="text" value={form.regAddressPostalCode} onChange={(e) => update("regAddressPostalCode", e.target.value)} placeholder="Postal code (optional)" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -481,6 +555,72 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
         {/* Step 3: Compliance & Documents */}
         {step === 2 && (
           <div className="space-y-6">
+            {/* Loan / facility status (engagement sensitivity) */}
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-800">
+                  Is the company currently applying for, or negotiating, any loan or credit facility with any bank? <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  {([["Yes", true], ["No", false]] as const).map(([lbl, val]) => (
+                    <button
+                      key={lbl}
+                      type="button"
+                      onClick={() => update("hasActiveOrPendingFacility", val)}
+                      className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${form.hasActiveOrPendingFacility === val ? "border-blue-700 bg-blue-50 text-blue-900" : "border-slate-300 bg-white text-slate-600 hover:border-blue-300"}`}
+                    >
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+                {fieldErrors.hasActiveOrPendingFacility && <p className="mt-1.5 text-xs text-red-600">{fieldErrors.hasActiveOrPendingFacility}</p>}
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-800">
+                  Has the company had any prior dispute correspondence with the bank(s)?
+                </label>
+                <div className="flex gap-2">
+                  {([["Yes", true], ["No", false]] as const).map(([lbl, val]) => (
+                    <button
+                      key={lbl}
+                      type="button"
+                      onClick={() => update("hasPriorBankDispute", val)}
+                      className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${form.hasPriorBankDispute === val ? "border-blue-700 bg-blue-50 text-blue-900" : "border-slate-300 bg-white text-slate-600 hover:border-blue-300"}`}
+                    >
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {(form.hasActiveOrPendingFacility || form.hasPriorBankDispute) && (
+                <div>
+                  <label htmlFor="f-engagementContext" className="mb-1.5 block text-sm font-semibold text-slate-800">
+                    Any context that may affect engagement strategy? <span className="font-normal text-slate-400">(optional)</span>
+                  </label>
+                  <textarea id="f-engagementContext" value={form.engagementContext} onChange={(e) => update("engagementContext", e.target.value)} rows={3} placeholder="e.g. facility approval expected next month with the same bank…" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+                </div>
+              )}
+            </div>
+
+            {/* Authorised representative ID type (KYC) */}
+            <div>
+              <label htmlFor="f-representativeIdType" className="mb-1.5 block text-sm font-semibold text-slate-800">
+                Authorised Representative&apos;s ID Type <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="f-representativeIdType"
+                value={form.representativeIdType}
+                onChange={(e) => update("representativeIdType", e.target.value)}
+                aria-invalid={!!fieldErrors.representativeIdType}
+                className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 transition ${fieldErrors.representativeIdType ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-slate-300 focus:border-blue-700 focus:ring-blue-200"}`}
+              >
+                <option value="">— Select ID type —</option>
+                {REPRESENTATIVE_ID_TYPES.map((t) => <option key={t} value={t}>{REPRESENTATIVE_ID_LABELS[t]}</option>)}
+              </select>
+              {fieldErrors.representativeIdType && <p className="mt-1.5 text-xs text-red-600">{fieldErrors.representativeIdType}</p>}
+              <p className="mt-1.5 text-xs text-slate-500">Upload the matching ID document below (optional, but speeds up verification).</p>
+            </div>
+
             {/* Document uploads */}
             <div>
               <h4 className="mb-1 text-sm font-semibold text-slate-800">Document Upload</h4>
