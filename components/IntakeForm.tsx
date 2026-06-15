@@ -5,6 +5,7 @@ import { track } from "@/lib/analytics";
 import { isValidEmail, validatePhone } from "@/lib/validation";
 import { REPRESENTATIVE_ID_TYPES, REPRESENTATIVE_ID_LABELS } from "@/lib/recoveryKyc";
 import { RECOVERY_TERMS } from "@/lib/policies/recoveryTerms";
+import { AUTHORIZATION_METHOD_LABELS, type AuthorizationMethod } from "@/lib/recoveryLoa";
 import {
   Building2,
   User,
@@ -47,6 +48,10 @@ interface FormState {
   hasActiveOrPendingFacility: boolean | null;
   hasPriorBankDispute: boolean | null;
   engagementContext: string;
+  // Feature 3 — Letter-of-Authorization
+  companyHasSoleDirector: boolean | null;
+  authorizationMethod: "" | AuthorizationMethod;
+  loaSignatories: { name: string; title: string }[];
   // Feature 1 — Terms acceptance
   termsAccepted: boolean;
   termsSignerName: string;
@@ -95,6 +100,9 @@ const INITIAL_STATE: FormState = {
   hasActiveOrPendingFacility: null,
   hasPriorBankDispute: null,
   engagementContext: "",
+  companyHasSoleDirector: null,
+  authorizationMethod: "",
+  loaSignatories: [{ name: "", title: "" }],
   termsAccepted: false,
   termsSignerName: "",
   termsSignerTitle: "",
@@ -124,6 +132,12 @@ const UPLOAD_SLOTS = [
     key: "representative-id",
     label: "Authorised Representative ID",
     hint: "Government-issued ID of the signatory · PDF only",
+    accept: ".pdf",
+  },
+  {
+    key: "board-resolution",
+    label: "Board Resolution",
+    hint: "Board resolution authorising this engagement · PDF only",
     accept: ".pdf",
   },
 ] as const;
@@ -206,6 +220,7 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
     "bank-statements": "idle",
     "letter-of-authority": "idle",
     "representative-id": "idle",
+    "board-resolution": "idle",
   });
   const [uploadError, setUploadError] = useState<Partial<Record<SlotKey, string>>>({});
 
@@ -213,6 +228,7 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
     "bank-statements": useRef<HTMLInputElement>(null),
     "letter-of-authority": useRef<HTMLInputElement>(null),
     "representative-id": useRef<HTMLInputElement>(null),
+    "board-resolution": useRef<HTMLInputElement>(null),
   };
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -273,8 +289,16 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
       form.confirmedSignatory &&
         form.agreedNDPA &&
         form.hasActiveOrPendingFacility !== null &&
-        form.representativeIdType
+        form.representativeIdType &&
+        form.companyHasSoleDirector !== null &&
+        form.authorizationMethod
     );
+  }
+
+  function addSignatory() { update("loaSignatories", [...form.loaSignatories, { name: "", title: "" }]); }
+  function removeSignatory(i: number) { update("loaSignatories", form.loaSignatories.filter((_, j) => j !== i)); }
+  function updateSignatory(i: number, field: "name" | "title", v: string) {
+    update("loaSignatories", form.loaSignatories.map((s, j) => (j === i ? { ...s, [field]: v } : s)));
   }
 
   function step4Valid() {
@@ -291,7 +315,7 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
   const STEP_FIELDS: Record<number, string[]> = {
     0: ["companyName", "rcNumber", "turnoverBand", "banks", "regAddressLine1", "regAddressCity", "regAddressState", "regAddressCountry"],
     1: ["contactName", "contactTitle", "contactEmail", "contactPhone"],
-    2: ["hasActiveOrPendingFacility", "representativeIdType"],
+    2: ["hasActiveOrPendingFacility", "representativeIdType", "authorizationMethod", "companyHasSoleDirector", "authorization"],
     3: ["terms"],
   };
   function earliestErrorStep(keys: string[]): number {
@@ -664,6 +688,84 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
               <p className="mt-1.5 text-xs text-slate-500">Upload the matching ID document below (optional, but speeds up verification).</p>
             </div>
 
+            {/* Authorisation method (Letter of Authority) */}
+            <div className="space-y-4 border-t border-slate-100 pt-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-800">
+                  Does the company have a sole Director? <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  {([["Yes", true], ["No", false]] as const).map(([lbl, val]) => (
+                    <button
+                      key={lbl}
+                      type="button"
+                      onClick={() => {
+                        // Reset the method if it no longer applies to the new answer.
+                        const stillValid =
+                          form.authorizationMethod === "board_resolution" ||
+                          (val ? form.authorizationMethod === "sole_director" : form.authorizationMethod === "two_directors");
+                        update("companyHasSoleDirector", val);
+                        if (!stillValid) update("authorizationMethod", "");
+                      }}
+                      className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${form.companyHasSoleDirector === val ? "border-blue-700 bg-blue-50 text-blue-900" : "border-slate-300 bg-white text-slate-600 hover:border-blue-300"}`}
+                    >
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+                {fieldErrors.companyHasSoleDirector && <p className="mt-1.5 text-xs text-red-600">{fieldErrors.companyHasSoleDirector}</p>}
+              </div>
+
+              {form.companyHasSoleDirector !== null && (
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-800">
+                    How is this engagement authorised? <span className="text-red-500">*</span>
+                  </label>
+                  <div className="space-y-2">
+                    {(form.companyHasSoleDirector ? (["sole_director", "board_resolution"] as const) : (["two_directors", "board_resolution"] as const)).map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => update("authorizationMethod", m)}
+                        className={`flex w-full items-center gap-2 rounded-xl border px-4 py-2.5 text-left text-sm font-medium transition-colors ${form.authorizationMethod === m ? "border-blue-700 bg-blue-50 text-blue-900" : "border-slate-300 bg-white text-slate-600 hover:border-blue-300"}`}
+                      >
+                        {form.authorizationMethod === m ? <CheckCircle2 size={15} className="shrink-0 text-blue-700" /> : <span className="h-[15px] w-[15px] shrink-0 rounded-full border border-slate-300" />}
+                        {AUTHORIZATION_METHOD_LABELS[m]}
+                      </button>
+                    ))}
+                  </div>
+                  {fieldErrors.authorizationMethod && <p className="mt-1.5 text-xs text-red-600">{fieldErrors.authorizationMethod}</p>}
+                  {fieldErrors.authorization && <p className="mt-1.5 text-xs text-red-600">{fieldErrors.authorization}</p>}
+                </div>
+              )}
+
+              {(form.authorizationMethod === "two_directors" || form.authorizationMethod === "sole_director") && (
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-800">
+                    Signatory details {form.authorizationMethod === "two_directors" ? "(at least two Directors)" : "(sole Director)"}
+                  </label>
+                  <div className="space-y-2">
+                    {form.loaSignatories.map((sig, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <input type="text" value={sig.name} onChange={(e) => updateSignatory(i, "name", e.target.value)} placeholder="Director name" className="flex-1 rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+                        <input type="text" value={sig.title} onChange={(e) => updateSignatory(i, "title", e.target.value)} placeholder="Title (e.g. Director)" className="flex-1 rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" />
+                        {form.loaSignatories.length > 1 && (
+                          <button type="button" onClick={() => removeSignatory(i)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:border-red-300 hover:text-red-500 transition-colors">
+                            <X size={15} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {form.authorizationMethod === "two_directors" && (
+                    <button type="button" onClick={addSignatory} className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-blue-700 hover:text-blue-900 transition-colors">
+                      <Plus size={13} />Add another signatory
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Document uploads */}
             <div>
               <h4 className="mb-1 text-sm font-semibold text-slate-800">Document Upload</h4>
@@ -672,6 +774,9 @@ export default function IntakeForm({ referralCode, referrerName }: { referralCod
               </p>
               <div className="space-y-3">
                 {UPLOAD_SLOTS.map((slot) => {
+                  // Show only the document relevant to the chosen authorisation method.
+                  if (slot.key === "board-resolution" && form.authorizationMethod !== "board_resolution") return null;
+                  if (slot.key === "letter-of-authority" && form.authorizationMethod === "board_resolution") return null;
                   const status = uploadStatus[slot.key];
                   const uploaded = uploadedFiles[slot.key];
                   const errMsg = uploadError[slot.key];

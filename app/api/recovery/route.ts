@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse, after } from "next/server";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { sendComplaintConfirmation, sendInternalComplaintNotification, sendReferralLeadNotification } from "@/lib/email";
 import { dispatch as dispatchWebhook } from "@/lib/webhooks";
@@ -6,6 +7,13 @@ import { pickTeam } from "@/lib/recoverySteps";
 import { getClientIp, rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
 import { isValidEmail, validatePhone } from "@/lib/validation";
 import { isRepresentativeIdType } from "@/lib/recoveryKyc";
+import {
+  isAuthorizationMethod,
+  sanitizeSignatories,
+  checkLoaConformance,
+  loaEnforcementMode,
+  type LoaSignatory,
+} from "@/lib/recoveryLoa";
 import { recordAudit } from "@/lib/audit";
 import { getClientUserFromRequest } from "@/lib/auth";
 import { RECOVERY_TERMS } from "@/lib/policies/recoveryTerms";
@@ -43,6 +51,10 @@ interface RecoveryPayload {
   regAddressCountry?: string;
   regAddressPostalCode?: string;
   representativeIdType?: string;
+  // Feature 3 — Letter-of-Authorization signatory rules
+  authorizationMethod?: string;
+  companyHasSoleDirector?: boolean;
+  loaSignatories?: { name?: string; title?: string }[];
   // Feature 1 — Terms & Data-Protection acceptance
   terms?: {
     accepted?: boolean;
@@ -135,6 +147,15 @@ export async function POST(req: NextRequest) {
     if (!isRepresentativeIdType(body.representativeIdType)) {
       fieldErrors.representativeIdType = "Select the authorized representative's ID type.";
     }
+    // Feature 3 — authorization method + sole-director flag are always required
+    // (data capture); the signatory/document *conformance* is enforced per the
+    // LOA_SIGNATORY_ENFORCEMENT flag below.
+    if (!isAuthorizationMethod(body.authorizationMethod)) {
+      fieldErrors.authorizationMethod = "Select how this engagement is authorised.";
+    }
+    if (typeof body.companyHasSoleDirector !== "boolean") {
+      fieldErrors.companyHasSoleDirector = "Indicate whether the company has a sole director.";
+    }
     // Feature 1 — Terms acceptance is mandatory: explicit accept, current policy
     // version, and a non-empty typed signer name. Authoritative server-side gate.
     const terms = body.terms;
@@ -152,6 +173,25 @@ export async function POST(req: NextRequest) {
         { status: 422 }
       );
     }
+    // Feature 3 — LoA conformance. Method + sole-director flag validated above.
+    const authorizationMethod = body.authorizationMethod!; // narrowed by 422 above
+    const companyHasSoleDirector = body.companyHasSoleDirector as boolean;
+    const loaSignatories: LoaSignatory[] = sanitizeSignatories(body.loaSignatories);
+    const documentTypes = (body.documents ?? []).map((d) => d.documentType);
+    const conformance = checkLoaConformance({
+      method: authorizationMethod as Parameters<typeof checkLoaConformance>[0]["method"],
+      signatories: loaSignatories,
+      companyHasSoleDirector,
+      documentTypes,
+    });
+    const enforcement = loaEnforcementMode();
+    if (enforcement === "strict" && !conformance.ok) {
+      return NextResponse.json(
+        { error: "Authorisation requirements are not met.", fields: { authorization: conformance.reasons.join(" ") } },
+        { status: 422 }
+      );
+    }
+
     // Store the phone in normalized E.164 form.
     const normalizedPhone = phone.e164 ?? body.contactPhone.trim();
 
@@ -224,6 +264,10 @@ export async function POST(req: NextRequest) {
               regAddressCountry: body.regAddressCountry?.trim() || null,
               regAddressPostalCode: body.regAddressPostalCode?.trim() || null,
               representativeIdType: body.representativeIdType,
+              // Feature 3 — Letter-of-Authorization
+              authorizationMethod,
+              companyHasSoleDirector,
+              loaSignatories: loaSignatories as unknown as Prisma.InputJsonValue,
               assignedTeam,
               referralCode,
               statusEvents: { create: [{ step: "received" }] },
@@ -264,6 +308,22 @@ export async function POST(req: NextRequest) {
           targetType: "RecoveryComplaint",
           targetId: referenceId,
           metadata: { referenceId, policyVersion: RECOVERY_TERMS.version, signatureType, acknowledgementHash },
+        });
+
+        await recordAudit({
+          action: "recovery_authorization_captured",
+          actorLabel: acceptedByName,
+          targetType: "RecoveryComplaint",
+          targetId: referenceId,
+          metadata: {
+            referenceId,
+            authorizationMethod,
+            companyHasSoleDirector,
+            signatoryCount: loaSignatories.length,
+            enforcement,
+            conforming: conformance.ok,
+            advisoryWarnings: conformance.ok ? [] : conformance.reasons,
+          },
         });
       } catch (dbErr) {
         console.error("[recovery] DB error (non-fatal):", dbErr);

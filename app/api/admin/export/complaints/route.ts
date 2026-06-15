@@ -25,6 +25,7 @@ const HEADERS = [
   "contactPhone",
   "registeredAddress",
   "representativeIdType",
+  "authorizationMethod",
   "hasActiveOrPendingFacility",
   "hasPriorBankDispute",
   "assignedTeam",
@@ -73,6 +74,7 @@ export async function GET(req: NextRequest) {
           .filter(Boolean)
           .join(", "),
         r.representativeIdType ?? "",
+        r.authorizationMethod ?? "",
         r.hasActiveOrPendingFacility == null ? "" : r.hasActiveOrPendingFacility ? "yes" : "no",
         r.hasPriorBankDispute == null ? "" : r.hasPriorBankDispute ? "yes" : "no",
         r.assignedTeam ?? "",

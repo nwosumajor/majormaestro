@@ -36,6 +36,10 @@ model RecoveryComplaint {
   representativeIdType      String? // nin | passport | drivers_license | voters_card
   representativeIdNumberEnc String? // reserved: AES-256-GCM (encryptSecret); never returned by list endpoints
   representativeIdLast4     String?
+  // Feature 3 — Letter-of-Authorization signatory rules
+  authorizationMethod    String? // two_directors | board_resolution | sole_director
+  companyHasSoleDirector Boolean?
+  loaSignatories         Json? // [{ name, title }]
   // Feature 2 — contact-channel verification (OTP)
   contactEmailVerifiedAt DateTime? @db.Timestamptz(3)
   contactPhoneVerifiedAt DateTime? @db.Timestamptz(3)

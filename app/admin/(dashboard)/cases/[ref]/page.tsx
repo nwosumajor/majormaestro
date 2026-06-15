@@ -6,6 +6,7 @@ import { getAdminFromCookies } from "@/lib/auth";
 import { normalizeRole, can } from "@/lib/rbac";
 import { STEP_KEYS, STEP_DEFS, type StepKey } from "@/lib/recoverySteps";
 import { representativeIdLabel } from "@/lib/recoveryKyc";
+import { authorizationMethodLabel, type LoaSignatory } from "@/lib/recoveryLoa";
 import AdvanceForm from "./AdvanceForm";
 import NotesPanel from "./NotesPanel";
 import FindingsEditor from "./FindingsEditor";
@@ -105,8 +106,8 @@ export default async function AdminCaseDetailPage({
         </div>
       </div>
 
-      {/* KYC & engagement context (Features 4 & 5) */}
-      {(complaint.regAddressLine1 || complaint.representativeIdType || complaint.hasActiveOrPendingFacility != null) && (
+      {/* KYC & engagement context (Features 3, 4 & 5) */}
+      {(complaint.regAddressLine1 || complaint.representativeIdType || complaint.hasActiveOrPendingFacility != null || complaint.authorizationMethod) && (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-500">KYC & Engagement</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -124,6 +125,17 @@ export default async function AdminCaseDetailPage({
             </Info>
             <Info icon={AlertTriangle} label="Prior bank dispute">
               {complaint.hasPriorBankDispute == null ? "—" : complaint.hasPriorBankDispute ? "Yes" : "No"}
+            </Info>
+            <Info icon={BadgeCheck} label="Authorisation method">
+              {authorizationMethodLabel(complaint.authorizationMethod)}
+              {(() => {
+                const sigs = (complaint.loaSignatories as LoaSignatory[] | null) ?? [];
+                return sigs.length > 0 ? (
+                  <span className="block text-xs text-slate-500">
+                    {sigs.map((s) => (s.title ? `${s.name} (${s.title})` : s.name)).join("; ")}
+                  </span>
+                ) : null;
+              })()}
             </Info>
             {complaint.engagementContext && (
               <div className="sm:col-span-2">
