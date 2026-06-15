@@ -23,6 +23,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // vendored Google Cloud SDK pulled in for Stitch tooling — not app code
+    "googlestich/**",
   ]),
 ]);
 
