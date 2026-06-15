@@ -158,6 +158,14 @@ received → reviewing → documents → auditing → findings → engagement �
 ```
 
 - **Intake** (`/recovery#intake`): creates `RecoveryComplaint`, assigns a forensics team via `pickTeam(referenceId)`, creates the initial `received` event, sends client confirmation email + internal notification.
+
+**Intake onboarding — compliance, validation & KYC (server is the source of truth for every gate; the 4-step `components/IntakeForm.tsx` mirrors them for UX):**
+- **Validation:** `lib/validation.ts` — `isValidEmail` (replaces the old per-route `EMAIL_RE`) + `validatePhone` (libphonenumber-js → E.164, NG default). `POST /api/recovery` returns **422 `{ fields }`** on bad email/phone and stores the phone in E.164.
+- **Terms acceptance (mandatory):** versioned policy in `lib/policies/recoveryTerms.ts` (store the `version`, not the prose). `POST /api/recovery` rejects 422 without a valid acceptance and writes the complaint + a `TermsAcceptance` row in **one `$transaction`** (so a complaint can never exist without it) — capturing signer name/title, IP/UA, and a tamper-evident SHA-256 `acknowledgementHash` (`lib/recoveryTermsHash.ts`). Surfaced read-only on `/admin/cases/[ref]` + the case PDF. Audited `recovery_terms_accepted`.
+- **KYC (Feature 5):** structured registered address + `representativeIdType` (const-union in `lib/recoveryKyc.ts`) + an optional representative-ID PDF. The ID *number* is **not** captured by default; `representativeIdNumberEnc`/`Last4` columns are reserved for an encrypted-at-rest number (never returned by list endpoints) if ever needed.
+- **Loan/facility status (Feature 4):** `hasActiveOrPendingFacility` (required), `hasPriorBankDispute`, `engagementContext` — admin shows an amber "sensitive" badge when a facility is active; all in the CSV export.
+- **Letter-of-Authorization (Feature 3):** `lib/recoveryLoa.ts` — `authorizationMethod` (`two_directors|board_resolution|sole_director`) + `companyHasSoleDirector` + `loaSignatories` (JSON), with conditional document slots. Conformance enforced by **`LOA_SIGNATORY_ENFORCEMENT`** (`advisory` default = warn+audit; `strict` = 422). Audited `recovery_authorization_captured`.
+- **OTP contact verification (Feature 2b):** `lib/otp.ts` (peppered SHA-256 codes, TTL, attempt cap) + pluggable `lib/sms.ts` (stub until a provider is configured). `POST /api/recovery/otp/{start,verify}` (rate-limited, hashed, audited `recovery_otp_verified`); intake records `contact{Email,Phone}VerifiedAt` from a recently-consumed `OtpChallenge`. Gated by **`RECOVERY_OTP_REQUIRED`** (email required when on; phone only if an SMS provider is configured). Expired `OtpChallenge` rows are purged by the cleanup cron.
 - **Reference ID format:** `GBN-<base36 timestamp>-<random 4 chars>` (e.g., `GBN-MPB4JQHX-166A`). Admin tracking page and client track page both look up by this.
 - **Advance** (`POST /api/admin/cases/[ref]/advance`): admin moves the case forward. Each transition:
   - writes a `CaseStatusEvent` (transactional with the `status` column update)
@@ -198,7 +206,7 @@ received → reviewing → documents → auditing → findings → engagement �
 - Test endpoint: `POST /api/admin/email-test` sends a probe email to the calling admin.
 
 ### Rate limiting (`lib/rateLimit.ts`)
-- In-memory sliding window (resets on deploy). Applied to: `/api/recovery` (5/hr), `/api/lead-magnet` (10/hr), `/api/refer` (10/hr), `/api/admin/login` (5/15min), `/api/auth/email/start` (5/hr per IP, 3/hr per email), `/api/client/me/email-change/start` (3/hr per user), `/api/recovery/[ref]/data` (5/hr).
+- **`rateLimit()` is async — `await` it.** Durable across instances via Upstash Redis (REST) when `UPSTASH_REDIS_REST_URL`/`_TOKEN` (or `KV_REST_API_*`) are set; otherwise an in-memory sliding window (resets on deploy, per-instance), failing open to memory on a Redis error. Applied to: `/api/recovery` (5/hr), `/api/lead-magnet` (10/hr), `/api/refer` (10/hr), `/api/admin/login` (5/15min), `/api/auth/email/start` (5/hr per IP, 3/hr per email), `/api/client/me/email-change/start` (3/hr per user), `/api/recovery/[ref]/data` (5/hr), the AI endpoints (`/api/chat`, `/api/roadmap`, `/api/pre-screen`, `/api/parse-cv`, `/api/classify`), and `/api/recovery/otp/{start,verify}`.
 
 ### Security headers
 - Set globally in `proxy.ts`: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: camera=(), microphone=(), geolocation=()`. Plus HSTS in production.
@@ -207,7 +215,7 @@ received → reviewing → documents → auditing → findings → engagement �
 
 Stored in `prisma/schema.prisma`. Recently-added timestamp columns use `@db.Timestamptz(3)` (TIMESTAMPTZ) to avoid timezone bugs in cron-style comparisons — be aware that legacy columns (RecoveryComplaint, AuditLog) are still `TIMESTAMP(3)` and rely on Prisma writing/reading consistently as UTC.
 
-- **Recovery:** `RecoveryComplaint`, `CaseStatusEvent`, `CaseNote`, `UploadedDocument`, `Referral`
+- **Recovery:** `RecoveryComplaint` (+ onboarding columns: facility/dispute, structured registered address, `representativeIdType`, `authorizationMethod`/`companyHasSoleDirector`/`loaSignatories`, `contact{Email,Phone}VerifiedAt`), `CaseStatusEvent`, `CaseNote`, `UploadedDocument`, `Referral`, `TermsAcceptance` (1:1 with complaint, tamper-evident acceptance), `OtpChallenge` (hashed contact-verification codes)
 - **Auth (admin):** `AdminUser`, `AuditLog`
 - **Auth (client):** `User`, `Session`, `MagicLinkToken`, `EmailChangeToken`
 - **AI artifacts (signed-in users):** `SavedClassification`, `SavedRoadmap`
@@ -223,7 +231,7 @@ Both require `CRON_SECRET`. Pass it as `Authorization: Bearer <secret>` OR `X-Cr
 | Path | Recommended schedule | What it does |
 |---|---|---|
 | `/api/cron/webhooks/retry` | every 5 minutes | Re-attempts due `WebhookDelivery` rows, escalates backoff, dead-letters at 5 attempts |
-| `/api/cron/cleanup` | daily | Deletes magic-link / email-change / revoked-or-expired session rows older than 1 day past expiry |
+| `/api/cron/cleanup` | daily | Deletes magic-link / email-change / revoked-or-expired session rows + expired `OtpChallenge` rows older than 1 day past expiry |
 | `/api/cron/classify/process` | daily (backstop) | Drains pending `StaffClassification` rows for bulk HR classification jobs. The upload route also kicks immediate processing via `after()`, so cron is only a backstop; an external scheduler can hit it more often for prompt draining of large batches. |
 | `/api/cron/gicn/reconcile-payments` | every ~30 min (GitHub Actions: `.github/workflows/gicn-reconcile.yml`) | Reconciles stale `pending` GICN sponsorships against Paystack — confirms successes whose webhook+callback both missed (idempotent paid flip + email), marks failed/abandoned/reversed (and >24h-stuck) transactions as `failed`. No-op when Paystack is unconfigured. |
 | `/api/cron/gicn/scholarship-reminders` | daily (GitHub Actions: `.github/workflows/gicn-scholarship-reminders.yml`) | Scholarship monitoring nudges — renewal reminders to guardians (`renewalDueAt` within 14 days) + at-risk/breach nudges to the board. Idempotent via the AuditLog (`lib/scholarshipReminders.ts`). |
@@ -241,6 +249,8 @@ See `.env.example` for the full annotated set. Critical groups:
 - `RETENTION_DAYS`, `AUDIT_LOG_RETENTION_DAYS` (retention policies)
 - `CRON_SECRET` (cron auth)
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, optional `ADMIN_GOOGLE_DOMAIN` (OAuth)
+- **Recovery onboarding (all optional, safe defaults):** `LOA_SIGNATORY_ENFORCEMENT` (`advisory`|`strict`, default advisory), `RECOVERY_OTP_REQUIRED` (default false), `SMS_PROVIDER`/`SMS_API_KEY`/`SMS_SENDER_ID` (phone OTP; stubbed when unset)
+- **Durable rate limiting (optional):** `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` (or Vercel KV's `KV_REST_API_URL`/`KV_REST_API_TOKEN`) — `lib/rateLimit.ts` is async and shares limits across instances when set, else falls back to in-memory
 
 ## Common operations
 
