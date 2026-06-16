@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const data: Record<string, unknown> = {};
-  for (const k of ["fullName", "schoolName", "classLevel", "address", "guardianName"]) {
+  for (const k of ["fullName", "schoolName", "classLevel", "address", "guardianName", "emergencyContactName", "emergencyContactPhone"]) {
     if (typeof body[k] === "string") data[k] = (body[k] as string).trim() || null;
   }
   if (typeof body.mediaReleaseGranted === "boolean") data.mediaReleaseGranted = body.mediaReleaseGranted;

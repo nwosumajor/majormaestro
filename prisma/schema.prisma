@@ -125,6 +125,7 @@ model User {
   participants    Participant[]
   sponsorships    Sponsorship[]
   termsAcceptances TermsAcceptance[]
+  gicnAgreementAcceptances GicnAgreementAcceptance[]
 
   @@index([email])
 }
@@ -388,7 +389,45 @@ model GicnProfile {
   kind             String // guardian | school
   organizationName String? // school name (school partners)
   phone            String?
+  // Formal registration details
+  fullName             String? // registrant legal name
+  relationshipToChild  String? // guardian: mother|father|legal_guardian|other
+  contactPersonName    String? // school rep
+  contactPersonRole    String? // school rep role
+  contactEmail         String? // school official email
+  safeguardingLeadName    String? // school
+  safeguardingLeadContact String? // school
+  addressLine      String?
+  city             String?
+  state            String?
+  country          String?
   createdAt        DateTime @default(now()) @db.Timestamptz(3)
+  agreementAcceptances GicnAgreementAcceptance[]
+}
+
+// Tamper-evident acceptance of the versioned GICN agreement bundle (terms,
+// privacy, safeguarding, indemnity), signed by the adult account holder.
+model GicnAgreementAcceptance {
+  id                   String      @id @default(cuid())
+  gicnProfileId        String
+  profile              GicnProfile @relation(fields: [gicnProfileId], references: [id], onDelete: Cascade)
+  userId               String?
+  user                 User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  kind                 String // guardian | school
+  bundleVersion        String
+  acceptedTerms        Boolean     @default(false)
+  acceptedPrivacy      Boolean     @default(false)
+  acceptedSafeguarding Boolean     @default(false)
+  acceptedIndemnity    Boolean     @default(false)
+  acceptedByName       String
+  acceptedByRole       String?
+  ipAddress            String?
+  userAgent            String?
+  acknowledgementHash  String
+  acceptedAt           DateTime    @default(now()) @db.Timestamptz(3)
+
+  @@index([gicnProfileId])
+  @@index([userId])
 }
 
 model Participant {
@@ -400,6 +439,8 @@ model Participant {
   schoolName            String?
   classLevel            String?
   address               String?
+  emergencyContactName  String?
+  emergencyContactPhone String?
   guardianName          String
   consentGrantedAt      DateTime              @db.Timestamptz(3)
   consentGrantedByUserId String // the adult who granted consent (owner, or school user for bulk)

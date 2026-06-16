@@ -12,7 +12,8 @@ export async function GET(req: NextRequest) {
     where: { ownerUserId: user.id },
     orderBy: { createdAt: "desc" },
     select: {
-      id: true, fullName: true, dateOfBirth: true, schoolName: true, classLevel: true,
+      id: true, fullName: true, dateOfBirth: true, schoolName: true, classLevel: true, address: true,
+      emergencyContactName: true, emergencyContactPhone: true,
       guardianName: true, mediaReleaseGranted: true, consentGrantedAt: true, createdAt: true,
     },
   });
@@ -30,6 +31,7 @@ export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as {
     fullName?: string; dateOfBirth?: string; schoolName?: string; classLevel?: string;
     address?: string; guardianName?: string; consentGranted?: boolean; mediaReleaseGranted?: boolean;
+    emergencyContactName?: string; emergencyContactPhone?: string;
   };
   const fullName = (body.fullName ?? "").trim();
   const guardianName = (body.guardianName ?? "").trim();
@@ -52,6 +54,8 @@ export async function POST(req: NextRequest) {
       schoolName: (body.schoolName ?? "").trim() || null,
       classLevel: (body.classLevel ?? "").trim() || null,
       address: (body.address ?? "").trim() || null,
+      emergencyContactName: (body.emergencyContactName ?? "").trim() || null,
+      emergencyContactPhone: (body.emergencyContactPhone ?? "").trim() || null,
       guardianName,
       consentGrantedAt: new Date(),
       consentGrantedByUserId: user.id,

@@ -93,7 +93,7 @@ export default function ParticipantsClient({ isSchool }: { isSchool: boolean }) 
 }
 
 function AddModal({ isSchool, onClose, onAdded }: { isSchool: boolean; onClose: () => void; onAdded: () => void }) {
-  const [f, setF] = useState({ fullName: "", dateOfBirth: "", classLevel: "", schoolName: "", address: "", guardianName: "" });
+  const [f, setF] = useState({ fullName: "", dateOfBirth: "", classLevel: "", schoolName: "", address: "", guardianName: "", emergencyContactName: "", emergencyContactPhone: "" });
   const [consent, setConsent] = useState(false);
   const [media, setMedia] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -150,6 +150,14 @@ function AddModal({ isSchool, onClose, onAdded }: { isSchool: boolean; onClose: 
           <div className="sm:col-span-2">
             <label className="mb-1 block text-sm font-semibold text-slate-800">Address</label>
             <input value={f.address} onChange={set("address")} className={input} />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-slate-800">Emergency contact name</label>
+            <input value={f.emergencyContactName} onChange={set("emergencyContactName")} className={input} placeholder="e.g. parent / next of kin" />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-slate-800">Emergency contact phone</label>
+            <input value={f.emergencyContactPhone} onChange={set("emergencyContactPhone")} className={input} placeholder="+234…" />
           </div>
         </div>
 

@@ -5,6 +5,22 @@ import { randomBytes } from "crypto";
 export const GICN_KINDS = ["guardian", "school"] as const;
 export type GicnKind = (typeof GICN_KINDS)[number];
 
+// Guardian's lawful relationship to the child(ren) they enrol — establishes
+// authority to register and underpins the indemnity/consent.
+export const GUARDIAN_RELATIONSHIPS = ["mother", "father", "legal_guardian", "other"] as const;
+export type GuardianRelationship = (typeof GUARDIAN_RELATIONSHIPS)[number];
+
+export const GUARDIAN_RELATIONSHIP_LABELS: Record<GuardianRelationship, string> = {
+  mother: "Mother",
+  father: "Father",
+  legal_guardian: "Legal Guardian",
+  other: "Other",
+};
+
+export function isGuardianRelationship(v: unknown): v is GuardianRelationship {
+  return typeof v === "string" && (GUARDIAN_RELATIONSHIPS as readonly string[]).includes(v);
+}
+
 export const PROGRAM_TYPES = [
   "SCHOLARSHIP",
   "LEADERSHIP_CONFERENCE",
