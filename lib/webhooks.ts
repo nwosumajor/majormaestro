@@ -1,6 +1,7 @@
 import { createHmac, randomBytes } from "crypto";
 import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
+import { scheduleWebhookRetry } from "@/lib/qstash";
 
 export const WEBHOOK_EVENTS = [
   "case.status_changed",
@@ -190,6 +191,12 @@ export async function attemptDelivery(
       data: { failCount: { increment: 1 } },
     }),
   ]);
+
+  // Prompt retry: ask QStash to re-trigger processing exactly at the backoff time
+  // (no-op if QStash isn't configured — the daily cron is the backstop).
+  if (!isDead && nextDelayMin != null) {
+    await scheduleWebhookRetry(nextDelayMin * 60);
+  }
 }
 
 /**
