@@ -13,7 +13,7 @@
 - **Document Storage:** Pluggable backend (`STORAGE_BACKEND=local|s3`). S3-compatible (AWS S3, Cloudflare R2, MinIO) via `lib/uploads.ts`.
 - **Auth:** Two parallel systems — admin (email+password+TOTP, HMAC cookie) and client (Google OAuth + magic-link, DB-backed sessions).
 - **PDF Generation:** `jspdf` via `lib/pdf.ts` (forensic case reports)
-- **Deployment:** Not yet wired (no Dockerfile / CI). Targeting Vercel-style hosting.
+- **Deployment:** Live on **Vercel production** at `majormaestro.com` (+ `www`). Deploy from `main` with `vercel --prod --yes --archive=tgz` (the `--archive=tgz` avoids Vercel's 15k-file upload cap; the vendored `googlestich/` SDK is excluded via `.vercelignore` + `.gitignore`). DB migrations are applied to prod with `prisma migrate deploy` using the connection from `.env.production.local` (extract keys individually — see "Local dev gotchas"). No Dockerfile/CI yet; deploys are CLI-driven.
 
 ## Core Application Modules
 
@@ -279,6 +279,21 @@ If the prompt blocks (warnings about unique constraints on nullable columns etc.
 1. Set `STORAGE_BACKEND=s3` plus `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (and optionally `S3_ENDPOINT` for R2/MinIO).
 2. New uploads will go to S3. Existing rows with `storageBackend="local"` still work via the local disk.
 3. To migrate existing files: `npm run migrate:uploads-to-s3` (supports `--dry-run` first).
+
+### Deploy to production (Vercel) + apply migrations
+The app is live at `majormaestro.com`. The flow used this repo:
+1. Land changes on `main` (merge PRs; `tsc`/`lint`/`npm test`/`npm run build` all green first).
+2. **Apply pending migrations to the prod DB BEFORE deploying** (schema-first; columns are additive/nullable so the running code is unaffected in the interim):
+   ```bash
+   DBURL=$(grep -E '^DATABASE_URL=' .env.production.local | cut -d= -f2- | sed 's/^"//;s/"$//')
+   DIRURL=$(grep -E '^DIRECT_URL=' .env.production.local | cut -d= -f2- | sed 's/^"//;s/"$//')
+   DATABASE_URL="$DBURL" DIRECT_URL="$DIRURL" npx prisma migrate status   # read-only pre-flight
+   DATABASE_URL="$DBURL" DIRECT_URL="$DIRURL" npx prisma migrate deploy
+   ```
+   (`.env.production.local` can't be `source`d — the unquoted `RESEND_FROM_EMAIL` breaks the shell. `DIRECT_URL` is the Supabase session port `:5432`; migrations need it, not the `:6543` pooler.)
+3. Deploy: `vercel --prod --yes --archive=tgz` (CLI auth already linked; `--archive=tgz` is required or the upload exceeds Vercel's 15k-file cap).
+4. Smoke-test live (public routes 200; auth-gated APIs 401/307; for auth flows mint a throwaway `Session` row and curl with the `gbn_user` cookie, then delete the test `User`).
+- **GitHub PRs:** the GitHub MCP server is currently broken (HTTP 400); open PRs via the GitHub REST API using the token in `~/.git-credentials` (`gh` CLI is not installed).
 
 ### Enable Google sign-in
 1. Create a Web Application OAuth Client at https://console.cloud.google.com/apis/credentials
