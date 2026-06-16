@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { getClientUserFromRequest } from "@/lib/auth";
 import { rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
 import { recordAudit } from "@/lib/audit";
-import { parseUpload, processClassificationQueue } from "@/lib/bulkClassify";
+import { parseUpload, drainAndContinue } from "@/lib/bulkClassify";
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 const MAX_ROWS = 500;
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
 
   // Kick processing immediately (survives response flush); cron drains any remainder.
   after(() =>
-    processClassificationQueue({ batchId: batch.id }).catch((e) =>
+    drainAndContinue(batch.id).catch((e) =>
       console.error("[bulk-classify] immediate processing error:", e)
     )
   );

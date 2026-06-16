@@ -218,3 +218,32 @@ export async function processClassificationQueue(opts?: {
   const remaining = await db.staffClassification.count({ where });
   return { processed, remaining };
 }
+
+// ─── Self-continuing background drain ──────────────────────────────────────
+// processClassificationQueue handles a bounded chunk (25 rows) so it never
+// times out. To finish a large batch promptly — instead of 25 rows/day via the
+// daily cron — each chunk re-triggers the next by pinging the drain endpoint,
+// which schedules the following chunk in after() and returns immediately. The
+// chain ends when no pending rows remain; the daily cron stays as a backstop.
+// Rows are processed sequentially, so AI calls are naturally rate-limited.
+
+export async function kickDrain(): Promise<void> {
+  const secret = process.env.CRON_SECRET;
+  const base = process.env.NEXT_PUBLIC_APP_URL;
+  if (!secret || !base) return; // no self-trigger without config; cron backstops
+  try {
+    await fetch(`${base}/api/cron/classify/process`, {
+      method: "POST",
+      headers: { "x-cron-secret": secret },
+      cache: "no-store",
+    });
+  } catch (err) {
+    console.error("[bulkClassify] kickDrain error (cron will backstop):", err);
+  }
+}
+
+// Process one chunk and, if work remains, trigger the next chunk.
+export async function drainAndContinue(batchId?: string): Promise<void> {
+  const r = await processClassificationQueue(batchId ? { batchId } : undefined);
+  if (r.remaining > 0) await kickDrain();
+}
