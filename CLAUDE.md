@@ -178,6 +178,12 @@ received → reviewing → documents → auditing → findings → engagement �
 - **Findings & recovery amount:** entered by admin in `/admin/cases/[ref]` → stored in `findingsSummary` (TEXT) and `recoveryAmountKobo` (BigInt — kobo). PDF includes both.
 - **Internal notes:** admin-only annotations (`CaseNote`), invisible to the client even in the NDPA data export.
 
+**Conversion & retention layer (recovery funnel):**
+- **Save-and-resume intake:** `IntakeForm` persists the full in-progress application + current step to `localStorage` (key `gbn_intake_draft`, shape `{ form, step }`), **device-only**; consent/terms fields are deliberately NOT persisted (re-affirmed each session). Auto-restores with a "resumed / Start over" banner; cleared on submit. Counters abandonment from the heavy compliance form.
+- **Fast-response SLA + alert:** new complaints fire a Slack alert (`lib/slack.ts`, no-op without `SLACK_WEBHOOK_URL`) from the intake `after()`, and `sendInternalComplaintNotification` shows a 24h "respond by" SLA banner (`slaDueAt`).
+- **Post-recovery NPS + referral:** the `recovered` status email (`sendStatusUpdate`) carries both a feedback CTA (`showFeedbackCta` → `/recovery/feedback?ref=…`) and a referral CTA (`showReferCta`). Public `/recovery/feedback` page → `POST /api/recovery/feedback` (rate-limited, **responds 200 generically to avoid reference enumeration**) writes `CaseFeedback`; admin case detail shows scores/comments. Audited `recovery_feedback_submitted`.
+- **Funnel drop-off:** `/admin/analytics` intake funnel shows per-step reach (form→contact→compliance→agreement→submit) with step-to-step drop-off %, derived from `intake_step` events' `props.to`.
+
 ## Operations
 
 ### Webhooks
@@ -217,7 +223,7 @@ received → reviewing → documents → auditing → findings → engagement �
 
 Stored in `prisma/schema.prisma`. Recently-added timestamp columns use `@db.Timestamptz(3)` (TIMESTAMPTZ) to avoid timezone bugs in cron-style comparisons — be aware that legacy columns (RecoveryComplaint, AuditLog) are still `TIMESTAMP(3)` and rely on Prisma writing/reading consistently as UTC.
 
-- **Recovery:** `RecoveryComplaint` (+ onboarding columns: facility/dispute, structured registered address, `representativeIdType`, `authorizationMethod`/`companyHasSoleDirector`/`loaSignatories`, `contact{Email,Phone}VerifiedAt`), `CaseStatusEvent`, `CaseNote`, `UploadedDocument`, `Referral`, `TermsAcceptance` (1:1 with complaint, tamper-evident acceptance), `OtpChallenge` (hashed contact-verification codes)
+- **Recovery:** `RecoveryComplaint` (+ onboarding columns: facility/dispute, structured registered address, `representativeIdType`, `authorizationMethod`/`companyHasSoleDirector`/`loaSignatories`, `contact{Email,Phone}VerifiedAt`), `CaseStatusEvent`, `CaseNote`, `UploadedDocument`, `Referral`, `TermsAcceptance` (1:1 with complaint, tamper-evident acceptance), `OtpChallenge` (hashed contact-verification codes), `CaseFeedback` (post-recovery NPS 0–10 + comment)
 - **Auth (admin):** `AdminUser`, `AuditLog`
 - **Auth (client):** `User`, `Session`, `MagicLinkToken`, `EmailChangeToken`
 - **AI artifacts (signed-in users):** `SavedClassification`, `SavedRoadmap`
