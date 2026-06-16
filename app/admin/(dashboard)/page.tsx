@@ -47,7 +47,15 @@ export default async function AdminDashboardPage({
 
   const emailStatus = getEmailConfigStatus();
   const me = await getAdminFromCookies();
-  const canRetention = can(normalizeRole(me?.role), "retention.purge");
+  const meRole = normalizeRole(me?.role);
+  const canRetention = can(meRole, "retention.purge");
+  const canExport = can(meRole, "pii.export");
+  const canAuditPurge = can(meRole, "audit.purge");
+  const backupHref: Record<string, { href: string; allowed: boolean }> = {
+    documents: { href: "/api/admin/export/documents", allowed: canExport },
+    audit: { href: "/api/admin/export/audit", allowed: canAuditPurge },
+    analytics: { href: "/api/admin/export/analytics", allowed: canExport },
+  };
   const storage = describeStorage();
   const [cases, totalAll, totalActive, totalRecovered, referralCount] = await Promise.all([
     db.recoveryComplaint.findMany({
@@ -76,18 +84,26 @@ export default async function AdminDashboardPage({
               <p className="mt-0.5 text-xs text-amber-800">
                 The following is already eligible for purge or will be within {warningDays} days. Back up / export anything you need to keep first.
               </p>
-              <ul className="mt-2 space-y-1 text-xs text-amber-900">
-                {purgeWarnings.map((w) => (
-                  <li key={w.key}>
-                    • <strong>{w.dueCount}</strong> {w.label} (retention {w.retentionDays} days
-                    {w.autoPurged ? " — auto-purged by the daily cron" : " — manual purge"}).
-                  </li>
-                ))}
+              <ul className="mt-2 space-y-1.5 text-xs text-amber-900">
+                {purgeWarnings.map((w) => {
+                  const backup = backupHref[w.key];
+                  return (
+                    <li key={w.key} className="flex flex-wrap items-center gap-x-2">
+                      <span>
+                        • <strong>{w.dueCount}</strong> {w.label} (retention {w.retentionDays} days
+                        {w.autoPurged ? " — auto-purged by the daily cron" : " — manual purge"}).
+                      </span>
+                      {backup?.allowed && (
+                        <a href={backup.href} className="inline-flex items-center gap-1 font-semibold underline hover:text-amber-950">
+                          Download backup <ArrowRight size={11} />
+                        </a>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
-              {canRetention && (
-                <Link href="/admin/export/complaints" className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-amber-900 underline hover:text-amber-950">
-                  Export complaints (CSV) <ArrowRight size={12} />
-                </Link>
+              {!canExport && !canAuditPurge && (
+                <p className="mt-2 text-xs text-amber-700">Ask an owner to download backups before the purge window elapses.</p>
               )}
             </div>
           </div>
