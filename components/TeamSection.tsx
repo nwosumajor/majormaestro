@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Award, Mail, Phone, MapPin, ExternalLink } from "lucide-react";
+import { Mail, Phone, MapPin, ExternalLink } from "lucide-react";
 
 /**
  * Forensic team credentials + contact section for the recovery landing page.
@@ -31,7 +31,9 @@ const TEAM: TeamMember[] = [
       "PMP",
       "HSE",
     ],
-    bio: "Former tier-1 bank Forensic Auditor with ₦400M+ recovered across 60+ organisations. Specialist in LC & trade-finance charges (SWIFT/UCP600), AML/CFT and bank disputes — grounded in CBN/BOFIA. Every case is confidential and success-fee only.",
+    bio: "Former tier-1 bank Forensic Auditor with ₦400M+ recovered across 60+ organisations. Specialist in LC & trade-finance charges (SWIFT/UCP600), AML/CFT and bank disputes — grounded in CBN/BOFIA.",
+    email: "forensic@majormaestro.com",
+    phone: "+234 903 958 6647",
   },
   {
     name: "Obe Adeolu Azeez",
@@ -62,7 +64,7 @@ const TEAM: TeamMember[] = [
     phone: "+234 798 143 0152",
   },
   {
-    name: "Ejim Joseph",
+    name: "Barr. Ejim Joseph",
     title: "Principal Consultant, Legal Division",
     credentials: [
       "Legal Counsel",
@@ -140,58 +142,47 @@ export default function TeamSection() {
           </p>
         </div>
 
-        <div
-          className={`grid grid-cols-1 gap-6 ${
-            TEAM.length === 1
-              ? "mx-auto max-w-sm"
-              : TEAM.length === 2
-                ? "mx-auto max-w-2xl sm:grid-cols-2"
-                : "md:grid-cols-3"
-          }`}
-        >
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {TEAM.map((m) => (
-            <div key={m.name} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              {m.headshot ? (
-                <Image
-                  src={m.headshot}
-                  alt={m.name}
-                  width={56}
-                  height={56}
-                  className="mb-4 h-14 w-14 rounded-full object-cover ring-2 ring-emerald-400/40"
-                />
-              ) : (
-                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-ink text-lg font-black text-accent-bright">
-                  {m.name.replace(/[[\]]/g, "").trim().charAt(0) || "?"}
+            <div key={m.name} className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center gap-3">
+                {m.headshot ? (
+                  <Image
+                    src={m.headshot}
+                    alt={m.name}
+                    width={44}
+                    height={44}
+                    className="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-emerald-400/40"
+                  />
+                ) : (
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink text-base font-black text-accent-bright">
+                    {m.name.replace(/^(Barr\.|Dr\.|Mr\.|Mrs\.|Ms\.)\s*/i, "").trim().charAt(0) || "?"}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <h3 className="truncate text-sm font-bold text-slate-900">{m.name}</h3>
+                  <p className="truncate text-xs font-semibold text-accent">{m.title}</p>
                 </div>
-              )}
-              <h3 className="text-base font-bold text-slate-900">{m.name}</h3>
-              <p className="text-sm font-semibold text-accent">{m.title}</p>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {m.credentials.map((c) => (
-                  <span key={c} className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
-                    <Award size={10} />{c}
-                  </span>
-                ))}
               </div>
-              <p className="mt-3 flex-1 text-sm leading-relaxed text-slate-600">{m.bio}</p>
-              {(m.email || m.phone) && (
-                <div className="mt-3 space-y-1 border-t border-slate-100 pt-3">
+              <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-slate-500">{m.bio}</p>
+              {(m.email || m.phone || m.linkedin) && (
+                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-100 pt-3 text-xs font-medium text-slate-500">
                   {m.email && (
-                    <a href={`mailto:${m.email}`} className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-accent break-all">
-                      <Mail size={12} className="shrink-0" />{m.email}
+                    <a href={`mailto:${m.email}`} className="inline-flex items-center gap-1.5 hover:text-accent">
+                      <Mail size={12} className="shrink-0" /> Email
                     </a>
                   )}
                   {m.phone && (
-                    <a href={`tel:${m.phone.replace(/[^+\d]/g, "")}`} className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-accent">
-                      <Phone size={12} className="shrink-0" />{m.phone}
+                    <a href={`tel:${m.phone.replace(/[^+\d]/g, "")}`} className="inline-flex items-center gap-1.5 hover:text-accent">
+                      <Phone size={12} className="shrink-0" /> {m.phone}
+                    </a>
+                  )}
+                  {m.linkedin && (
+                    <a href={m.linkedin} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-accent">
+                      <ExternalLink size={12} className="shrink-0" /> LinkedIn
                     </a>
                   )}
                 </div>
-              )}
-              {m.linkedin && (
-                <a href={m.linkedin} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:text-accent-bright">
-                  <ExternalLink size={13} /> LinkedIn
-                </a>
               )}
             </div>
           ))}
