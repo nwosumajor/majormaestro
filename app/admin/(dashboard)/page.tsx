@@ -9,6 +9,8 @@ import { normalizeRole, can } from "@/lib/rbac";
 import EmailStatusCard from "./EmailStatusCard";
 import RetentionCard from "./RetentionCard";
 import { describeStorage } from "@/lib/uploads";
+import { getPurgeWarnings } from "@/lib/retentionWarning";
+import { AlertTriangle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -60,8 +62,38 @@ export default async function AdminDashboardPage({
     db.referral.count(),
   ]);
 
+  const { warnings: purgeWarnings, warningDays } = await getPurgeWarnings();
+
   return (
     <div className="space-y-6">
+      {/* Pre-purge backup reminder — shown on the post-login dashboard */}
+      {purgeWarnings.length > 0 && (
+        <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-600" />
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-amber-900">Backup reminder — data is due for purge</p>
+              <p className="mt-0.5 text-xs text-amber-800">
+                The following is already eligible for purge or will be within {warningDays} days. Back up / export anything you need to keep first.
+              </p>
+              <ul className="mt-2 space-y-1 text-xs text-amber-900">
+                {purgeWarnings.map((w) => (
+                  <li key={w.key}>
+                    • <strong>{w.dueCount}</strong> {w.label} (retention {w.retentionDays} days
+                    {w.autoPurged ? " — auto-purged by the daily cron" : " — manual purge"}).
+                  </li>
+                ))}
+              </ul>
+              {canRetention && (
+                <Link href="/admin/export/complaints" className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-amber-900 underline hover:text-amber-950">
+                  Export complaints (CSV) <ArrowRight size={12} />
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stat cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat icon={Inbox} label="Total Cases" value={totalAll} accent="bg-blue-100 text-blue-700" />

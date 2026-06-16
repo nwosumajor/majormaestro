@@ -28,10 +28,19 @@ export interface RateLimitResult {
 // app never hard-fails on a rate-limit check. No SDK dependency — plain fetch
 // against the Upstash REST pipeline. Also reads Vercel KV's REST env aliases.
 // ---------------------------------------------------------------------------
+// Accepts native Upstash names, generic Vercel KV names, and the prefixed names
+// the Vercel Marketplace Upstash integration injects (e.g. MAJORMAESTRO_KV_*).
+// Uses the read-WRITE token (INCR/EXPIRE need writes), never the read-only one.
 const REDIS_URL =
-  process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || "";
+  process.env.UPSTASH_REDIS_REST_URL ||
+  process.env.KV_REST_API_URL ||
+  process.env.MAJORMAESTRO_KV_REST_API_URL ||
+  "";
 const REDIS_TOKEN =
-  process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || "";
+  process.env.UPSTASH_REDIS_REST_TOKEN ||
+  process.env.KV_REST_API_TOKEN ||
+  process.env.MAJORMAESTRO_KV_REST_API_TOKEN ||
+  "";
 const DURABLE = Boolean(REDIS_URL && REDIS_TOKEN);
 
 /** Whether the durable (cross-instance) backend is active. Surfaced for ops/health checks. */
