@@ -94,12 +94,13 @@ export async function POST(req: NextRequest) {
 
   if (kind === "school") {
     organizationName = (body.organizationName ?? "").trim();
-    contactPersonName = (body.contactPersonName ?? "").trim();
+    // The authorised contact's name is collected in `fullName`; mirror it here so
+    // admin views have an explicit contact-person field.
+    contactPersonName = fullName || null;
     contactPersonRole = (body.contactPersonRole ?? "").trim();
     safeguardingLeadName = (body.safeguardingLeadName ?? "").trim();
     safeguardingLeadContact = (body.safeguardingLeadContact ?? "").trim();
     if (!organizationName) fieldErrors.organizationName = "School / organisation name is required.";
-    if (!contactPersonName) fieldErrors.contactPersonName = "Contact person name is required.";
     if (!contactPersonRole) fieldErrors.contactPersonRole = "Contact person role is required.";
     if (!isValidEmail(body.contactEmail)) fieldErrors.contactEmail = "A valid school email is required.";
     else contactEmail = body.contactEmail!.trim();

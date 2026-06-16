@@ -131,7 +131,6 @@ export default function RegisterClient({ existing, agreementsAccepted }: Props) 
                 <input type="email" value={f.contactEmail} onChange={(e) => set("contactEmail", e.target.value)} className={errs.contactEmail ? inputErr : input} placeholder="admin@school.edu.ng" />
               </Field>
             </div>
-            <input type="hidden" value={f.contactPersonName} />
           </>
         )}
 
