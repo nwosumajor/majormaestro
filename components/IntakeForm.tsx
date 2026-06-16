@@ -171,6 +171,7 @@ export default function IntakeForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<SuccessState | null>(null);
+  const [draftRestored, setDraftRestored] = useState(false);
   // Field-level errors (keyed by FormState field) — set on blur (client) and
   // from a server 422 response. Cleared as the user edits the offending field.
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({});
@@ -263,24 +264,36 @@ export default function IntakeForm({
     );
   }
 
-  // On mount: fire the funnel event, restore any saved draft (org-level fields
-  // only — no contact PII or compliance acknowledgments are ever persisted),
-  // and pre-fill the turnover band if the visitor came from the estimator.
+  // On mount: fire the funnel event, restore any saved draft (save-and-resume —
+  // all data fields + the step, device-only; consent/terms are deliberately NOT
+  // persisted so they must be re-affirmed), and pre-fill the turnover band if the
+  // visitor came from the estimator.
   useEffect(() => {
     track("intake_start", referralCode ? { referred: true } : undefined);
+    let restoredStep: number | null = null;
     setForm((prev) => {
       let next = prev;
       try {
         const raw = localStorage.getItem(DRAFT_KEY);
         if (raw) {
-          const d = JSON.parse(raw) as Partial<FormState>;
-          next = {
-            ...next,
-            companyName: d.companyName || next.companyName,
-            rcNumber: d.rcNumber || next.rcNumber,
-            turnoverBand: d.turnoverBand || next.turnoverBand,
-            banks: Array.isArray(d.banks) && d.banks.length ? d.banks : next.banks,
-          };
+          const d = JSON.parse(raw) as { form?: Partial<FormState>; step?: number };
+          if (d.form && typeof d.form === "object") {
+            next = {
+              ...next,
+              ...d.form,
+              // Never restore consent/terms — these must be re-affirmed each session.
+              confirmedSignatory: false,
+              agreedNDPA: false,
+              termsAccepted: false,
+              termsSignerName: "",
+              termsSignerTitle: "",
+              banks: Array.isArray(d.form.banks) && d.form.banks.length ? d.form.banks : next.banks,
+            };
+            if (next.companyName || next.contactName || next.regAddressLine1) {
+              setDraftRestored(true);
+              if (typeof d.step === "number") restoredStep = Math.max(0, Math.min(d.step, STEPS.length - 1));
+            }
+          }
         }
       } catch {
         /* ignore malformed draft */
@@ -293,25 +306,29 @@ export default function IntakeForm({
       }
       return next;
     });
+    if (restoredStep !== null) setStep(restoredStep);
   }, [referralCode]);
 
-  // Persist a lightweight draft so a half-filled form survives an accidental
-  // close. Org fields only; cleared on successful submit.
+  // Persist the in-progress application (data + step) so it survives an accidental
+  // close or a "come back later". Device-only; consent/terms excluded; cleared on
+  // successful submit.
   useEffect(() => {
     try {
-      localStorage.setItem(
-        DRAFT_KEY,
-        JSON.stringify({
-          companyName: form.companyName,
-          rcNumber: form.rcNumber,
-          turnoverBand: form.turnoverBand,
-          banks: form.banks,
-        })
-      );
+      const { confirmedSignatory, agreedNDPA, termsAccepted, termsSignerName, termsSignerTitle, ...persist } = form;
+      void confirmedSignatory; void agreedNDPA; void termsAccepted; void termsSignerName; void termsSignerTitle;
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ form: persist, step, savedAt: Date.now() }));
     } catch {
       /* storage blocked */
     }
-  }, [form.companyName, form.rcNumber, form.turnoverBand, form.banks]);
+  }, [form, step]);
+
+  function startOver() {
+    try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+    setForm(INITIAL_STATE);
+    setStep(0);
+    setFieldErrors({});
+    setDraftRestored(false);
+  }
 
   const [uploadedFiles, setUploadedFiles] = useState<Partial<Record<SlotKey, UploadedFile>>>({});
   const [uploadStatus, setUploadStatus] = useState<Record<SlotKey, UploadStatus>>({
@@ -580,6 +597,13 @@ export default function IntakeForm({
           ))}
         </div>
       </div>
+
+      {draftRestored && !success && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-100 bg-amber-50 px-6 py-2.5 text-xs text-amber-800">
+          <span>We restored your saved progress on this device. You&apos;ll re-confirm the consents before submitting.</span>
+          <button type="button" onClick={startOver} className="font-semibold underline hover:text-amber-900">Start over</button>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="p-6">
         {/* Step 1: Organisation */}

@@ -20,6 +20,7 @@ import { RECOVERY_TERMS } from "@/lib/policies/recoveryTerms";
 import { computeAcknowledgementHash } from "@/lib/recoveryTermsHash";
 import { normalizeOtpTarget, OTP_VERIFIED_WINDOW_MS } from "@/lib/otp";
 import { smsConfigured } from "@/lib/sms";
+import { sendSlack } from "@/lib/slack";
 
 interface DocumentInfo {
   documentType: string;
@@ -404,14 +405,25 @@ export async function POST(req: NextRequest) {
     // they complete — a bare fire-and-forget Promise can be torn down on response
     // flush, silently dropping the internal notification. sendOrThrow (in lib/email)
     // throws on a rejected send, so a failed delivery is logged here, not swallowed.
+    // SLA: forensic specialist to respond within 24h of intake.
+    const slaDueAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
     after(async () => {
       await Promise.all([
         sendComplaintConfirmation(details).catch((e) =>
           console.error("[recovery] Confirmation email error:", e)
         ),
-        sendInternalComplaintNotification(details).catch((e) =>
+        sendInternalComplaintNotification({ ...details, slaDueAt }).catch((e) =>
           console.error("[recovery] Internal notification error:", e)
         ),
+        // Fast-response team alert (no-op if SLACK_WEBHOOK_URL unset).
+        sendSlack(
+          `🆕 *New recovery complaint* — ${body.companyName}\n` +
+            `Ref: ${referenceId} · Turnover: ${body.turnoverBand} · Banks: ${body.banks.join(", ")}\n` +
+            `Contact: ${body.contactName} (${body.contactTitle}) · ${body.contactEmail} · ${normalizedPhone}\n` +
+            `⏰ Respond by ${slaDueAt.toUTCString()}` +
+            (referralRow ? `\nReferred by ${referralRow.referrerName} (${referralRow.code})` : ""),
+        ).catch((e) => console.error("[recovery] Slack alert error:", e)),
         // Referral: notify the introducer + fire the referral.created webhook.
         referralRow
           ? sendReferralLeadNotification({

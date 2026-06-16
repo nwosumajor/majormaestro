@@ -39,6 +39,7 @@ export default async function AdminAnalyticsPage() {
     activeSessions,
     referrals,
     eventGroups,
+    intakeStepEvents,
   ] = await Promise.all([
     db.recoveryComplaint.count(),
     db.recoveryComplaint.count({ where: { createdAt: { gte: since30 } } }),
@@ -56,7 +57,15 @@ export default async function AdminAnalyticsPage() {
     db.session.count({ where: { revokedAt: null, expiresAt: { gt: new Date() } } }),
     db.referral.count(),
     db.analyticsEvent.groupBy({ by: ["name"], where: { createdAt: { gte: since30 } }, _count: { _all: true } }),
+    db.analyticsEvent.findMany({ where: { name: "intake_step", createdAt: { gte: since30 } }, select: { props: true } }),
   ]);
+
+  // Per-step intake reach (intake_step fires with {from,to}, 1-indexed steps).
+  const stepReach: Record<number, number> = {};
+  for (const e of intakeStepEvents) {
+    const to = (e.props as { to?: unknown } | null)?.to;
+    if (typeof to === "number") stepReach[to] = (stepReach[to] ?? 0) + 1;
+  }
 
   const ev = new Map<string, number>(eventGroups.map((g) => [g.name, g._count._all]));
   const evGet = (k: string) => ev.get(k) ?? 0;
@@ -198,18 +207,23 @@ export default async function AdminAnalyticsPage() {
               <p className="mb-3 text-sm font-bold text-slate-900">Recovery intake funnel</p>
               <div className="space-y-2">
                 {[
-                  { label: "Reached intake form", n: intakeStart },
-                  { label: "Advanced a step", n: evGet("intake_step") },
-                  { label: "Submitted complaint", n: intakeSubmit },
-                ].map((row) => {
+                  { label: "1 · Reached form", n: intakeStart },
+                  { label: "2 · Contact step", n: stepReach[2] ?? 0 },
+                  { label: "3 · Compliance step", n: stepReach[3] ?? 0 },
+                  { label: "4 · Agreement step", n: stepReach[4] ?? 0 },
+                  { label: "✓ Submitted", n: intakeSubmit },
+                ].map((row, i, arr) => {
                   const pct = intakeStart > 0 ? Math.min(100, (row.n / intakeStart) * 100) : 0;
+                  const prev = i > 0 ? arr[i - 1].n : row.n;
+                  const dropoff = prev > 0 && row.n < prev ? Math.round(((prev - row.n) / prev) * 100) : 0;
                   return (
                     <div key={row.label} className="flex items-center gap-3">
-                      <span className="w-40 shrink-0 text-xs font-medium text-slate-600">{row.label}</span>
+                      <span className="w-36 shrink-0 text-xs font-medium text-slate-600">{row.label}</span>
                       <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
                         <div className="h-full rounded-full bg-blue-500" style={{ width: `${pct}%` }} />
                       </div>
-                      <span className="w-10 shrink-0 text-right text-xs font-bold text-slate-800">{row.n}</span>
+                      <span className="w-8 shrink-0 text-right text-xs font-bold text-slate-800">{row.n}</span>
+                      <span className="w-14 shrink-0 text-right text-[10px] font-semibold text-red-500">{i > 0 && dropoff > 0 ? `−${dropoff}%` : ""}</span>
                     </div>
                   );
                 })}

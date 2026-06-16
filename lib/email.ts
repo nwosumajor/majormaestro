@@ -423,6 +423,7 @@ interface StatusUpdateInput {
   stepDescription: string;
   note?: string;
   showReferCta?: boolean;
+  showFeedbackCta?: boolean;
 }
 
 export async function sendStatusUpdate(input: StatusUpdateInput) {
@@ -462,6 +463,12 @@ export async function sendStatusUpdate(input: StatusUpdateInput) {
         </a>
       </div>
 
+      ${input.showFeedbackCta ? `
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:16px;text-align:center;margin-bottom:20px">
+        <p style="margin:0 0 8px;font-size:13px;color:#92400e">How did we do? <strong>It takes 20 seconds</strong> — your feedback helps us serve you better.</p>
+        <a href="${APP_URL}/recovery/feedback?ref=${encodeURIComponent(input.referenceId)}" style="display:inline-block;background:#b45309;color:#ffffff;font-weight:700;font-size:13px;text-decoration:none;padding:9px 20px;border-radius:6px">Rate your experience →</a>
+      </div>` : ""}
+
       ${input.showReferCta ? `
       <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:16px;text-align:center;margin-bottom:20px">
         <p style="margin:0 0 8px;font-size:13px;color:#065f46">Know another company that may be owed money? <strong>Refer &amp; earn</strong> — a fixed bonus plus a share of their recovery.</p>
@@ -491,6 +498,7 @@ export async function sendInternalComplaintNotification(details: ComplaintDetail
   rcNumber: string;
   contactTitle: string;
   contactPhone: string;
+  slaDueAt?: Date;
 }) {
   if (!resend) {
     console.warn("[email] RESEND_API_KEY not set — skipping internal notification");
@@ -506,6 +514,9 @@ export async function sendInternalComplaintNotification(details: ComplaintDetail
         <p style="margin:0 0 4px;font-size:12px;font-weight:700;color:#dc2626;text-transform:uppercase">Reference ID</p>
         <p style="margin:0;font-size:22px;font-weight:900;color:#991b1b;font-family:monospace">${details.referenceId}</p>
       </div>
+      ${details.slaDueAt ? `<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:12px 16px;margin-bottom:24px;text-align:center">
+        <p style="margin:0;font-size:13px;font-weight:700;color:#b45309">⏰ SLA: respond to this prospect by ${details.slaDueAt.toUTCString()} (within 24 hours)</p>
+      </div>` : ""}
 
       <h3 style="margin:0 0 12px;font-size:15px;color:#0f172a">Organisation Details</h3>
       <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px">

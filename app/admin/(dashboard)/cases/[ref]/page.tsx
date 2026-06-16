@@ -45,6 +45,7 @@ export default async function AdminCaseDetailPage({
       notes: { orderBy: { createdAt: "desc" } },
       referral: true,
       termsAcceptance: true,
+      feedback: { orderBy: { createdAt: "desc" } },
     },
   });
 
@@ -105,6 +106,26 @@ export default async function AdminCaseDetailPage({
           )}
         </div>
       </div>
+
+      {/* Post-recovery feedback (NPS) */}
+      {complaint.feedback.length > 0 && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-slate-500">
+            <CheckCircle2 size={14} /> Client Feedback (NPS)
+          </h2>
+          <div className="space-y-3">
+            {complaint.feedback.map((fb) => (
+              <div key={fb.id} className="flex items-start gap-3">
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-black ${fb.score >= 9 ? "bg-emerald-100 text-emerald-700" : fb.score >= 7 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>{fb.score}</span>
+                <div className="min-w-0">
+                  {fb.comment ? <p className="text-sm text-slate-700">{fb.comment}</p> : <p className="text-sm italic text-slate-400">No comment</p>}
+                  <p className="mt-0.5 text-xs text-slate-400">{fmtDate(fb.createdAt)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* KYC & engagement context (Features 3, 4 & 5) */}
       {(complaint.regAddressLine1 || complaint.representativeIdType || complaint.hasActiveOrPendingFacility != null || complaint.authorizationMethod) && (

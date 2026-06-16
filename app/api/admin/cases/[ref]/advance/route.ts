@@ -96,6 +96,7 @@ export async function POST(
         stepDescription: STEP_DEFS[targetStep].description,
         note: note ?? undefined,
         showReferCta: isClosing,
+        showFeedbackCta: isClosing,
       }).catch((e) => console.error("[advance] Status email error:", e))
     );
   }

@@ -53,6 +53,7 @@ model RecoveryComplaint {
   statusEvents        CaseStatusEvent[]
   notes               CaseNote[]
   termsAcceptance     TermsAcceptance?
+  feedback            CaseFeedback[]
   findingsSummary     String?
   recoveryAmountKobo  BigInt?
   closedAt            DateTime?
@@ -206,6 +207,18 @@ model TermsAcceptance {
   acceptedAt          DateTime          @default(now()) @db.Timestamptz(3)
 
   @@index([userId])
+}
+
+// Post-recovery NPS / satisfaction feedback.
+model CaseFeedback {
+  id          String            @id @default(cuid())
+  complaintId String
+  complaint   RecoveryComplaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  score       Int // NPS 0..10
+  comment     String?
+  createdAt   DateTime          @default(now()) @db.Timestamptz(3)
+
+  @@index([complaintId])
 }
 
 model SavedClassification {
