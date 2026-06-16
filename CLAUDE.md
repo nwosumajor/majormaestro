@@ -214,7 +214,7 @@ received → reviewing → documents → auditing → findings → engagement �
 - Test endpoint: `POST /api/admin/email-test` sends a probe email to the calling admin.
 
 ### Rate limiting (`lib/rateLimit.ts`)
-- **`rateLimit()` is async — `await` it.** Durable across instances via Upstash Redis (REST) when `UPSTASH_REDIS_REST_URL`/`_TOKEN` (or `KV_REST_API_*`) are set; otherwise an in-memory sliding window (resets on deploy, per-instance), failing open to memory on a Redis error. Applied to: `/api/recovery` (5/hr), `/api/lead-magnet` (10/hr), `/api/refer` (10/hr), `/api/admin/login` (5/15min), `/api/auth/email/start` (5/hr per IP, 3/hr per email), `/api/client/me/email-change/start` (3/hr per user), `/api/recovery/[ref]/data` (5/hr), the AI endpoints (`/api/chat`, `/api/roadmap`, `/api/pre-screen`, `/api/parse-cv`, `/api/classify`), and `/api/recovery/otp/{start,verify}`.
+- **`rateLimit()` is async — `await` it.** **Durable cross-instance limiting is LIVE in prod** via the Vercel Marketplace **Upstash Redis** (the integration injects `MAJORMAESTRO_KV_REST_API_URL`/`_TOKEN`; the code also accepts `UPSTASH_REDIS_REST_*` and `KV_REST_API_*`). Falls back to an in-memory sliding window (per-instance, resets on deploy) when no Redis is configured, and fails open to memory on a Redis error. Applied to: `/api/recovery` (5/hr), `/api/lead-magnet` (10/hr), `/api/refer` (10/hr), `/api/admin/login` (5/15min), `/api/auth/email/start` (5/hr per IP, 3/hr per email), `/api/client/me/email-change/start` (3/hr per user), `/api/recovery/[ref]/data` (5/hr), the AI endpoints (`/api/chat`, `/api/roadmap`, `/api/pre-screen`, `/api/parse-cv`, `/api/classify`), and `/api/recovery/otp/{start,verify}`.
 
 ### Security headers
 - Set globally in `proxy.ts`: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: camera=(), microphone=(), geolocation=()`. Plus HSTS in production.
@@ -239,7 +239,7 @@ Both require `CRON_SECRET`. Pass it as `Authorization: Bearer <secret>` OR `X-Cr
 | Path | Recommended schedule | What it does |
 |---|---|---|
 | `/api/cron/webhooks/retry` | every 5 minutes | Re-attempts due `WebhookDelivery` rows, escalates backoff, dead-letters at 5 attempts |
-| `/api/cron/cleanup` | daily | Deletes magic-link / email-change / revoked-or-expired session rows + expired `OtpChallenge` rows older than 1 day past expiry |
+| `/api/cron/cleanup` | daily | Deletes magic-link / email-change / revoked-or-expired session rows + expired `OtpChallenge` rows (1 day past expiry) + `AnalyticsEvent` rows older than `ANALYTICS_RETENTION_DAYS` (180) |
 | `/api/cron/classify/process` | daily (backstop) | Drains pending `StaffClassification` rows for bulk HR classification jobs. The upload route also kicks immediate processing via `after()`, so cron is only a backstop; an external scheduler can hit it more often for prompt draining of large batches. |
 | `/api/cron/gicn/reconcile-payments` | every ~30 min (GitHub Actions: `.github/workflows/gicn-reconcile.yml`) | Reconciles stale `pending` GICN sponsorships against Paystack — confirms successes whose webhook+callback both missed (idempotent paid flip + email), marks failed/abandoned/reversed (and >24h-stuck) transactions as `failed`. No-op when Paystack is unconfigured. |
 | `/api/cron/gicn/scholarship-reminders` | daily (GitHub Actions: `.github/workflows/gicn-scholarship-reminders.yml`) | Scholarship monitoring nudges — renewal reminders to guardians (`renewalDueAt` within 14 days) + at-risk/breach nudges to the board. Idempotent via the AuditLog (`lib/scholarshipReminders.ts`). |
@@ -258,7 +258,8 @@ See `.env.example` for the full annotated set. Critical groups:
 - `CRON_SECRET` (cron auth)
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, optional `ADMIN_GOOGLE_DOMAIN` (OAuth)
 - **Recovery onboarding (all optional, safe defaults):** `LOA_SIGNATORY_ENFORCEMENT` (`advisory`|`strict`, default advisory), `RECOVERY_OTP_REQUIRED` (default false), `SMS_PROVIDER`/`SMS_API_KEY`/`SMS_SENDER_ID` (phone OTP; stubbed when unset)
-- **Durable rate limiting (optional):** `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` (or Vercel KV's `KV_REST_API_URL`/`KV_REST_API_TOKEN`) — `lib/rateLimit.ts` is async and shares limits across instances when set, else falls back to in-memory
+- **Durable rate limiting (LIVE):** provisioned via Vercel Marketplace Upstash Redis → `MAJORMAESTRO_KV_REST_API_URL`/`_TOKEN` (code also reads `UPSTASH_REDIS_REST_*` / `KV_REST_API_*`). Falls back to in-memory if unset.
+- **Retention windows & backup:** `RETENTION_DAYS` (docs, 1095), `AUDIT_LOG_RETENTION_DAYS` (730), `ANALYTICS_RETENTION_DAYS` (analytics events, 180 — auto-purged by the cleanup cron), `PURGE_WARNING_DAYS` (dashboard backup-reminder window, 14). The admin dashboard shows a pre-purge backup banner; CSV backup downloads at `/api/admin/export/{audit,analytics,documents}` (gated `audit.purge` / `pii.export`, default the purge-eligible subset, `?all=1` for everything).
 
 ## Common operations
 
