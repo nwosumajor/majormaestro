@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, ClipboardList, CheckCircle2, Clock, AlertCircle, FileSearch, Loader2, ArrowRight, Phone, Download, Shield } from "lucide-react";
+import { Search, ClipboardList, CheckCircle2, Clock, AlertCircle, FileSearch, Loader2, ArrowRight, MessageCircle, Download, Shield } from "lucide-react";
 import Link from "next/link";
 
 interface StatusStep {
@@ -267,8 +267,8 @@ export default function TrackPage() {
             <Link href="/recovery#intake" className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-bold text-white hover:bg-accent-bright transition-colors">
               Lodge a Complaint <ArrowRight size={14} />
             </Link>
-            <a href="tel:+2348000000000" className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors">
-              <Phone size={14} /> Call Us
+            <a href="https://wa.me/2349039586647?text=Hello%20MajorMaestro%2C%20I%27d%20like%20to%20speak%20with%20your%20forensic%20recovery%20team." target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors">
+              <MessageCircle size={14} /> WhatsApp Us
             </a>
           </div>
         </div>
