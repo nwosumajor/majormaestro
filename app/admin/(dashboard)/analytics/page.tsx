@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { unstable_cache } from "next/cache";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BarChart3, Scale, Banknote, Users, Sparkles, FileSpreadsheet, Mail, UserPlus, ExternalLink } from "lucide-react";
@@ -9,56 +10,66 @@ import { normalizeRole, can } from "@/lib/rbac";
 export const dynamic = "force-dynamic";
 
 const naira = new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 });
-function fmtNaira(kobo: bigint | null) {
+function fmtNaira(kobo: number | null) {
   if (!kobo) return "₦0";
-  return naira.format(Number(kobo) / 100);
+  return naira.format(kobo / 100);
 }
+
+// Expensive admin-wide aggregates (≈16 counts/groupBy + an event scan). Cached
+// server-side for 60s so repeated dashboard views don't re-hit Postgres — this
+// is shared aggregate data (no per-user/PII), so cross-request caching is safe.
+// BigInt is converted to number so the result is JSON-serialisable for the cache.
+const loadAnalytics = unstable_cache(
+  async () => {
+    const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const [
+      complaintsTotal, complaints30, statusGroups, referredComplaints, recoveredAgg,
+      leadsTotal, leads30, savedClassifications, savedRoadmaps, batches, staffClassified,
+      usersTotal, users30, activeSessions, referrals, eventGroups, intakeStepEvents,
+    ] = await Promise.all([
+      db!.recoveryComplaint.count(),
+      db!.recoveryComplaint.count({ where: { createdAt: { gte: since30 } } }),
+      db!.recoveryComplaint.groupBy({ by: ["status"], _count: { _all: true } }),
+      db!.recoveryComplaint.count({ where: { referralCode: { not: null } } }),
+      db!.recoveryComplaint.aggregate({ _sum: { recoveryAmountKobo: true } }),
+      db!.leadMagnetSubscriber.count(),
+      db!.leadMagnetSubscriber.count({ where: { createdAt: { gte: since30 } } }),
+      db!.savedClassification.count(),
+      db!.savedRoadmap.count(),
+      db!.classificationBatch.count(),
+      db!.staffClassification.count(),
+      db!.user.count(),
+      db!.user.count({ where: { createdAt: { gte: since30 } } }),
+      db!.session.count({ where: { revokedAt: null, expiresAt: { gt: new Date() } } }),
+      db!.referral.count(),
+      db!.analyticsEvent.groupBy({ by: ["name"], where: { createdAt: { gte: since30 } }, _count: { _all: true } }),
+      db!.analyticsEvent.findMany({ where: { name: "intake_step", createdAt: { gte: since30 } }, select: { props: true } }),
+    ]);
+    return {
+      complaintsTotal, complaints30,
+      statusGroups: statusGroups.map((g) => ({ status: g.status, count: g._count._all })),
+      referredComplaints,
+      recoveredKobo: recoveredAgg._sum.recoveryAmountKobo ? Number(recoveredAgg._sum.recoveryAmountKobo) : 0,
+      leadsTotal, leads30, savedClassifications, savedRoadmaps, batches, staffClassified,
+      usersTotal, users30, activeSessions, referrals,
+      eventGroups: eventGroups.map((g) => ({ name: g.name, count: g._count._all })),
+      intakeStepEvents: intakeStepEvents.map((e) => ({ props: e.props })),
+    };
+  },
+  ["admin-analytics-v1"],
+  { revalidate: 60, tags: ["admin-analytics"] }
+);
 
 export default async function AdminAnalyticsPage() {
   // Role guard — recovery analytics are not part of the GICN-only surface.
   if (!can(normalizeRole((await getAdminFromCookies())?.role), "cases.read")) redirect("/admin/gicn");
   if (!db) return <p className="text-sm text-red-700">Database not configured.</p>;
 
-  // eslint-disable-next-line react-hooks/purity -- async Server Component (not React-compiled); Date.now() is correctly evaluated at request time.
-  const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
-  const [
-    complaintsTotal,
-    complaints30,
-    statusGroups,
-    referredComplaints,
-    recoveredAgg,
-    leadsTotal,
-    leads30,
-    savedClassifications,
-    savedRoadmaps,
-    batches,
-    staffClassified,
-    usersTotal,
-    users30,
-    activeSessions,
-    referrals,
-    eventGroups,
-    intakeStepEvents,
-  ] = await Promise.all([
-    db.recoveryComplaint.count(),
-    db.recoveryComplaint.count({ where: { createdAt: { gte: since30 } } }),
-    db.recoveryComplaint.groupBy({ by: ["status"], _count: { _all: true } }),
-    db.recoveryComplaint.count({ where: { referralCode: { not: null } } }),
-    db.recoveryComplaint.aggregate({ _sum: { recoveryAmountKobo: true } }),
-    db.leadMagnetSubscriber.count(),
-    db.leadMagnetSubscriber.count({ where: { createdAt: { gte: since30 } } }),
-    db.savedClassification.count(),
-    db.savedRoadmap.count(),
-    db.classificationBatch.count(),
-    db.staffClassification.count(),
-    db.user.count(),
-    db.user.count({ where: { createdAt: { gte: since30 } } }),
-    db.session.count({ where: { revokedAt: null, expiresAt: { gt: new Date() } } }),
-    db.referral.count(),
-    db.analyticsEvent.groupBy({ by: ["name"], where: { createdAt: { gte: since30 } }, _count: { _all: true } }),
-    db.analyticsEvent.findMany({ where: { name: "intake_step", createdAt: { gte: since30 } }, select: { props: true } }),
-  ]);
+  const {
+    complaintsTotal, complaints30, statusGroups, referredComplaints, recoveredKobo,
+    leadsTotal, leads30, savedClassifications, savedRoadmaps, batches, staffClassified,
+    usersTotal, users30, activeSessions, referrals, eventGroups, intakeStepEvents,
+  } = await loadAnalytics();
 
   // Per-step intake reach (intake_step fires with {from,to}, 1-indexed steps).
   const stepReach: Record<number, number> = {};
@@ -67,13 +78,13 @@ export default async function AdminAnalyticsPage() {
     if (typeof to === "number") stepReach[to] = (stepReach[to] ?? 0) + 1;
   }
 
-  const ev = new Map<string, number>(eventGroups.map((g) => [g.name, g._count._all]));
+  const ev = new Map<string, number>(eventGroups.map((g) => [g.name, g.count]));
   const evGet = (k: string) => ev.get(k) ?? 0;
   // Intake funnel completion (events fire per interaction; start→submit = completion)
   const intakeStart = evGet("intake_start");
   const intakeSubmit = evGet("intake_submit");
   const intakeCompletion = intakeStart > 0 ? Math.round((intakeSubmit / intakeStart) * 100) : 0;
-  const totalEvents = eventGroups.reduce((s, g) => s + g._count._all, 0);
+  const totalEvents = eventGroups.reduce((s, g) => s + g.count, 0);
   const EVENT_ROWS: { key: string; label: string }[] = [
     { key: "cta_click", label: "CTA clicks" },
     { key: "estimator_complete", label: "Estimator used" },
@@ -87,13 +98,13 @@ export default async function AdminAnalyticsPage() {
     { key: "position_create", label: "Custom positions created" },
   ];
 
-  const statusCounts = new Map<string, number>(statusGroups.map((g) => [g.status, g._count._all]));
+  const statusCounts = new Map<string, number>(statusGroups.map((g) => [g.status, g.count]));
   const recovered = statusCounts.get("recovered") ?? 0;
   const conversionRate = complaintsTotal > 0 ? Math.round((recovered / complaintsTotal) * 100) : 0;
 
   const headline = [
     { icon: Scale, label: "Recovery cases", value: complaintsTotal, sub: `${complaints30} in last 30 days`, tone: "text-emerald-700 bg-emerald-100" },
-    { icon: Banknote, label: "Total recovered", value: fmtNaira(recoveredAgg._sum.recoveryAmountKobo), sub: `${recovered} cases closed as recovered`, tone: "text-emerald-700 bg-emerald-100", isText: true },
+    { icon: Banknote, label: "Total recovered", value: fmtNaira(recoveredKobo), sub: `${recovered} cases closed as recovered`, tone: "text-emerald-700 bg-emerald-100", isText: true },
     { icon: BarChart3, label: "Case → recovery rate", value: `${conversionRate}%`, sub: `${recovered} of ${complaintsTotal} cases`, tone: "text-blue-700 bg-blue-100", isText: true },
     { icon: ExternalLink, label: "Referral-attributed", value: referredComplaints, sub: `${referrals} referral partners`, tone: "text-violet-700 bg-violet-100" },
   ];
